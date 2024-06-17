@@ -10,8 +10,9 @@ from jax.typing import ArrayLike
 import pathlib
 
 from bde.ml.loss import LogLikelihoodLoss
+from bde.utils import configs as cnfg
 
-SEED = 42  # TODO: Move to configs file
+SEED = cnfg.General.SEED
 
 
 class TestHSplitPred:
