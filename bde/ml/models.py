@@ -23,6 +23,9 @@ class BasicModule(nn.Module, ABC):
     """
     An abstract Module class for easy inheritance and API implementation
     """
+    n_input_params: Union[int, list[int]]
+    n_output_params: Union[int, list[int]]
+
     @abstractmethod
     def __call__(self, *args, **kwargs):
         """
@@ -31,7 +34,6 @@ class BasicModule(nn.Module, ABC):
         ...
 
 
-# @dataclass
 class FullyConnectedModule(BasicModule):
     """
     A class for easy initialization of fully connected neural network with flax.
@@ -46,8 +48,6 @@ class FullyConnectedModule(BasicModule):
         """
         Function for performing the calculation of the module.
         """
-        x = nn.Dense(features=self.n_input_params)(x)
-        x = nn.relu(x)
         if self.layer_sizes is not None:
             layer_sizes = self.layer_sizes
             if isinstance(layer_sizes, int):
@@ -129,6 +129,8 @@ def init_dense_model(
     """
     rng = jax.random.key(seed=seed)
     rng, inp_rng, init_rng = jax.random.split(rng, 3)
+    if not isinstance(model.n_input_params, int):
+        raise NotImplementedError(f"Only 1 input is currently supported")
     inp = jax.random.normal(inp_rng, (batch_size, model.n_input_params))
     params = model.init(init_rng, inp)
     return params, inp
