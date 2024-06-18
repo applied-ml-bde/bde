@@ -52,10 +52,13 @@ class FullyConnectedModule(BasicModule):
             layer_sizes = self.layer_sizes
             if isinstance(layer_sizes, int):
                 layer_sizes = (layer_sizes, )
-            for layer_size in layer_sizes:
-                x = nn.Dense(features=layer_size)(x)
+            for idx, layer_size in enumerate(layer_sizes):
+                x = nn.Dense(
+                    features=layer_size,
+                    name=f"DenseLayer{idx}",
+                )(x)
                 x = nn.relu(x)
-        x = nn.Dense(features=self.n_output_params)(x)
+        x = nn.Dense(features=self.n_output_params, name=f"Output")(x)
         x = nn.softmax(x) if self.do_final_activation else x
         return x
 

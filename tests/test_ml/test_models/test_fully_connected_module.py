@@ -57,7 +57,9 @@ def test_output_size(n_output):
         seed=cnfg.General.SEED,
     )
     params = params['params']
-    assert params["Dense_0"]["bias"].size == n_output
+    k = [kk for kk in params.keys() if "output" in kk.lower()]
+    k = k[-1]
+    assert params[k]["bias"].size == n_output
 
 
 if __name__ == '__main__':
