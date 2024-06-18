@@ -43,7 +43,7 @@ def test_input_size(n_input):
     assert net.n_input_params == n_input
 
 
-@pytest.mark.parametrize("n_output", [1, 3])
+@pytest.mark.parametrize("n_output", [7, 3])
 def test_output_size(n_output):
     net = bde.ml.models.FullyConnectedModule(
         n_input_params=2,
@@ -60,6 +60,63 @@ def test_output_size(n_output):
     k = [kk for kk in params.keys() if "output" in kk.lower()]
     k = k[-1]
     assert params[k]["bias"].size == n_output
+
+
+@pytest.mark.parametrize("layer_size", [5, 3])
+def test_layers_size_with_int_layers(layer_size):
+    net = bde.ml.models.FullyConnectedModule(
+        n_input_params=2,
+        n_output_params=2,
+        layer_sizes=layer_size,
+        do_final_activation=False,
+    )
+    params, _ = bde.ml.models.init_dense_model(
+        model=net,
+        batch_size=1,
+        seed=cnfg.General.SEED,
+    )
+    params = params['params']
+    k = [kk for kk in params.keys() if "dense" in kk.lower()]
+    k = k[-1]
+    assert params[k]["bias"].size == layer_size
+
+
+def test_layers_sizes_with_a_list_of_layer_sizes():
+    layer_sizes = [5, 3]
+    net = bde.ml.models.FullyConnectedModule(
+        n_input_params=2,
+        n_output_params=2,
+        layer_sizes=layer_sizes,
+        do_final_activation=False,
+    )
+    params, _ = bde.ml.models.init_dense_model(
+        model=net,
+        batch_size=1,
+        seed=cnfg.General.SEED,
+    )
+    params = params['params']
+    k = [kk for kk in params.keys() if "dense" in kk.lower()]
+    k0 = [kk for kk in k if "0" in kk][0]
+    k1 = [kk for kk in k if "1" in kk][0]
+    assert params[k0]["bias"].size == layer_sizes[0] and params[k1]["bias"].size == layer_sizes[1]
+
+
+@pytest.mark.parametrize("n_batch", [1, 4])
+@pytest.mark.parametrize("n_output", [7, 3])
+def test_output_shape(n_batch, n_output):
+    net = bde.ml.models.FullyConnectedModule(
+        n_input_params=5,
+        n_output_params=n_output,
+        layer_sizes=None,
+        do_final_activation=False,
+    )
+    params, inp = bde.ml.models.init_dense_model(
+        model=net,
+        batch_size=n_batch,
+        seed=cnfg.General.SEED,
+    )
+    res = net.apply(params, inp)
+    assert res.shape == (n_batch, n_output)
 
 
 if __name__ == '__main__':
