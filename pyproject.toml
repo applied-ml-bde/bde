@@ -16,7 +16,6 @@ ipython = ">8.22"
 jax = ">0.4.26"
 jupyter = "^1.0.0"
 jupyterlab = ">4.1"
-keras = ">2.10"
 matplotlib = ">3.8.3"
 notebook = ">7.1"
 numpy = ">1.26"
@@ -27,9 +26,6 @@ pytest = ">7.4"
 scikit-learn = ">1.4"
 scipy = ">1.13"
 seaborn = ">0.12"
-tensorboard = ">2.10"
-tensorflow = ">2.10"
-torch = ">2.3"
 
 
 [tool.poetry.group.dev.dependencies]
