@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "bde"
+version = "0.1.0"
+description = "A package implementing BDE models."
+authors = [
+    "Konstantin Krivokon <@uni-muenchen.de>",
+    "Steffen Jauchwalser <@uni-muenchen.de>",
+]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+flax = "^0.8.3"
+ipython = "^8.22"
+jax = "^0.4.26"
+jupyter = "^1.0"
+jupyterlab = "^4.1"
+keras = "^2.10"
+matplotlib = "^3.8.3"
+notebook = "^7.1"
+numpy = "^1.26"
+optax = "^0.2"
+pandas = "^2.2"
+pip = "^24.0"
+pytest = "^7.4"
+scikit-learn = "^1.4"
+scipy = "^1.13"
+seaborn = "^0.12"
+tensorboard = "^2.10"
+tensorflow = "^2.10"
+torch = "^2.3"
+
+
+[tool.poetry.group.dev.dependencies]
+sphinx-autodoc-typehints = "^2.0.0"
+sphinx-rtd-theme = "^2.0.0"
+coverage = "^7.5.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
