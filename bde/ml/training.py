@@ -14,11 +14,9 @@ import pathlib
 import pytest
 
 
-class Losses:
-    ...
 @jax.jit
 def train_step(state, inp: tuple[ArrayLike, ArrayLike],
-               f_loss: Callable[[Any, dict, Array], float] = Losses.loss_pde_qm) -> tuple[Any, float]:
+               f_loss: Callable[[Any, dict, Array], float]) -> tuple[Any, float]:
     """
     Perform an optimization step for the network
     :param state: The state of the network.

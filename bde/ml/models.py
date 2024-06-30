@@ -16,7 +16,7 @@ import pytest
 from sklearn.base import BaseEstimator
 
 import bde.ml.training
-# from bde.utils import configs as cnfg
+from bde.utils import configs as cnfg
 
 
 class BasicModule(nn.Module, ABC):
@@ -115,7 +115,11 @@ class FullyConnectedEstimator(BaseEstimator):
         return self.model.apply(self.params, X)
 
 
-def init_dense_model(model: BasicModule, batch_size: int = 1, seed: int = 42) -> tuple[dict, Array]:
+def init_dense_model(
+        model: BasicModule,
+        batch_size: int = 1,
+        seed: int = cnfg.General.SEED,
+) -> tuple[dict, Array]:
     """
     Fast initialization for a fully connected dense network
     :param model: A model object
