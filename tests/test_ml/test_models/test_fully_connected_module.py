@@ -119,5 +119,27 @@ def test_output_shape(n_batch, n_output):
     assert res.shape == (n_batch, n_output)
 
 
+@pytest.mark.parametrize("n_batch", [1, 4])
+@pytest.mark.parametrize("n_size", [1, 3])
+@pytest.mark.parametrize("n_layers", [0, 1, 2])
+def test_application_as_unit_network(n_batch, n_size, n_layers):
+    net = bde.ml.models.FullyConnectedModule(
+        n_input_params=n_size,
+        n_output_params=n_size,
+        layer_sizes=None if n_layers < 1 else ([n_size] * n_layers),
+        do_final_activation=False,
+    )
+    params, inp = bde.ml.models.init_dense_model(
+        model=net,
+        batch_size=n_batch,
+        seed=cnfg.General.SEED,
+    )
+    for k, v in params["params"].items():
+        params["params"][k]["kernel"] = jnp.eye(n_size)
+        params["params"][k]["bias"] = jnp.zeros_like(params["params"][k]["bias"])
+    inp = jnp.abs(inp)  # Intermediate layers use ReLU.
+    assert jnp.allclose(inp, net.apply(params, inp))
+
+
 if __name__ == '__main__':
     pytest.main()
