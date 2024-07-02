@@ -74,6 +74,8 @@ class FullyConnectedEstimator(BaseEstimator):
             loss: Callable,
             batch_size: int = 1,
             epochs: int = 1,
+            metrics: Optional[list] = None,
+            validation_size: Optional[Union[float, tuple[ArrayLike, ArrayLike]]] = None,
             seed: int = cnfg.General.SEED,
             **kwargs,
     ):
@@ -83,6 +85,8 @@ class FullyConnectedEstimator(BaseEstimator):
         self.loss = loss
         self.batch_size = batch_size
         self.epochs = epochs
+        self.metrics = metrics
+        self.validation_size = validation_size
         self.seed = seed
 
     def fit(
@@ -96,6 +100,14 @@ class FullyConnectedEstimator(BaseEstimator):
         :param y: The labels. If y is None, X is assumed to include the labels as well.
         """
         self.params_ = None
+        self.history_ = dict()
+        if self.metrics is None:
+            self.metrics = list()
+        else:
+            raise ValueError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
+        if self.validation_size is not None:
+            raise ValueError(f"Validation is not yet supported.")  # TODO: Remove after implementation
+
         n_splits = X.shape[0] // self.batch_size
         if y is None:
             y = X
@@ -117,6 +129,7 @@ class FullyConnectedEstimator(BaseEstimator):
             params=self.params_,
             tx=self.optimizer,
         )
+        name_base = f""  # use f"val_" for validation variations
         for epoch in range(self.epochs):
             # ADD: optional shuffling
             for xx, yy in zip(jnp.split(X, n_splits), jnp.split(y, n_splits)):
@@ -125,6 +138,12 @@ class FullyConnectedEstimator(BaseEstimator):
                     batch=(xx, yy),
                     f_loss=self.loss,
                 )
+                self.history_[f"{name_base}loss"] = self.history_.get(f"{name_base}loss", list()) + [loss]
+
+                for metric_name, a_metric in self.metrics:
+                    metric_val = a_metric  # TODO: Calculate metric properly
+                    metric_key = f"{name_base}{metric_name}"
+                    self.history_[metric_key] = self.history_.get(metric_key, list()) + [metric_val]
 
                 # model_state_, loss_train = pde_net.ml.training.train_step(model_state_, (x_train, b_train))
                 # loss_test = loss_func(model_state_, model_state_.params, x_test, b_test)
