@@ -15,6 +15,7 @@ import pytest
 class LogLikelihoodLoss:
     sigma: float = 1e-6,
     mean_weight: float = 1.0,
+    do_reduce: bool = False,
 
     @jax.jit
     def __call__(self, y_true: ArrayLike, y_pred: ArrayLike) -> ArrayLike:
@@ -26,9 +27,11 @@ class LogLikelihoodLoss:
         """
         mean_pred, std_pred = self._split_pred(y_true=y_true, y_pred=y_pred)
         res = jnp.log(std_pred)
-        res += (self.mean_weight / 2) * (((y_true - mean_pred) / std_pred) ** 2)
-        # ADD: reductions
-        return res.mean(axis=tuple(range(1, res.ndim)))
+        weight_factor = jnp.array(self.mean_weight).reshape(-1) / 2
+        res += weight_factor * (((y_true - mean_pred) / std_pred) ** 2)
+        # ADD: An option for reduction=False:
+        # return res.mean(axis=tuple(range(1, res.ndim)))
+        return res.mean()
 
     @jax.jit
     def _split_pred(self, y_true: ArrayLike, y_pred: ArrayLike) -> tuple[Array, Array]:
