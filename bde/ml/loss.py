@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
 from collections.abc import Iterable, Generator, Callable
+from flax.training.train_state import TrainState
 from flax.struct import dataclass
 import jax
 from jax import numpy as jnp
@@ -10,6 +11,7 @@ import pathlib
 import pytest
 
 # from bde.utils import configs as cnfg
+
 
 @dataclass
 class LogLikelihoodLoss:
@@ -29,9 +31,9 @@ class LogLikelihoodLoss:
         res = jnp.log(std_pred)
         weight_factor = jnp.array(self.mean_weight).reshape(-1) / 2
         res += weight_factor * (((y_true - mean_pred) / std_pred) ** 2)
-        # ADD: An option for reduction=False:
-        # return res.mean(axis=tuple(range(1, res.ndim)))
-        return res.mean()
+        # ADD: An option for reduction=True:
+        return res.mean(axis=tuple(range(1, res.ndim)))
+        # return res.mean()
 
     @jax.jit
     def _split_pred(self, y_true: ArrayLike, y_pred: ArrayLike) -> tuple[Array, Array]:
@@ -66,6 +68,31 @@ class LogLikelihoodLoss:
             constant_values=1,
         )
         return mean_pred, std_pred
+
+
+def flax_training_loss_wrapper_regression(
+        f_loss: Callable[[ArrayLike, ArrayLike], float],
+) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    @jax.jit
+    def sub_f(state, params, batch):
+        x, y = batch
+        preds = state.apply_fn(params, x)
+        loss = f_loss(y, preds)
+        return jnp.mean(loss)
+    return sub_f
+
+
+def flax_training_loss_wrapper_classification(
+        f_loss: Callable[[ArrayLike, ArrayLike], float],
+) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    @jax.jit
+    def sub_f(state, params, batch):
+        x, y = batch
+        preds = state.apply_fn(params, x)
+        preds = (preds > 0).astype(jnp.float32)
+        loss = f_loss(y, preds)
+        return jnp.mean(loss)
+    return sub_f
 
 
 if __name__ == "__main__":

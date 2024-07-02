@@ -13,7 +13,7 @@ from bde.ml.loss import LogLikelihoodLoss
 from bde.utils import configs as cnfg
 
 SEED = cnfg.General.SEED
-possible_reductions = [True]
+possible_reductions = [False]
 
 
 class TestHSplitPred:
