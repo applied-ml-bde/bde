@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
 from collections.abc import Iterable, Generator, Callable
+from flax.training.train_state import TrainState
 from flax.struct import dataclass
 import jax
 from jax import numpy as jnp
@@ -11,10 +12,12 @@ import pytest
 
 # from bde.utils import configs as cnfg
 
+
 @dataclass
 class LogLikelihoodLoss:
     sigma: float = 1e-6,
     mean_weight: float = 1.0,
+    do_reduce: bool = False,
 
     @jax.jit
     def __call__(self, y_true: ArrayLike, y_pred: ArrayLike) -> ArrayLike:
@@ -26,9 +29,11 @@ class LogLikelihoodLoss:
         """
         mean_pred, std_pred = self._split_pred(y_true=y_true, y_pred=y_pred)
         res = jnp.log(std_pred)
-        res += (self.mean_weight / 2) * (((y_true - mean_pred) / std_pred) ** 2)
-        # ADD: reductions
+        weight_factor = jnp.array(self.mean_weight).reshape(-1) / 2
+        res += weight_factor * (((y_true - mean_pred) / std_pred) ** 2)
+        # ADD: An option for reduction=True:
         return res.mean(axis=tuple(range(1, res.ndim)))
+        # return res.mean()
 
     @jax.jit
     def _split_pred(self, y_true: ArrayLike, y_pred: ArrayLike) -> tuple[Array, Array]:
@@ -63,6 +68,31 @@ class LogLikelihoodLoss:
             constant_values=1,
         )
         return mean_pred, std_pred
+
+
+def flax_training_loss_wrapper_regression(
+        f_loss: Callable[[ArrayLike, ArrayLike], float],
+) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    @jax.jit
+    def sub_f(state, params, batch):
+        x, y = batch
+        preds = state.apply_fn(params, x)
+        loss = f_loss(y, preds)
+        return jnp.mean(loss)
+    return sub_f
+
+
+def flax_training_loss_wrapper_classification(
+        f_loss: Callable[[ArrayLike, ArrayLike], float],
+) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    @jax.jit
+    def sub_f(state, params, batch):
+        x, y = batch
+        preds = state.apply_fn(params, x)
+        preds = (preds > 0).astype(jnp.float32)
+        loss = f_loss(y, preds)
+        return jnp.mean(loss)
+    return sub_f
 
 
 if __name__ == "__main__":

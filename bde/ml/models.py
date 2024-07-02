@@ -23,6 +23,9 @@ class BasicModule(nn.Module, ABC):
     """
     An abstract Module class for easy inheritance and API implementation
     """
+    n_input_params: Union[int, list[int]]
+    n_output_params: Union[int, list[int]]
+
     @abstractmethod
     def __call__(self, *args, **kwargs):
         """
@@ -31,7 +34,6 @@ class BasicModule(nn.Module, ABC):
         ...
 
 
-# @dataclass
 class FullyConnectedModule(BasicModule):
     """
     A class for easy initialization of fully connected neural network with flax.
@@ -46,16 +48,17 @@ class FullyConnectedModule(BasicModule):
         """
         Function for performing the calculation of the module.
         """
-        x = nn.Dense(features=self.n_input_params)(x)
-        x = nn.relu(x)
         if self.layer_sizes is not None:
             layer_sizes = self.layer_sizes
             if isinstance(layer_sizes, int):
                 layer_sizes = (layer_sizes, )
-            for layer_size in layer_sizes:
-                x = nn.Dense(features=layer_size)(x)
+            for idx, layer_size in enumerate(layer_sizes):
+                x = nn.Dense(
+                    features=layer_size,
+                    name=f"DenseLayer{idx}",
+                )(x)
                 x = nn.relu(x)
-        x = nn.Dense(features=self.n_output_params)(x)
+        x = nn.Dense(features=self.n_output_params, name=f"Output")(x)
         x = nn.softmax(x) if self.do_final_activation else x
         return x
 
@@ -64,47 +67,85 @@ class FullyConnectedEstimator(BaseEstimator):
     """
     A class implementing an SKlearn API for the BaseEstimator
     """
-    def __init__(self, model: BasicModule, optimizer: optax._src.base.GradientTransformation, loss: Callable,
-                 seed: int = cnfg.General.SEED, **kwargs):
+    def __init__(
+            self,
+            model: BasicModule,
+            optimizer: optax._src.base.GradientTransformation,
+            loss: Callable,
+            batch_size: int = 1,
+            epochs: int = 1,
+            seed: int = cnfg.General.SEED,
+            **kwargs,
+    ):
+        super().__init__(**kwargs)
         self.model = model
         self.optimizer = optimizer
         self.loss = loss
+        self.batch_size = batch_size
+        self.epochs = epochs
         self.seed = seed
 
-    def fit(self, X: ArrayLike, y: Optional[ArrayLike] = None) -> None:
+    def fit(
+            self,
+            X: ArrayLike,
+            y: Optional[ArrayLike] = None,
+    ) -> BaseEstimator:
         """
         Fit the function to the given data.
         :param X: The input data.
         :param y: The labels. If y is None, X is assumed to include the labels as well.
         """
-        self.params = None
-        if y is not None:
-            X = zip(X, y)
-        for x, y in X:
-            if self.params is None:
-                self.batch_size = x.shape[0]
-                self.params, _ = init_dense_model(self.model, self.batch_size, self.seed)
-                self.model_state = train_state.TrainState.create(apply_fn=self.model.apply,
-                                                                 params=self.params,
-                                                                 tx=self.optimizer)
-            bde.ml.training.train_step(self.model_state, x, f_loss=self.loss)
+        self.params_ = None
+        n_splits = X.shape[0] // self.batch_size
+        if y is None:
+            y = X
+        if y.shape[0] != X.shape[0]:
+            raise ValueError(f"X and y don't match in number of samples.")
+        X, y = X[:(n_splits * self.batch_size)], y[:(n_splits * self.batch_size)]
+        # TODO: Implement a function which shuffles, crops, and return a list of zipped batches.
+        #  Once it is done, remove the manual split above.
+        #  The idea is that if there are some extra items,
+        #  they would be used in some of the epochs due to the shuffling.
 
-            # model_state, loss_train = pde_net.ml.training.train_step(model_state, (x_train, b_train))
-            # loss_test = loss_func(model_state, model_state.params, x_test, b_test)
-            # train_log.append(loss_train)
-            # test_log.append(loss_test)
-            # states_log.append(model_state)
-            #
-            # if min_test is None or early_stop is None:
-            #     min_test = loss_test
-            #     continue
-            # if loss_test < min_test:
-            #     min_test = loss_test
-            #     cons_worse = 0
-            #     continue
-            # cons_worse += 1
-            # if cons_worse >= early_stop:
-            #     break
+        self.params_, _ = init_dense_model(
+            model=self.model,
+            batch_size=self.batch_size,
+            seed=self.seed,
+        )
+        model_state = train_state.TrainState.create(
+            apply_fn=self.model.apply,
+            params=self.params_,
+            tx=self.optimizer,
+        )
+        for epoch in range(self.epochs):
+            # ADD: optional shuffling
+            for xx, yy in zip(jnp.split(X, n_splits), jnp.split(y, n_splits)):
+                model_state, loss = bde.ml.training.train_step(
+                    model_state,
+                    batch=(xx, yy),
+                    f_loss=self.loss,
+                )
+
+                # model_state_, loss_train = pde_net.ml.training.train_step(model_state_, (x_train, b_train))
+                # loss_test = loss_func(model_state_, model_state_.params, x_test, b_test)
+                # train_log.append(loss_train)
+                # test_log.append(loss_test)
+                # states_log.append(model_state_)
+                #
+                # if min_test is None or early_stop is None:
+                #     min_test = loss_test
+                #     continue
+                # if loss_test < min_test:
+                #     min_test = loss_test
+                #     cons_worse = 0
+                #     continue
+                # cons_worse += 1
+                # if cons_worse >= early_stop:
+                #     break
+            # ADD: Validation stage
+        self.params_ = model_state.params
+        self.is_fitted_ = True  # TODO: Check if this is required by the API
+        return self
 
     def predict(self, X: ArrayLike) -> Array:
         """
@@ -112,7 +153,7 @@ class FullyConnectedEstimator(BaseEstimator):
         :param X: The input data
         :return: Predicted labels
         """
-        return self.model.apply(self.params, X)
+        return self.model.apply(self.params_, X)
 
 
 def init_dense_model(
@@ -129,6 +170,8 @@ def init_dense_model(
     """
     rng = jax.random.key(seed=seed)
     rng, inp_rng, init_rng = jax.random.split(rng, 3)
+    if not isinstance(model.n_input_params, int):
+        raise NotImplementedError(f"Only 1 input is currently supported")
     inp = jax.random.normal(inp_rng, (batch_size, model.n_input_params))
     params = model.init(init_rng, inp)
     return params, inp
