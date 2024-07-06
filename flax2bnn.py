@@ -128,8 +128,7 @@ class ProbModelBuilder:
                     scale=jnp.exp(lvals[..., 1]).clip(min=1e-6, max=1e6),
                 ).log_prob(Y)
             )
-        else:
-            return jnp.sum(dist.Categorical(logits=lvals).log_prob(Y))
+        return jnp.sum(dist.Categorical(logits=lvals).log_prob(Y))
 
     def log_unnormalized_posterior(
         self, params: dict, X: jnp.ndarray, Y: jnp.ndarray, type: str = 'regr'
