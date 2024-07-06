@@ -28,7 +28,7 @@ def get_flattened_keys(d: dict, sep='.'):
     keys = []
     for k, v in d.items():
         if isinstance(v, dict):
-            keys.extend([f'{k}{sep}{kk}' for kk in get_flattened_keys(v)])
+            keys.extend([f'{k}{sep}{kk}' for kk in get_flattened_keys(v, sep=sep)])
         else:
             keys.append(k)
     return keys
