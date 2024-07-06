@@ -88,8 +88,7 @@ class ProbModelBuilder:
         if self.prior_config['scheme'] == 'equal':
             distr = self.map_distribution(self.prior_config['details'])
             return self.set_constant_prior(self.params, distr=distr)
-        else:
-            raise ValueError(f'Scheme {self.prior_config["scheme"]} not implemented')
+        raise ValueError(f'Scheme {self.prior_config["scheme"]} not implemented')
 
     def log_prior(self, params: dict):
         """Log prior for the parameters of the model."""
