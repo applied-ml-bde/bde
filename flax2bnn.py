@@ -59,10 +59,9 @@ class ProbModelBuilder:
         """Map the distribution from string to callable."""
         if config['dist'] == 'Normal':
             return dist.Normal(scale=config['sd'])
-        elif config['dist'] == 'Laplace':
+        if config['dist'] == 'Laplace':
             return dist.Laplace(scale=config['sd'])
-        else:
-            raise ValueError(f'Distribution {config["dist"]} not implemented')
+        raise ValueError(f'Distribution {config["dist"]} not implemented')
 
     def set_constant_prior(
         self, params: dict, distr: dist.Distribution = dist.Normal()
