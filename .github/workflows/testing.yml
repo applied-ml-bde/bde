@@ -11,7 +11,7 @@ on:
     - 'main'
 
 jobs:
-  build:
+  testing:
 
     runs-on: ubuntu-latest
 
@@ -51,16 +51,18 @@ jobs:
         pip install flake8 mypy pydocstyle coverage black
 
 ##########################
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 bde/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 bde/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
         source .venv/bin/activate
         coverage run -m pytest tests/
+
+    - name: Lint with flake8
+      if: ${{ always() }}
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 --count --select=E9,F63,F7,F82 --show-source --statistics bde
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics bde
 ##########################
 
     # - name: Generate coverage reports
