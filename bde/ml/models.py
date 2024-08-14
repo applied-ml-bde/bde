@@ -1,6 +1,4 @@
-"""
-Models
-======
+r"""Models.
 
 This module contains classes and functions for defining and managing various
 neural network models used in the Bayesian Deep Ensembles (BDE) framework.
@@ -58,13 +56,13 @@ class BasicModule(nn.Module, ABC):
     __call__(*args, **kwargs)
         Abstract method to be implemented by subclasses, defining the API of a forward pass of the module.
     """
+
     n_input_params: Union[int, list[int]]
     n_output_params: Union[int, list[int]]
 
     @abstractmethod
     def __call__(self, *args, **kwargs):
-        r"""Perform the calculation of the module.
-        """
+        r"""Perform the calculation of the module."""
         ...
 
 
@@ -95,6 +93,7 @@ class FullyConnectedModule(BasicModule):
     __call__(x)
         Define the forward pass of the fully connected network.
     """
+
     n_input_params: int
     n_output_params: int
     layer_sizes: Optional[Union[Iterable[int], int]] = None
@@ -102,7 +101,7 @@ class FullyConnectedModule(BasicModule):
 
     @nn.compact
     def __call__(self, x):
-        r"""Perform a forward pass of the fully connected network
+        r"""Perform a forward pass of the fully connected network.
 
         The forward pass processes the input data `x` through a series of fully connected layers,
         with the option to apply an activation function to the final layer.
@@ -257,7 +256,7 @@ class FullyConnectedEstimator(BaseEstimator):
         return self
 
     def predict(self, X: ArrayLike) -> Array:
-        r"""Applies the fitted model to the input data.
+        r"""Apply the fitted model to the input data.
 
         :param X: The input data.
         :return: Predicted labels.

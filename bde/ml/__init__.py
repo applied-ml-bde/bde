@@ -1,6 +1,4 @@
-"""
-Machine Learning Module for Bayesian Deep Ensembles (BDE)
-=========================================================
+r"""Machine Learning Module for Bayesian Deep Ensembles (BDE).
 
 The `bde.ml` module provides the core machine learning components required for
 building and training Bayesian Neural Networks within the Bayesian Deep Ensembles (BDE) framework.
@@ -22,7 +20,6 @@ Example Usage
     >>>
     >>>
     >>>
-
 """
 
 from bde.ml import (

@@ -1,6 +1,4 @@
-"""
-Training Utilities for Bayesian Neural Networks
-===============================================
+r"""Training Utilities for Bayesian Neural Networks.
 
 This module provides functionality for training Bayesian Neural Networks within the
 Bayesian Deep Ensembles (BDE) framework.
