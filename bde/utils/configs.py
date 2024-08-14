@@ -14,8 +14,8 @@ from typing import Any, Union
 
 
 class General:
-    r"""A class to hold general configuration settings for the BDE framework.
-    """
+    r"""A class to hold general configuration settings for the BDE framework."""
+
     SEED = 42
 
 

@@ -1,6 +1,4 @@
-"""
-Loss Functions for Bayesian Neural Networks
-===========================================
+r"""Loss Functions for Bayesian Neural Networks.
 
 This module contains implementations of loss functions and their wrappers
 used in training Bayesian Neural Networks within the Bayesian Deep Ensembles (BDE) framework.
@@ -61,6 +59,7 @@ class LogLikelihoodLoss:
     _split_pred(y_true, y_pred)
         Splits the predicted values into predictions and their corresponding uncertainties.
     """
+
     epsilon: float = 1e-6,
     mean_weight: float = 1.0,
     do_reduce: bool = False,
@@ -91,7 +90,7 @@ class LogLikelihoodLoss:
 
     @jax.jit
     def _split_pred(self, y_true: ArrayLike, y_pred: ArrayLike) -> tuple[Array, Array]:
-        r"""Splits the predicted values into 2 arrays of the same shape: predictions and uncertainties.
+        r"""Split the predicted values into 2 arrays of the same shape: predictions and uncertainties.
 
         The number of expected values is inferred based on the number of features
         (size of last axis) of the true labels:

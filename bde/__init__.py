@@ -1,6 +1,4 @@
-"""
-Bayesian Deep Ensembles (BDE) Package
-=====================================
+r"""Bayesian Deep Ensembles (BDE) Package.
 
 This package implements Bayesian Neural Networks (BNNs) with deep ensembles,
 combining the power of Bayesian inference with the flexibility of neural networks.
