@@ -1,3 +1,24 @@
+"""
+Models
+======
+
+This module contains classes and functions for defining and managing various
+neural network models used in the Bayesian Deep Ensembles (BDE) framework.
+It includes basic building blocks like fully connected layers and estimators
+that adhere to the scikit-learn API.
+
+Classes
+-------
+- `BasicModule`: An abstract base class defining an API for neural network modules.
+- `FullyConnectedModule`: A fully connected neural network module.
+- `FullyConnectedEstimator`: A scikit-learn-compatible estimator for training models.
+
+Functions
+---------
+- `init_dense_model`: Utility function for initializing a fully connected dense model.
+
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
 from collections.abc import Iterable, Generator, Callable
@@ -20,23 +41,59 @@ from bde.utils import configs as cnfg
 
 
 class BasicModule(nn.Module, ABC):
-    """
-    An abstract Module class for easy inheritance and API implementation
+    r"""An abstract base class for easy inheritance and API implementation.
+
+    Attributes
+    ----------
+    n_input_params : Union[int, list[int]]
+        The number of input parameters or the shape of the input tensor(s).
+        This can be an integer for models with a single-input
+        or a list of integers for multi-input models.
+    n_output_params : Union[int, list[int]]
+        The number of output parameters or the shape of the output tensor(s). Similar
+        to `n_input_params`, this can be an integer or a list.
+
+    Methods
+    -------
+    __call__(*args, **kwargs)
+        Abstract method to be implemented by subclasses, defining the API of a forward pass of the module.
     """
     n_input_params: Union[int, list[int]]
     n_output_params: Union[int, list[int]]
 
     @abstractmethod
     def __call__(self, *args, **kwargs):
-        """
-        Function for performing the calculation of the module.
+        r"""Perform the calculation of the module.
         """
         ...
 
 
 class FullyConnectedModule(BasicModule):
-    """
-    A class for easy initialization of fully connected neural network with flax.
+    r"""A class for easy initialization of fully connected neural networks with flax.
+
+    This class allows for the creation of fully connected neural
+    networks with a variable number of layers and neurons per layer.
+    This class implements the API defined by `BasicModule`.
+
+    Attributes
+    ----------
+    n_input_params : int
+        The number of input features or neurons in the input layer.
+    n_output_params : int
+        The number of output features or neurons in the output layer.
+    layer_sizes : Optional[Union[Iterable[int], int]], optional
+        The number of neurons in each hidden layer.
+        If an integer is provided, a single hidden layer with that many neurons is created.
+        If an iterable of integers is provided, multiple hidden layers are created with the specified number of neurons.
+        Default is None, which implies no hidden layers (only an input layer and an output layer).
+    do_final_activation : bool, optional
+        Whether to apply an activation function to the output layer.
+        Default is True, meaning the final layer will have an activation function (softmax).
+
+    Methods
+    -------
+    __call__(x)
+        Define the forward pass of the fully connected network.
     """
     n_input_params: int
     n_output_params: int
@@ -45,8 +102,13 @@ class FullyConnectedModule(BasicModule):
 
     @nn.compact
     def __call__(self, x):
-        """
-        Function for performing the calculation of the module.
+        r"""Perform a forward pass of the fully connected network
+
+        The forward pass processes the input data `x` through a series of fully connected layers,
+        with the option to apply an activation function to the final layer.
+
+        :param x: The input data, typically a batch of samples with shape `(batch_size, n_input_params)`.
+        :return: The output of the network, with shape `(batch_size, n_output_params)`.
         """
         if self.layer_sizes is not None:
             layer_sizes = self.layer_sizes
@@ -64,9 +126,23 @@ class FullyConnectedModule(BasicModule):
 
 
 class FullyConnectedEstimator(BaseEstimator):
+    r"""SKlearn-compatible estimator for training fully connected neural networks with Jax.
+
+    The `FullyConnectedEstimator` class wraps a Flax-based neural network model into an SKlearn-style estimator,
+    providing a compatible interface for fitting, predicting, and evaluating models.
+
+    Attributes
+    ----------
+    # TODO: List
+
+    Methods
+    -------
+    fit(X, y=None)
+        Fit the model to the training data.
+    predict(X)
+        Predict the output for the given input data using the trained model.
     """
-    A class implementing an SKlearn API for the BaseEstimator
-    """
+
     def __init__(
             self,
             model: BasicModule,
@@ -79,6 +155,19 @@ class FullyConnectedEstimator(BaseEstimator):
             seed: int = cnfg.General.SEED,
             **kwargs,
     ):
+        r"""Initialize the estimator architecture and training parameters.
+
+        :param model: The neural network model to train.
+        :param optimizer: The optimizer for training the model.
+        :param loss: The loss function used during training.
+        :param batch_size: The batch size for training, by default 1.
+        :param epochs: Number of epochs for training, by default 1.
+        :param metrics: A list of metrics to evaluate during training, by default None.
+        :param validation_size: The size of the validation set,
+        or a tuple containing validation data. by default None.
+        :param seed: Random seed for initialization.
+        :param kwargs: Additional keyword arguments.
+        """
         super().__init__(**kwargs)
         self.model = model
         self.optimizer = optimizer
@@ -94,10 +183,11 @@ class FullyConnectedEstimator(BaseEstimator):
             X: ArrayLike,
             y: Optional[ArrayLike] = None,
     ) -> BaseEstimator:
-        """
-        Fit the function to the given data.
+        r"""Fit the function to the given data.
+
         :param X: The input data.
         :param y: The labels. If y is None, X is assumed to include the labels as well.
+        :return: The fitted estimator.
         """
         self.params_ = None
         self.history_ = dict()
@@ -167,10 +257,10 @@ class FullyConnectedEstimator(BaseEstimator):
         return self
 
     def predict(self, X: ArrayLike) -> Array:
-        """
-        Applies the fitted model to the input data.
-        :param X: The input data
-        :return: Predicted labels
+        r"""Applies the fitted model to the input data.
+
+        :param X: The input data.
+        :return: Predicted labels.
         """
         return self.model.apply(self.params_, X)
 
@@ -180,12 +270,12 @@ def init_dense_model(
         batch_size: int = 1,
         seed: int = cnfg.General.SEED,
 ) -> tuple[dict, Array]:
-    """
-    Fast initialization for a fully connected dense network
-    :param model: A model object
-    :param batch_size: The batch size for training
-    :param seed: A seed for initialization
-    :return: A dict with the params, and the input used for the initialization
+    r"""Fast initialization for a fully connected dense network.
+
+    :param model: A model object.
+    :param batch_size: The batch size for training.
+    :param seed: A seed for initialization.
+    :return: A dict with the params, and the input used for the initialization.
     """
     rng = jax.random.key(seed=seed)
     rng, inp_rng, init_rng = jax.random.split(rng, 3)
