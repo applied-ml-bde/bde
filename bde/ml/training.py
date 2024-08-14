@@ -1,3 +1,16 @@
+"""
+Training Utilities for Bayesian Neural Networks
+===============================================
+
+This module provides functionality for training Bayesian Neural Networks within the
+Bayesian Deep Ensembles (BDE) framework.
+
+Functions
+---------
+- `train_step`: Executes a single optimization step for the neural network.
+
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional, Callable
 from collections.abc import Iterable
@@ -23,8 +36,11 @@ def train_step(
         batch: tuple[ArrayLike, ArrayLike],
         f_loss: Callable[[ArrayLike, ArrayLike], float],
 ) -> tuple[TrainState, float]:
-    """
-    Perform an optimization step for the network
+    r"""Perform an optimization step for the network.
+
+    This function updates the model parameters by performing a single
+    optimization step using the provided loss function.
+
     :param state: The training-state of the network.
     :param batch: Input data-points for the training set, containing 2 items:
         - A set of training data-points.

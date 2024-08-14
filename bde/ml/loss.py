@@ -1,3 +1,21 @@
+"""
+Loss Functions for Bayesian Neural Networks
+===========================================
+
+This module contains implementations of loss functions and their wrappers
+used in training Bayesian Neural Networks within the Bayesian Deep Ensembles (BDE) framework.
+
+Classes
+-------
+- `LogLikelihoodLoss`: A callable class for computing the log-likelihood of predictions.
+
+Functions
+---------
+- `flax_training_loss_wrapper_regression`: Wraps a regression loss function for training.
+- `flax_training_loss_wrapper_classification`: Wraps a classification loss function for training.
+
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional
 from collections.abc import Iterable, Generator, Callable
@@ -17,9 +35,31 @@ import pytest
 class LogLikelihoodLoss:
     r"""A callable jax-supported class for computing the log-likelihood of the given predictions and labels.
 
+    This class implements the log-likelihood loss,
+    which is commonly used in probabilistic models to quantify the difference between the predicted
+    probability distribution and the true labels.
+
+    Mathematically, it is defined as:
+
     .. math::
         \ell_{\text{log-likelihood}} = log(max(\sigma, \epsilon)) +
         \frac{\omega}{2} \cdot (\frac{\hat\mu - \mu}{max(\sigma, \epsilon)})^2
+
+    Attributes
+    ----------
+    epsilon : float
+        A small constant added to prevent division by zero.
+    mean_weight : float
+        The weight applied to the mean squared error term.
+    do_reduce : bool
+        Whether to reduce the computed loss to a single value (mean).
+
+    Methods
+    -------
+    __call__(y_true, y_pred)
+        Computes the log-likelihood loss for the given predictions and labels.
+    _split_pred(y_true, y_pred)
+        Splits the predicted values into predictions and their corresponding uncertainties.
     """
     epsilon: float = 1e-6,
     mean_weight: float = 1.0,
@@ -28,17 +68,18 @@ class LogLikelihoodLoss:
     @jax.jit
     def __call__(self, y_true: ArrayLike, y_pred: ArrayLike) -> ArrayLike:
         # TODO: Complete docstring
-        r"""Computes the log-likelihood of the given predictions and labels.
+        r"""Compute the log-likelihood of the given predictions and labels.
 
-        :param y_true: The labels.
-        An array of the shape ``(n_samples, ..., n_features)``.
+        :param y_true: The true labels. An array of the shape ``(n_samples, ..., n_features)``.
         :param y_pred: The predicted values.
         An array of the shape ``(n_samples, ..., n_features + n_uncertainty)``.
-        If ``n_uncertainty < n_features`` the last ``n_features - n_uncertainty``
-        will be assigned an uncertainty of 1, which effectively calculates their MSE (as long as ``\epsilon\se1``).
+        If ``n_uncertainty < n_features``, the last ``n_features - n_uncertainty``
+        will be assigned an uncertainty of 1, which effectively calculates their MSE
+        (as long as ``\epsilon\se1``).
+
         :return: Returns the log-likelihood of the given values.
-            If not reduced, a value is returned for each
-            If reduced, returns the mean of the non-reduced value.
+        If `do_reduce` is `False`, returns a value for each prediction.
+        If `do_reduce` is `True`, returns the mean of the non-reduced values.
         """
         mean_pred, std_pred = self._split_pred(y_true=y_true, y_pred=y_pred)
         res = jnp.log(std_pred)
@@ -50,8 +91,8 @@ class LogLikelihoodLoss:
 
     @jax.jit
     def _split_pred(self, y_true: ArrayLike, y_pred: ArrayLike) -> tuple[Array, Array]:
-        """
-        Splits the predicted values into 2 arrays of the same shape.
+        r"""Splits the predicted values into 2 arrays of the same shape: predictions and uncertainties.
+
         The number of expected values is inferred based on the number of features
         (size of last axis) of the true labels:
             - The 1st array corresponds a prediction to each label.
@@ -63,9 +104,10 @@ class LogLikelihoodLoss:
 
               If there are too many items predicted, they would be cut-off.
               # NOTE: Is this the desired behavior?
+
         :param y_true: The true labels.
-        :param y_pred: The predicted values. The last axis includes the labels, and the uncertainties.
-        :return: A tuple containing the predicted labels, and the predicted uncertainty.
+        :param y_pred: The predicted values. The last axis includes both the labels and the uncertainties.
+        :return: A tuple containing the predicted labels and the predicted uncertainty.
         """
         # TODO: Make sure that the prediction is not too large or too small.
         n_mean = y_true.shape[-1]
@@ -87,6 +129,16 @@ class LogLikelihoodLoss:
 def flax_training_loss_wrapper_regression(
         f_loss: Callable[[ArrayLike, ArrayLike], float],
 ) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    r"""Wrap a regression loss function for use in Flax training.
+
+    This function wraps a regression loss function so that it can be used in
+    the training loop of a Flax model.
+
+    :param f_loss: The loss function to wrap.
+    It should take the true labels and predicted labels as input and return the computed loss value.
+    :return: A function that can be used in the training loop,
+    taking the model state, parameters, and a batch of data as input and returning the loss.
+    """
     @jax.jit
     def sub_f(state, params, batch):
         x, y = batch
@@ -99,6 +151,16 @@ def flax_training_loss_wrapper_regression(
 def flax_training_loss_wrapper_classification(
         f_loss: Callable[[ArrayLike, ArrayLike], float],
 ) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    r"""Wrap a classification loss function for use in Flax training.
+
+    This function wraps a classification loss function so that it can be used in
+    the training loop of a Flax model.
+
+    :param f_loss: The loss function to wrap.
+    It should take the true labels and predicted labels as input and return the computed loss value.
+    :return: A function that can be used in the training loop,
+    taking the model state, parameters, and a batch of data as input and returning the loss.
+    """
     @jax.jit
     def sub_f(state, params, batch):
         x, y = batch
