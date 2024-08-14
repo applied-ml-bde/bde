@@ -15,17 +15,30 @@ import pytest
 
 @dataclass
 class LogLikelihoodLoss:
-    sigma: float = 1e-6,
+    r"""A callable jax-supported class for computing the log-likelihood of the given predictions and labels.
+
+    .. math::
+        \ell_{\text{log-likelihood}} = log(max(\sigma, \epsilon)) +
+        \frac{\omega}{2} \cdot (\frac{\hat\mu - \mu}{max(\sigma, \epsilon)})^2
+    """
+    epsilon: float = 1e-6,
     mean_weight: float = 1.0,
     do_reduce: bool = False,
 
     @jax.jit
     def __call__(self, y_true: ArrayLike, y_pred: ArrayLike) -> ArrayLike:
         # TODO: Complete docstring
-        """
-        :param y_true:
-        :param y_pred:
-        :return:
+        r"""Computes the log-likelihood of the given predictions and labels.
+
+        :param y_true: The labels.
+        An array of the shape ``(n_samples, ..., n_features)``.
+        :param y_pred: The predicted values.
+        An array of the shape ``(n_samples, ..., n_features + n_uncertainty)``.
+        If ``n_uncertainty < n_features`` the last ``n_features - n_uncertainty``
+        will be assigned an uncertainty of 1, which effectively calculates their MSE (as long as ``\epsilon\se1``).
+        :return: Returns the log-likelihood of the given values.
+            If not reduced, a value is returned for each
+            If reduced, returns the mean of the non-reduced value.
         """
         mean_pred, std_pred = self._split_pred(y_true=y_true, y_pred=y_pred)
         res = jnp.log(std_pred)
@@ -54,10 +67,11 @@ class LogLikelihoodLoss:
         :param y_pred: The predicted values. The last axis includes the labels, and the uncertainties.
         :return: A tuple containing the predicted labels, and the predicted uncertainty.
         """
+        # TODO: Make sure that the prediction is not too large or too small.
         n_mean = y_true.shape[-1]
         mean_pred = y_pred[..., :n_mean]
         std_pred = y_pred[..., n_mean:(2 * n_mean)]
-        std_pred = jnp.clip(std_pred, a_min=jnp.array(self.sigma), a_max=None)
+        std_pred = jnp.clip(std_pred, a_min=jnp.array(self.epsilon), a_max=None)
         n_std = std_pred.shape[-1]
 
         padding = [(0, 0) if ax != y_true.ndim - 1 else (0, n_mean - n_std) for ax in range(y_true.ndim)]
