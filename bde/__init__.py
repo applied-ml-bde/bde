@@ -18,20 +18,21 @@ Theory
 -----
 # TODO: Complete
 
-Usage
------
-The package can be used for building and training Bayesian Neural Networks, as well as for making predictions with uncertainty estimates.
-
-Example:
-    >>> # TODO: Give an example
-    >>>
-    >>>
-    >>>
-
 Modules
 -------
 - `bde.ml`: Contains classes and functions related to machine learning.
 - `bde.utils`: General utility functions and configs.
+
+Usage
+-----
+The package can be used for building and training Bayesian Neural Networks,
+as well as for making predictions with uncertainty estimates.
+
+Example:
+    >>> # TODO: Provide an example
+    >>>
+    >>>
+    >>>
 """
 
 from bde import (
