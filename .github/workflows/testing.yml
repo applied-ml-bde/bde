@@ -85,7 +85,7 @@ jobs:
       if: ${{ always() }}
       run: |
         source .venv/bin/activate
-        mypy --ignore-missing-imports --scripts-are-modules --follow-imports=skip bde
+        mypy --ignore-missing-imports --scripts-are-modules --follow-imports=skip bde/
     - name: Test documintation with Pydocstyle
       if: ${{ always() }}
       run: |
