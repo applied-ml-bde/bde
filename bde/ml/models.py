@@ -43,13 +43,13 @@ class BasicModule(nn.Module, ABC):
 
     Attributes
     ----------
-    n_input_params : Union[int, list[int]]
-        The number of input parameters or the shape of the input tensor(s).
-        This can be an integer for models with a single-input
-        or a list of integers for multi-input models.
     n_output_params : Union[int, list[int]]
         The number of output parameters or the shape of the output tensor(s). Similar
         to `n_input_params`, this can be an integer or a list.
+    n_input_params : Optional[Union[int, list[int]]]
+        The number of input parameters or the shape of the input tensor(s).
+        This can be an integer for models with a single-input
+        or a list of integers for multi-input models.
 
     Methods
     -------
@@ -57,8 +57,8 @@ class BasicModule(nn.Module, ABC):
         Abstract method to be implemented by subclasses, defining the API of a forward pass of the module.
     """
 
-    n_input_params: Union[int, list[int]]
     n_output_params: Union[int, list[int]]
+    n_input_params: Optional[Union[int, list[int]]] = None
 
     @abstractmethod
     def __call__(self, *args, **kwargs):
@@ -75,10 +75,11 @@ class FullyConnectedModule(BasicModule):
 
     Attributes
     ----------
-    n_input_params : int
-        The number of input features or neurons in the input layer.
     n_output_params : int
         The number of output features or neurons in the output layer.
+    n_input_params : Optional[int]
+        The number of input features or neurons in the input layer.
+        If None, the number if determined based on the used params (usually determined by the data used for fitting).
     layer_sizes : Optional[Union[Iterable[int], int]], optional
         The number of neurons in each hidden layer.
         If an integer is provided, a single hidden layer with that many neurons is created.
@@ -94,8 +95,8 @@ class FullyConnectedModule(BasicModule):
         Define the forward pass of the fully connected network.
     """
 
-    n_input_params: int
     n_output_params: int
+    n_input_params: Optional[int] = None
     layer_sizes: Optional[Union[Iterable[int], int]] = None
     do_final_activation: bool = True
 
@@ -200,6 +201,8 @@ class FullyConnectedEstimator(BaseEstimator):
         n_splits = X.shape[0] // self.batch_size
         if y is None:
             y = X
+        elif y.ndim == X.ndim - 1 and self.model.n_output_params == 1:
+            y = y.reshape(-1, 1)
         if y.shape[0] != X.shape[0]:
             raise ValueError(f"X and y don't match in number of samples.")
         X, y = X[:(n_splits * self.batch_size)], y[:(n_splits * self.batch_size)]
@@ -211,6 +214,7 @@ class FullyConnectedEstimator(BaseEstimator):
         self.params_, _ = init_dense_model(
             model=self.model,
             batch_size=self.batch_size,
+            n_features=X.shape[-1],
             seed=self.seed,
         )
         model_state = train_state.TrainState.create(
@@ -267,20 +271,29 @@ class FullyConnectedEstimator(BaseEstimator):
 def init_dense_model(
         model: BasicModule,
         batch_size: int = 1,
+        n_features: Optional[int] = None,
         seed: int = cnfg.General.SEED,
 ) -> tuple[dict, Array]:
     r"""Fast initialization for a fully connected dense network.
 
     :param model: A model object.
     :param batch_size: The batch size for training.
+    :param n_features: The size of the input layer.
+    If it is set to `None`, it is inferred based on the provided model.
     :param seed: A seed for initialization.
     :return: A dict with the params, and the input used for the initialization.
     """
     rng = jax.random.key(seed=seed)
     rng, inp_rng, init_rng = jax.random.split(rng, 3)
-    if not isinstance(model.n_input_params, int):
-        raise NotImplementedError(f"Only 1 input is currently supported")
-    inp = jax.random.normal(inp_rng, (batch_size, model.n_input_params))
+    if n_features is None:
+        n_features = model.n_input_params
+    if model.n_input_params is None:
+        if n_features is None:
+            raise ValueError("`n_features` and `model.n_input_params` can't both be `None`.")
+        model.n_input_params = n_features
+    elif not isinstance(model.n_input_params, int):
+        raise NotImplementedError("Only 1 input is currently supported")
+    inp = jax.random.normal(inp_rng, (batch_size, n_features))
     params = model.init(init_rng, inp)
     return params, inp
 

@@ -25,8 +25,8 @@ class TestFit:
     def test_training_improvement_when_fitting_identity(do_use_jit):
         xx = jnp.arange(1_000, dtype=float).reshape(-1, 1)
         net = bde.ml.models.FullyConnectedModule(
-            n_input_params=1,
             n_output_params=1,
+            n_input_params=1,
             layer_sizes=None,
             do_final_activation=False,
         )
@@ -56,8 +56,8 @@ class TestFit:
     def test_training_when_fitting_identity(do_use_jit):
         xx = jnp.linspace(-32, 32, 128).reshape(-1, 1)
         net = bde.ml.models.FullyConnectedModule(
-            n_input_params=1,
             n_output_params=1,
+            n_input_params=1,
             layer_sizes=None,
             do_final_activation=False,
         )
