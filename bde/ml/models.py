@@ -9,7 +9,8 @@ Classes
 -------
 - `BasicModule`: An abstract base class defining an API for neural network modules.
 - `FullyConnectedModule`: A fully connected neural network module.
-- `FullyConnectedEstimator`: A scikit-learn-compatible estimator for training models.
+- `FullyConnectedEstimator`: An SKlearn-compatible estimator for training models.
+- `BDEEstimator`: An SKlearn-compatible implementation of Bayesian Deep Ensembles (BDEs).
 
 Functions
 ---------
@@ -262,6 +263,25 @@ class FullyConnectedEstimator(BaseEstimator):
         :return: Predicted labels.
         """
         return self.model.apply(self.params_, X)
+
+
+class BDEEstimator(FullyConnectedEstimator):
+    r"""SKlearn-compatible implementation of a BDE estimator.
+
+    # TODO: Describe BDE estimator.
+
+    Attributes
+    ----------
+    # TODO: List
+
+    Methods
+    -------
+    fit(X, y=None)
+        Fit the model to the training data.
+    predict(X)
+        Predict the output for the given input data using the trained model.
+    """
+    ...
 
 
 def init_dense_model(
