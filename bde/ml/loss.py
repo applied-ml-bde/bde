@@ -23,6 +23,7 @@ import jax
 from jax import numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
+import optax
 import pathlib
 import pytest
 
@@ -30,7 +31,51 @@ import pytest
 
 
 @dataclass
-class LogLikelihoodLoss:
+class Loss(ABC):
+    r"""An abstract class for implementing the API of loss functions."""
+
+    do_reduce: bool = True
+
+    @jax.jit
+    def __call__(
+            self,
+            y_true: ArrayLike,
+            y_pred: ArrayLike,
+            **kwargs,
+    ) -> float:
+        r"""Evaluate the loss.
+
+        :param y_true: The ground truth.
+        :param y_pred: The model's prediction.
+        :return: The loss value.
+        """
+        ...
+
+
+@dataclass
+class LossMSE(Loss):  # TODO: Implement tests
+    r"""A class wrapper for MSE loss."""
+
+    do_reduce: bool = True
+
+    @jax.jit
+    def __call__(
+            self,
+            y_true: ArrayLike,
+            y_pred: ArrayLike,
+            **kwargs,
+    ) -> float:
+        r"""Evaluate the loss.
+
+        :param y_true: The ground truth.
+        :param y_pred: The model's prediction.
+        :return: The loss value.
+        """
+        return optax.losses.l2_loss(y_pred, y_true)
+
+
+@dataclass
+class LogLikelihoodLoss(Loss):
     r"""A callable jax-supported class for computing the log-likelihood of the given predictions and labels.
 
     This class implements the log-likelihood loss,
@@ -65,7 +110,12 @@ class LogLikelihoodLoss:
     do_reduce: bool = False,
 
     @jax.jit
-    def __call__(self, y_true: ArrayLike, y_pred: ArrayLike) -> ArrayLike:
+    def __call__(
+            self,
+            y_true: ArrayLike,
+            y_pred: ArrayLike,
+            **kwargs,
+    ) -> ArrayLike:
         # TODO: Complete docstring
         r"""Compute the log-likelihood of the given predictions and labels.
 
