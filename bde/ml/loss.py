@@ -19,6 +19,7 @@ from typing import Any, Union, Optional
 from collections.abc import Iterable, Generator, Callable
 from flax.training.train_state import TrainState
 from flax.struct import dataclass
+from functools import partial
 import jax
 from jax import numpy as jnp
 from jax import Array
@@ -58,7 +59,7 @@ class LossMSE(Loss):  # TODO: Implement tests
 
     do_reduce: bool = True
 
-    @jax.jit
+    @partial(jax.jit, static_argnames=['self'])
     def __call__(
             self,
             y_true: ArrayLike,
@@ -71,7 +72,9 @@ class LossMSE(Loss):  # TODO: Implement tests
         :param y_pred: The model's prediction.
         :return: The loss value.
         """
-        return optax.losses.l2_loss(y_pred, y_true)
+        res = optax.losses.squared_error(y_pred, y_true)
+        axis = None if self.do_reduce else -1
+        return res.mean(axis=axis)
 
 
 @dataclass
