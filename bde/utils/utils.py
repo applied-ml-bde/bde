@@ -9,6 +9,9 @@ Functions
 """
 
 import pytest
+import jax.numpy as jnp
+from jax import Array
+from jax.typing import ArrayLike
 from typing import Any, Union, Callable, Dict, Tuple, List, Optional
 
 
@@ -45,6 +48,48 @@ def apply_to_multilayer_data(
     if isinstance(data, dtypes):
         return f(data)
     return data
+
+
+def check_fit_input(
+        x: ArrayLike,
+        y: ArrayLike,
+) -> None:
+    r"""Runs test on fitting inputs and raises corresponding errors.
+
+    The tests are largely determined by the SKlearn API.
+
+    :param x: The data used for fitting.
+    :param y: The labels used for fitting.
+    :raises ValueError: If:
+     - `x` or `y` are complex.
+     - `x` is empty.
+     - `x` or `y` contain Nans or infs.
+    """
+    # TODO: Use jax.jit friendly method instead
+    if jnp.iscomplexobj(x) or jnp.iscomplexobj(y):
+        raise ValueError("Complex data not supported.")
+    if x.size == 0:
+        raise ValueError(
+            f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
+            f"Got Got Cannot fit empty data.",
+        )
+    if not (jnp.all(jnp.isfinite(x)) and jnp.all(jnp.isfinite(y))):
+        raise ValueError("Nans/ inf not supported.")
+
+
+def check_predict_input(
+        x: ArrayLike,
+) -> None:
+    r"""Runs test on prediction inputs and raises corresponding errors.
+
+    The tests are largely determined by the SKlearn API.
+
+    :param x: The data used for the predictions.
+    :raises ValueError: If the input has Nans/ infs:
+    """
+    # TODO: Use jax.jit friendly method instead
+    if not jnp.all(jnp.isfinite(x)):
+        raise ValueError("Nans/ inf not supported.")
 
 
 if __name__ == '__main__':

@@ -178,6 +178,17 @@ class FullyConnectedEstimator(BaseEstimator):
         self.validation_size = validation_size
         self.seed = seed
 
+    def _more_tags(self):
+        return {
+            "_xfail_checks": {
+                # Note: By default SKlearn assumes models do not support complex valued data.
+                #  If we decide we want to support it, the following line should be uncommented.
+                # "check_complex_data": "Complex data is supported.",
+                "check_dtype_object": "Numpy input not supported. jax.numpy is required."
+            },
+            "array_api_support ": True,
+        }
+
     def fit(
             self,
             X: ArrayLike,
@@ -189,14 +200,14 @@ class FullyConnectedEstimator(BaseEstimator):
         :param y: The labels. If y is None, X is assumed to include the labels as well.
         :return: The fitted estimator.
         """
-        self.params_ = None
-        self.history_ = dict()
-        if self.metrics is None:
-            self.metrics = list()
-        else:
+        bde.utils.utils.check_fit_input(X, y)
+        if len(self.metrics) > 0:
             raise ValueError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
         if self.validation_size is not None:
             raise ValueError(f"Validation is not yet supported.")  # TODO: Remove after implementation
+
+        self.params_ = None
+        self.history_ = dict()
 
         n_splits = X.shape[0] // self.batch_size
         if y is None:
@@ -265,6 +276,7 @@ class FullyConnectedEstimator(BaseEstimator):
         :param X: The input data.
         :return: Predicted labels.
         """
+        bde.utils.utils.check_predict_input(X)
         return self.model.apply(self.params_, X)
 
 
@@ -290,7 +302,7 @@ def init_dense_model(
     if model.n_input_params is None:
         if n_features is None:
             raise ValueError("`n_features` and `model.n_input_params` can't both be `None`.")
-        model.n_input_params = n_features
+        # model.n_input_params = n_features
     elif not isinstance(model.n_input_params, int):
         raise NotImplementedError("Only 1 input is currently supported")
     inp = jax.random.normal(inp_rng, (batch_size, n_features))

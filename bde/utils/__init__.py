@@ -7,12 +7,15 @@ management tools.
 Modules
 -------
 - `configs`: Contains configuration management utilities for the BDE framework.
+- `utils`: Contains general utility functions used by other modules.
 """
 
 from bde.utils import (
     configs,
+    utils,
 )
 
 __al__ = [
     configs,
+    utils,
 ]
