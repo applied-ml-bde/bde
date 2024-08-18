@@ -9,6 +9,7 @@ Functions
 """
 
 import pytest
+import chex
 import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
@@ -65,15 +66,24 @@ def check_fit_input(
      - `x` is empty.
      - `x` or `y` contain Nans or infs.
     """
-    # TODO: Use jax.jit friendly method instead
-    if jnp.iscomplexobj(x) or jnp.iscomplexobj(y):
+    try:
+        chex.assert_equal(jnp.iscomplexobj(x), False)
+        chex.assert_equal(jnp.iscomplexobj(y), False)
+    except AssertionError as Err:
         raise ValueError("Complex data not supported.")
-    if x.size == 0:
+
+    try:
+        chex.assert_equal(x.size > 0, True)
+    except AssertionError as Err:
         raise ValueError(
             f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
             f"Got Got Cannot fit empty data.",
         )
-    if not (jnp.all(jnp.isfinite(x)) and jnp.all(jnp.isfinite(y))):
+
+    try:
+        chex.assert_equal(jnp.all(jnp.isfinite(x)), True)
+        chex.assert_equal(jnp.all(jnp.isfinite(y)), True)
+    except AssertionError as Err:
         raise ValueError("Nans/ inf not supported.")
 
 
@@ -87,10 +97,14 @@ def check_predict_input(
     :param x: The data used for the predictions.
     :raises ValueError: If the input has Nans/ infs:
     """
-    # TODO: Use jax.jit friendly method instead
-    if not jnp.all(jnp.isfinite(x)):
+    try:
+        chex.assert_equal(jnp.all(jnp.isfinite(x)), True)
+    except AssertionError as Err:
         raise ValueError("Nans/ inf not supported.")
-    if x.ndim == 1:
+
+    try:
+        chex.assert_equal(x.ndim > 1, True)
+    except AssertionError as Err:
         raise ValueError("Input array must be at least 2D. Reshape your data.")
 
 
