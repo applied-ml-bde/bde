@@ -18,7 +18,7 @@ Functions
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, List, Tuple, Dict, Type
 from collections.abc import Iterable, Generator, Callable
 import flax
 from flax import linen as nn
@@ -34,7 +34,8 @@ import pytest
 
 from sklearn.base import BaseEstimator
 
-import bde.ml.training
+from bde.ml import loss, training
+import bde.utils
 from bde.utils import configs as cnfg
 
 
@@ -141,13 +142,17 @@ class FullyConnectedEstimator(BaseEstimator):
         Fit the model to the training data.
     predict(X)
         Predict the output for the given input data using the trained model.
+    _more_tags()
+        Used by the SKlearn API to set model tags.
     """
 
     def __init__(
             self,
-            model: BasicModule,
-            optimizer: optax._src.base.GradientTransformation,
-            loss: Callable,
+            model_class: Type[BasicModule] = FullyConnectedModule,
+            model_kwargs: Optional[Dict] = None,
+            optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
+            optimizer_kwargs: Optional[Dict] = None,
+            loss: Callable = loss.LossMSE(),
             batch_size: int = 1,
             epochs: int = 1,
             metrics: Optional[list] = None,
@@ -157,8 +162,10 @@ class FullyConnectedEstimator(BaseEstimator):
     ):
         r"""Initialize the estimator architecture and training parameters.
 
-        :param model: The neural network model to train.
-        :param optimizer: The optimizer for training the model.
+        :param model_class: The neural network model class wrapped by the estimator.
+        :param model_kwargs: The kwargs used to init the wrapped model.
+        :param optimizer_class: The optimizer class used by the estimator for training.
+        :param optimizer_kwargs: The kwargs used to init optimizer.
         :param loss: The loss function used during training.
         :param batch_size: The batch size for training, by default 1.
         :param epochs: Number of epochs for training, by default 1.
@@ -169,8 +176,10 @@ class FullyConnectedEstimator(BaseEstimator):
         :param kwargs: Additional keyword arguments.
         """
         super().__init__(**kwargs)
-        self.model = model
-        self.optimizer = optimizer
+        self.model_class = model_class
+        self.model_kwargs = model_kwargs
+        self.optimizer_class = optimizer_class
+        self.optimizer_kwargs = optimizer_kwargs
         self.loss = loss
         self.batch_size = batch_size
         self.epochs = epochs
@@ -184,9 +193,12 @@ class FullyConnectedEstimator(BaseEstimator):
                 # Note: By default SKlearn assumes models do not support complex valued data.
                 #  If we decide we want to support it, the following line should be uncommented.
                 # "check_complex_data": "Complex data is supported.",
-                "check_dtype_object": "Numpy input not supported. jax.numpy is required."
+                "check_dtype_object": "Numpy input not supported. jax.numpy is required.",
+                "check_fit1d": "1D data is not supported.",
             },
-            "array_api_support ": True,
+            "array_api_support": True,
+            "multioutput_only": True,
+            "X_types": ["2darray", "2dlabels"]
         }
 
     def fit(
@@ -200,19 +212,31 @@ class FullyConnectedEstimator(BaseEstimator):
         :param y: The labels. If y is None, X is assumed to include the labels as well.
         :return: The fitted estimator.
         """
+        if y is None:
+            y = X
         bde.utils.utils.check_fit_input(X, y)
-        if len(self.metrics) > 0:
+        metrics = [] if self.metrics is None else self.metrics
+        if len(metrics) > 0:
             raise ValueError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
         if self.validation_size is not None:
             raise ValueError(f"Validation is not yet supported.")  # TODO: Remove after implementation
 
         self.params_ = None
         self.history_ = dict()
+        model_kwargs: Dict = {
+            "n_output_params": 1,
+        } if self.model_kwargs is None else self.model_kwargs
+        optimizer_kwargs: Dict = {
+            "learning_rate": 1e-3,
+        } if self.optimizer_kwargs is None else self.optimizer_kwargs
+
+        self.model_ = self.model_class(**model_kwargs)
+        optimizer = self.optimizer_class(**optimizer_kwargs)
 
         n_splits = X.shape[0] // self.batch_size
         if y is None:
             y = X
-        elif y.ndim == X.ndim - 1 and self.model.n_output_params == 1:
+        if y.ndim == X.ndim - 1 and self.model_.n_output_params == 1:
             y = y.reshape(-1, 1)
         if y.shape[0] != X.shape[0]:
             raise ValueError(f"X and y don't match in number of samples.")
@@ -223,28 +247,28 @@ class FullyConnectedEstimator(BaseEstimator):
         #  they would be used in some of the epochs due to the shuffling.
 
         self.params_, _ = init_dense_model(
-            model=self.model,
+            model=self.model_,
             batch_size=self.batch_size,
             n_features=X.shape[-1],
             seed=self.seed,
         )
         model_state = train_state.TrainState.create(
-            apply_fn=self.model.apply,
+            apply_fn=self.model_.apply,
             params=self.params_,
-            tx=self.optimizer,
+            tx=optimizer,
         )
         name_base = f""  # use f"val_" for validation variations
         for epoch in range(self.epochs):
             # ADD: optional shuffling
             for xx, yy in zip(jnp.split(X, n_splits), jnp.split(y, n_splits)):
-                model_state, loss = bde.ml.training.train_step(
+                model_state, loss = training.train_step(
                     model_state,
                     batch=(xx, yy),
                     f_loss=self.loss,
                 )
                 self.history_[f"{name_base}loss"] = self.history_.get(f"{name_base}loss", list()) + [loss]
 
-                for metric_name, a_metric in self.metrics:
+                for metric_name, a_metric in metrics:
                     metric_val = a_metric  # TODO: Calculate metric properly
                     metric_key = f"{name_base}{metric_name}"
                     self.history_[metric_key] = self.history_.get(metric_key, list()) + [metric_val]
@@ -268,6 +292,7 @@ class FullyConnectedEstimator(BaseEstimator):
             # ADD: Validation stage
         self.params_ = model_state.params
         self.is_fitted_ = True  # TODO: Check if this is required by the API
+        self.n_features_in_ = X.shape[-1]
         return self
 
     def predict(self, X: ArrayLike) -> Array:
@@ -277,7 +302,8 @@ class FullyConnectedEstimator(BaseEstimator):
         :return: Predicted labels.
         """
         bde.utils.utils.check_predict_input(X)
-        return self.model.apply(self.params_, X)
+        # TODO: First test if fitted
+        return self.model_.apply(self.params_, X)
 
 
 def init_dense_model(

@@ -12,8 +12,16 @@ from jax.typing import ArrayLike
 import optax
 import pathlib
 
+from sklearn.utils.estimator_checks import check_estimator
 import bde
 from bde.utils import configs as cnfg
+
+
+@pytest.mark.parametrize("do_use_jit", [False])  # TODO: Make jit compatible
+def test_sklearn_estimator(do_use_jit):
+    with jax.disable_jit(disable=not do_use_jit):
+        check_estimator(bde.ml.models.FullyConnectedEstimator())
+
 
 class TestPredict:
     ...
@@ -24,23 +32,27 @@ class TestFit:
     @pytest.mark.parametrize("do_use_jit", [True, False])
     def test_training_improvement_when_fitting_identity(do_use_jit):
         xx = jnp.arange(1_000, dtype=float).reshape(-1, 1)
-        net = bde.ml.models.FullyConnectedModule(
-            n_output_params=1,
-            n_input_params=1,
-            layer_sizes=None,
-            do_final_activation=False,
-        )
+        net_kwargs = {
+            "n_output_params": 1,
+            "n_input_params": 1,
+            "layer_sizes": None,
+            "do_final_activation": False,
+        }
         est_base = bde.ml.models.FullyConnectedEstimator(
-            model=net,
-            optimizer=optax.adam(learning_rate=0),
+            model_class=bde.ml.models.FullyConnectedModule,
+            model_kwargs=net_kwargs,
+            optimizer_class=optax.adam,
+            optimizer_kwargs={"learning_rate": 0},
             loss=bde.ml.loss.LogLikelihoodLoss(),
             batch_size=100,
             epochs=0,
             seed=cnfg.General.SEED,
         )
         est = bde.ml.models.FullyConnectedEstimator(
-            model=net,
-            optimizer=optax.adam(learning_rate=1e-3),
+            model_class=bde.ml.models.FullyConnectedModule,
+            model_kwargs=net_kwargs,
+            optimizer_class=optax.adam,
+            optimizer_kwargs={"learning_rate": 1e-3},
             loss=bde.ml.loss.LogLikelihoodLoss(),
             batch_size=100,
             epochs=1,
@@ -55,17 +67,18 @@ class TestFit:
     @pytest.mark.parametrize("do_use_jit", [True, False])
     def test_training_when_fitting_identity(do_use_jit):
         xx = jnp.linspace(-32, 32, 128).reshape(-1, 1)
-        net = bde.ml.models.FullyConnectedModule(
-            n_output_params=1,
-            n_input_params=1,
-            layer_sizes=None,
-            do_final_activation=False,
-        )
+        net_kwargs = {
+            "n_output_params": 1,
+            "n_input_params": 1,
+            "layer_sizes": None,
+            "do_final_activation": False,
+        }
         est = bde.ml.models.FullyConnectedEstimator(
-            model=net,
-            optimizer=optax.adam(learning_rate=jnp.sqrt(1e-1) ** 2),
+            model_class=bde.ml.models.FullyConnectedModule,
+            model_kwargs=net_kwargs,
+            optimizer_class=optax.adam,
+            optimizer_kwargs={"learning_rate": jnp.sqrt(1e-1) ** 2},
             loss=bde.ml.loss.LogLikelihoodLoss(),
-            # loss=optax.losses.l2_loss,
             batch_size=128,
             epochs=24,
             seed=cnfg.General.SEED,

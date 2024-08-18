@@ -90,6 +90,8 @@ def check_predict_input(
     # TODO: Use jax.jit friendly method instead
     if not jnp.all(jnp.isfinite(x)):
         raise ValueError("Nans/ inf not supported.")
+    if x.ndim == 1:
+        raise ValueError("Input array must be at least 2D. Reshape your data.")
 
 
 if __name__ == '__main__':
