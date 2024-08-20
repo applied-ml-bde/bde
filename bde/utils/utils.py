@@ -65,7 +65,7 @@ def check_fit_input(
         x: ArrayLike,
         y: ArrayLike,
 ) -> None:
-    r"""Validates the input of fit functions according to the SKlearn specifications for estimators.
+    r"""Validate the input of `fit` functions according to the SKlearn specifications for estimators.
 
     The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
 
@@ -124,7 +124,7 @@ def check_fit_input(
 def check_predict_input(
         x: ArrayLike,
 ) -> None:
-    r"""Validates the input of predict functions according to the SKlearn specifications for estimators.
+    r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
 
     The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
 
@@ -177,7 +177,7 @@ class JaxErrors:
     @staticmethod
     def tree_flatten(
     ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specifies how to serialize model into a JAX pytree.
+        r"""Specify how to serialize model into a JAX pytree.
 
         :return: A tuple with 2 elements:
          - The `children`, containing arrays & pytrees
@@ -193,7 +193,7 @@ class JaxErrors:
             aux_data,
             children,
     ) -> "JaxErrors":
-        r"""Specifies how to build a model from a JAX pytree.
+        r"""Specify how to build a model from a JAX pytree.
 
         :param aux_data: Contains static, hashable data.
         :param children: Contain arrays & pytrees.
@@ -204,37 +204,37 @@ class JaxErrors:
     @staticmethod
     @jax.jit
     def value_error():
-        r"""A method for passing a `ValueError`."""
+        r"""Pass `ValueError` via functional interface."""
         return ValueError
 
     @staticmethod
     @jax.jit
     def type_error():
-        r"""A method for passing a `TypeError`."""
+        r"""Pass `TypeError` via functional interface."""
         return TypeError
 
     @staticmethod
     @jax.jit
     def true_fn(*args):
-        r"""A method representing no error."""
+        r"""Handle case with no errors."""
         ...
 
     @staticmethod
     @jax.jit
     def false_fn(msg=None):
-        r"""A method for a general error."""
+        r"""Handle general errors."""
         raise ValueError(msg)
 
     @staticmethod
     @jax.jit
     def false_fn_predict_on_non_finite(*args):
-        r"""An error method for `predict` with Nans/ infs in the input."""
+        r"""Handle error in `predict`-methods for inputs with Nans/ infs."""
         raise ValueError("While predicting. Nans/ inf not supported.")
 
     @staticmethod
     @jax.jit
     def false_fn_predict_on_too_low_dim(*args):
-        r"""An error method for `predict` with a low dimensional input."""
+        r"""Handle error in `predict`-methods with a low dimensional input."""
         raise ValueError("Input array must be at least 2D. Reshape your data.")
 
 
