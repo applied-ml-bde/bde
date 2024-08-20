@@ -26,7 +26,7 @@ pytest = ">7.4"
 scikit-learn = ">1.4"
 scipy = ">1.13"
 seaborn = ">0.12"
-array-api-compat = ">1.8"
+array-api-compat = ">=1.8"
 
 
 [tool.poetry.group.dev.dependencies]
