@@ -17,10 +17,13 @@ import bde
 from bde.utils import configs as cnfg
 
 
-@pytest.mark.parametrize("do_use_jit", [False])  # TODO: Make jit compatible
+@pytest.mark.parametrize("do_use_jit", [False])
 def test_sklearn_estimator(do_use_jit):
+    # NOTE: These tests fail in jitted mode.
+    #  Make sure that these is due to the test design, and not our code.
     with jax.disable_jit(disable=not do_use_jit):
-        check_estimator(bde.ml.models.FullyConnectedEstimator())
+        model = bde.ml.models.FullyConnectedEstimator()
+        check_estimator(model)
 
 
 class TestPredict:
@@ -61,7 +64,7 @@ class TestFit:
         with jax.disable_jit(disable=not do_use_jit):
             est_base.fit(xx)
             est.fit(xx)
-        assert jnp.mean((xx - est.predict(xx)) ** 2) < jnp.mean((xx - est_base.predict(xx)) ** 2)
+            assert jnp.mean((xx - est.predict(xx)) ** 2) < jnp.mean((xx - est_base.predict(xx)) ** 2)
 
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])

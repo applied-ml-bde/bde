@@ -19,15 +19,18 @@ Functions
 
 from abc import ABC, abstractmethod
 from typing import Any, Union, Optional, List, Tuple, Dict, Type
+import chex
 from collections.abc import Iterable, Generator, Callable
 import flax
 from flax import linen as nn
 from flax.struct import dataclass, field
 from flax.training import train_state
+from functools import partial
 import jax
 from jax import numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
+from jax.tree_util import register_pytree_node_class
 import optax
 import pathlib
 import pytest
@@ -295,6 +298,9 @@ class FullyConnectedEstimator(BaseEstimator):
         self.n_features_in_ = X.shape[-1]
         return self
 
+    # @chex.chexify
+    # @jax.jit
+    @partial(jax.jit, static_argnums=(0,))
     def predict(self, X: ArrayLike) -> Array:
         r"""Apply the fitted model to the input data.
 
@@ -302,7 +308,7 @@ class FullyConnectedEstimator(BaseEstimator):
         :return: Predicted labels.
         """
         bde.utils.utils.check_predict_input(X)
-        # TODO: First test if fitted
+        chex.assert_equal(self.is_fitted_, True)
         return self.model_.apply(self.params_, X)
 
 
