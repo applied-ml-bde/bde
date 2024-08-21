@@ -76,8 +76,64 @@ def check_fit_input(
      - `x` is empty.
      - `x` or `y` contain Nans or infs.
     """
-    # TODO: The current implementation works fine since `fit` is not jitted (try-except works).
-    #  Change to the same format as in `check_predict_input` for jit-proofing.
+    jax.lax.cond(
+        jnp.iscomplexobj(x) or jnp.iscomplexobj(y),
+        lambda: jax.debug.callback(JaxErrors.raise_error_for_fit_on_complex_data_error),
+        JaxErrors.raise_no_error,
+    )
+    jax.lax.cond(
+        x.size > 0,
+        JaxErrors.raise_no_error,
+        lambda xx: jax.debug.callback(JaxErrors.raise_error_for_fit_on_empty_data, xx),
+        x
+    )
+    jax.lax.cond(
+        jnp.all(jnp.isfinite(x)) and jnp.all(jnp.isfinite(y)),
+        JaxErrors.raise_no_error,
+        lambda: jax.debug.callback(JaxErrors.raise_error_for_fit_on_nans_or_infs),
+    )
+
+
+@jax.jit
+def check_predict_input(
+        x: ArrayLike,
+) -> None:
+    r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
+
+    The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
+
+    :param x: The data used for the predictions.
+    :raises ValueError: If:
+     - the input has Nans/ infs.
+     - the input is empty.
+    """
+    jax.lax.cond(
+        jnp.all(jnp.isfinite(x)),
+        JaxErrors.raise_no_error,
+        lambda: jax.debug.callback(JaxErrors.raise_error_for_predict_on_non_finite),
+    )
+    jax.lax.cond(
+        x.ndim > 1,
+        JaxErrors.raise_no_error,
+        lambda: jax.debug.callback(JaxErrors.raise_error_for_predict_on_too_low_dim),
+    )
+
+
+def check_fit_input_chex(
+        x: ArrayLike,
+        y: ArrayLike,
+) -> None:
+    r"""Validate the input of `fit` functions according to the SKlearn specifications for estimators.
+
+    The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
+
+    :param x: The data used for fitting.
+    :param y: The labels used for fitting.
+    :raises ValueError: If:
+     - `x` or `y` are complex.
+     - `x` is empty.
+     - `x` or `y` contain Nans or infs.
+    """
     try:
         chex.assert_equal(
             jnp.iscomplexobj(x),
@@ -121,7 +177,7 @@ def check_fit_input(
 
 
 @jax.jit
-def check_predict_input(
+def check_predict_input_chex(
         x: ArrayLike,
 ) -> None:
     r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
@@ -133,109 +189,117 @@ def check_predict_input(
      - the input has Nans/ infs.
      - the input is empty.
     """
-    # truth = jnp.array(True, dtype=bool)
+    truth = jnp.array(True, dtype=bool)
+    try:
+        chex.assert_trees_all_equal(
+            jnp.all(jnp.isfinite(x)),
+            truth,
+            custom_message="While predicting. Nans/ inf not supported.",
+        )
+        chex.block_until_chexify_assertions_complete()
+    except AssertionError as Err:
+        raise ValueError("Nans/ inf not supported.")
 
-    jax.lax.cond(
-        jnp.all(jnp.isfinite(x)),
-        JaxErrors.true_fn,
-        lambda: jax.debug.callback(JaxErrors.false_fn_predict_on_non_finite),
-    )
-    # try:
-    #     chex.assert_trees_all_equal(
-    #         jnp.all(jnp.isfinite(x)),
-    #         truth,
-    #         custom_message="While predicting. Nans/ inf not supported.",
-    #     )
-    #     chex.block_until_chexify_assertions_complete()
-    # except AssertionError as Err:
-    #     raise ValueError("Nans/ inf not supported.")
-
-    jax.lax.cond(
-        x.ndim > 1,
-        JaxErrors.true_fn,
-        lambda: jax.debug.callback(JaxErrors.false_fn_predict_on_too_low_dim),
-    )
-
-    # try:
-    #     chex.assert_equal(
-    #         x.ndim > 1,
-    #         True,
-    #         custom_message="Input array must be at least 2D. Reshape your data.",
-    #     )
-    #     chex.block_until_chexify_assertions_complete()
-    # except AssertionError as Err:
-    #     raise ValueError("Input array must be at least 2D. Reshape your data.")
+    try:
+        chex.assert_equal(
+            x.ndim > 1,
+            True,
+            custom_message="Input array must be at least 2D. Reshape your data.",
+        )
+        chex.block_until_chexify_assertions_complete()
+    except AssertionError as Err:
+        raise ValueError("Input array must be at least 2D. Reshape your data.")
 
 
-@register_pytree_node_class
+# @register_pytree_node_class
 class JaxErrors:
     r"""This class includes static methods for raising exceptions in jitted methods.
 
     It is recommended to use these methods with `jax.debug.callback`.
     """
-
-    @staticmethod
-    def tree_flatten(
-    ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specify how to serialize model into a JAX pytree.
-
-        :return: A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
-         - The `aux_data`, containing static and hashable data.
-        """
-        children = None
-        aux_data = None
-        return children, aux_data
-
-    @classmethod
-    def tree_unflatten(
-            cls,
-            aux_data,
-            children,
-    ) -> "JaxErrors":
-        r"""Specify how to build a model from a JAX pytree.
-
-        :param aux_data: Contains static, hashable data.
-        :param children: Contain arrays & pytrees.
-        :return:
-        """
-        return cls()
+    # @staticmethod
+    # def tree_flatten(
+    # ) -> Tuple[Optional[Any], Optional[Any]]:
+    #     r"""Specify how to serialize model into a JAX pytree.
+    #
+    #     :return: A tuple with 2 elements:
+    #      - The `children`, containing arrays & pytrees
+    #      - The `aux_data`, containing static and hashable data.
+    #     """
+    #     children = None
+    #     aux_data = None
+    #     return children, aux_data
+    #
+    # @classmethod
+    # def tree_unflatten(
+    #         cls,
+    #         aux_data,
+    #         children,
+    # ) -> "JaxErrors":
+    #     r"""Specify how to build a model from a JAX pytree.
+    #
+    #     :param aux_data: Contains static, hashable data.
+    #     :param children: Contain arrays & pytrees.
+    #     :return:
+    #     """
+    #     return cls()
+    #
+    # @staticmethod
+    # @jax.jit
+    # def value_error():
+    #     r"""Pass `ValueError` via functional interface."""
+    #     return ValueError
+    #
+    # @staticmethod
+    # @jax.jit
+    # def type_error():
+    #     r"""Pass `TypeError` via functional interface."""
+    #     return TypeError
 
     @staticmethod
     @jax.jit
-    def value_error():
-        r"""Pass `ValueError` via functional interface."""
-        return ValueError
-
-    @staticmethod
-    @jax.jit
-    def type_error():
-        r"""Pass `TypeError` via functional interface."""
-        return TypeError
-
-    @staticmethod
-    @jax.jit
-    def true_fn(*args):
+    def raise_no_error(*args):
         r"""Handle case with no errors."""
         ...
 
     @staticmethod
     @jax.jit
-    def false_fn(msg=None):
+    def raise_value_error_with_custom_message(msg=None):
         r"""Handle general errors."""
         raise ValueError(msg)
 
     @staticmethod
     @jax.jit
-    def false_fn_predict_on_non_finite(*args):
+    def raise_error_for_predict_on_non_finite(*args):
         r"""Handle error in `predict`-methods for inputs with Nans/ infs."""
         raise ValueError("While predicting. Nans/ inf not supported.")
 
     @staticmethod
     @jax.jit
-    def false_fn_predict_on_too_low_dim(*args):
+    def raise_error_for_predict_on_too_low_dim(*args):
         r"""Handle error in `predict`-methods with a low dimensional input."""
         raise ValueError("Input array must be at least 2D. Reshape your data.")
+
+    @staticmethod
+    @jax.jit
+    def raise_error_for_fit_on_complex_data_error(*args):
+        r"""Handle error in `fit`-methods when complex data is encountered."""
+        raise ValueError("While fitting. Complex data not supported.")
+
+    @staticmethod
+    @jax.jit
+    def raise_error_for_fit_on_empty_data(x, *args):
+        r"""Handle error in `fit`-methods when an empty array is given."""
+        raise ValueError(
+            f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
+            f"Got Got Cannot fit empty data.",
+        )
+
+    @staticmethod
+    @jax.jit
+    def raise_error_for_fit_on_nans_or_infs(*args):
+        r"""Handle error in `fit`-methods Nans/ infs are encountered."""
+        raise ValueError("While fitting. Nans/ inf not supported.")
 
 
 if __name__ == '__main__':
