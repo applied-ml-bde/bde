@@ -42,6 +42,7 @@ import bde.utils
 from bde.utils import configs as cnfg
 
 
+@register_pytree_node_class
 class BasicModule(nn.Module, ABC):
     r"""An abstract base class for easy inheritance and API implementation.
 
@@ -64,12 +65,43 @@ class BasicModule(nn.Module, ABC):
     n_output_params: Union[int, list[int]]
     n_input_params: Optional[Union[int, list[int]]] = None
 
+    def tree_flatten(
+            self,
+    ) -> Tuple[Optional[Any], Optional[Any]]:
+        r"""Specifies how to serialize model into a JAX pytree.
+
+        :return: A tuple with 2 elements:
+         - The `children`, containing arrays & pytrees
+         - The `aux_data`, containing static and hashable data.
+        """
+        children = tuple()  # children must contain arrays & pytrees
+        aux_data = (
+            self.n_output_params,
+            self.n_input_params,
+        )  # aux_data must contain static, hashable data.
+        return children, aux_data
+
+    @classmethod
+    def tree_unflatten(
+            cls,
+            aux_data,
+            children,
+    ) -> "FullyConnectedModule":
+        r"""Specifies how to build a model from a JAX pytree.
+
+        :param aux_data: Contains static, hashable data.
+        :param children: Contain arrays & pytrees. Not used by this class.
+        :return:
+        """
+        ...
+
     @abstractmethod
     def __call__(self, *args, **kwargs):
         r"""Perform the calculation of the module."""
         ...
 
 
+@register_pytree_node_class
 class FullyConnectedModule(BasicModule):
     r"""A class for easy initialization of fully connected neural networks with flax.
 
@@ -104,6 +136,38 @@ class FullyConnectedModule(BasicModule):
     layer_sizes: Optional[Union[Iterable[int], int]] = None
     do_final_activation: bool = True
 
+    def tree_flatten(
+            self,
+    ) -> Tuple[Optional[Any], Optional[Any]]:
+        r"""Specifies how to serialize model into a JAX pytree.
+
+        :return: A tuple with 2 elements:
+         - The `children`, containing arrays & pytrees
+         - The `aux_data`, containing static and hashable data.
+        """
+        children = tuple()  # children must contain arrays & pytrees
+        aux_data = (
+            self.n_output_params,
+            self.n_input_params,
+            self.layer_sizes,
+            self.do_final_activation,
+        )  # aux_data must contain static, hashable data.
+        return children, aux_data
+
+    @classmethod
+    def tree_unflatten(
+            cls,
+            aux_data,
+            children,
+    ) -> "FullyConnectedModule":
+        r"""Specifies how to build a model from a JAX pytree.
+
+        :param aux_data: Contains static, hashable data.
+        :param children: Contain arrays & pytrees. Not used by this class.
+        :return:
+        """
+        return cls(*aux_data)
+
     @nn.compact
     def __call__(self, x):
         r"""Perform a forward pass of the fully connected network.
@@ -129,6 +193,7 @@ class FullyConnectedModule(BasicModule):
         return x
 
 
+@register_pytree_node_class
 class FullyConnectedEstimator(BaseEstimator):
     r"""SKlearn-compatible estimator for training fully connected neural networks with Jax.
 
@@ -190,6 +255,68 @@ class FullyConnectedEstimator(BaseEstimator):
         self.validation_size = validation_size
         self.seed = seed
 
+        self.params_ = dict()
+        self.history_ = dict()
+        self.model_ = None
+        self.is_fitted_ = False
+        self.n_features_in_ = None
+
+    def tree_flatten(
+            self,
+    ) -> Tuple[Optional[Any], Optional[Any]]:
+        r"""Specifies how to serialize model into a JAX pytree.
+
+        :return: A tuple with 2 elements:
+         - The `children`, containing arrays & pytrees
+         - The `aux_data`, containing static and hashable data.
+        """
+        children = (
+            self.model_,
+            self.params_,
+        )  # children must contain arrays & pytrees
+        aux_data = (
+            self.model_class,
+            self.model_kwargs,
+            self.optimizer_class,
+            self.optimizer_kwargs,
+            self.loss,
+            self.batch_size,
+            self.epochs,
+            self.metrics,
+            self.validation_size,
+            self.seed,
+
+            self.is_fitted_,
+            self.n_features_in_,
+            self.history_,
+        )  # aux_data must contain static, hashable data.
+        return children, aux_data
+
+    @classmethod
+    def tree_unflatten(
+            cls,
+            aux_data,
+            children,
+    ) -> "FullyConnectedEstimator":
+        r"""Specifies how to build a model from a JAX pytree.
+
+        :param aux_data: Contains static, hashable data.
+        :param children: Contain arrays & pytrees. Not used by this class.
+        :return:
+        """
+        res = cls(
+            *aux_data[:10]
+        )
+        res.model_ = children[0]
+        res.params_ = children[1]
+        res.is_fitted_ = aux_data[10]
+        res.n_features_in_ = aux_data[11]
+        res.history_ = aux_data[12]
+        return res
+
+    def __sklearn_is_fitted__(self):
+        return self.is_fitted_
+
     def _more_tags(self):
         return {
             "_xfail_checks": {
@@ -198,8 +325,11 @@ class FullyConnectedEstimator(BaseEstimator):
                 # "check_complex_data": "Complex data is supported.",
                 "check_dtype_object": "Numpy input not supported. jax.numpy is required.",
                 "check_fit1d": "1D data is not supported.",
+                "check_no_attributes_set_in_init": "The model must set some internal attributes like params "
+                                                   "in order to to properly turn it into a pytree.",
+                "check_n_features_in": "Needs to be set before fitting to allow passing when flattening pytree.",
             },
-            "array_api_support": True,
+            # "array_api_support": True,
             "multioutput_only": True,
             "X_types": ["2darray", "2dlabels"]
         }
@@ -294,13 +424,11 @@ class FullyConnectedEstimator(BaseEstimator):
                 #     break
             # ADD: Validation stage
         self.params_ = model_state.params
-        self.is_fitted_ = True  # TODO: Check if this is required by the API
+        self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
 
-    # @chex.chexify
-    # @jax.jit
-    @partial(jax.jit, static_argnums=(0,))
+    @jax.jit
     def predict(self, X: ArrayLike) -> Array:
         r"""Apply the fitted model to the input data.
 
