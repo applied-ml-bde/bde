@@ -314,7 +314,8 @@ class FullyConnectedEstimator(BaseEstimator):
         res.history_ = aux_data[12]
         return res
 
-    def __sklearn_is_fitted__(self):
+    def __sklearn_is_fitted__(self) -> bool:
+        r"""Check if the estimator is fitted."""
         return self.is_fitted_
 
     def _more_tags(self):
