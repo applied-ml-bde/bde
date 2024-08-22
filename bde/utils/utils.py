@@ -217,6 +217,7 @@ class JaxErrors:
 
     It is recommended to use these methods with `jax.debug.callback`.
     """
+
     # @staticmethod
     # def tree_flatten(
     # ) -> Tuple[Optional[Any], Optional[Any]]:

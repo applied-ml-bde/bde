@@ -68,7 +68,7 @@ class BasicModule(nn.Module, ABC):
     def tree_flatten(
             self,
     ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specifies how to serialize model into a JAX pytree.
+        r"""Specify how to serialize model into a JAX pytree.
 
         :return: A tuple with 2 elements:
          - The `children`, containing arrays & pytrees
@@ -87,7 +87,7 @@ class BasicModule(nn.Module, ABC):
             aux_data,
             children,
     ) -> "FullyConnectedModule":
-        r"""Specifies how to build a model from a JAX pytree.
+        r"""Specify how to build a model from a JAX pytree.
 
         :param aux_data: Contains static, hashable data.
         :param children: Contain arrays & pytrees. Not used by this class.
@@ -139,7 +139,7 @@ class FullyConnectedModule(BasicModule):
     def tree_flatten(
             self,
     ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specifies how to serialize model into a JAX pytree.
+        r"""Specify how to serialize model into a JAX pytree.
 
         :return: A tuple with 2 elements:
          - The `children`, containing arrays & pytrees
@@ -160,7 +160,7 @@ class FullyConnectedModule(BasicModule):
             aux_data,
             children,
     ) -> "FullyConnectedModule":
-        r"""Specifies how to build a model from a JAX pytree.
+        r"""Specify how to build a model from a JAX pytree.
 
         :param aux_data: Contains static, hashable data.
         :param children: Contain arrays & pytrees. Not used by this class.
@@ -264,7 +264,7 @@ class FullyConnectedEstimator(BaseEstimator):
     def tree_flatten(
             self,
     ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specifies how to serialize model into a JAX pytree.
+        r"""Specify how to serialize model into a JAX pytree.
 
         :return: A tuple with 2 elements:
          - The `children`, containing arrays & pytrees
@@ -298,7 +298,7 @@ class FullyConnectedEstimator(BaseEstimator):
             aux_data,
             children,
     ) -> "FullyConnectedEstimator":
-        r"""Specifies how to build a model from a JAX pytree.
+        r"""Specify how to build a model from a JAX pytree.
 
         :param aux_data: Contains static, hashable data.
         :param children: Contain arrays & pytrees. Not used by this class.
