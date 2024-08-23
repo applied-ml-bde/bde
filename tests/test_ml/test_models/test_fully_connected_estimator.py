@@ -12,18 +12,18 @@ from jax.typing import ArrayLike
 import optax
 import pathlib
 
-from sklearn.utils.estimator_checks import check_estimator
+from sklearn.utils.estimator_checks import check_estimator, parametrize_with_checks
 import bde
 from bde.utils import configs as cnfg
 
 
+@parametrize_with_checks([bde.ml.models.FullyConnectedEstimator()])
 @pytest.mark.parametrize("do_use_jit", [False])
-def test_sklearn_estimator(do_use_jit):
+def test_sklearn_estimator(do_use_jit, estimator, check):
     # NOTE: These tests fail in jitted mode.
     #  Make sure that these is due to the test design, and not our code.
     with jax.disable_jit(disable=not do_use_jit):
-        model = bde.ml.models.FullyConnectedEstimator()
-        check_estimator(model)
+        check(estimator)
 
 
 class TestPredict:
