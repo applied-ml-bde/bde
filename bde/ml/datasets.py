@@ -86,7 +86,7 @@ class BasicDataset(ABC):
     def __len__(
             self,
     ) -> int:
-        r"""Returns the number of batches in the dataset."""
+        r"""Return the number of batches in the dataset."""
         ...
 
     @abstractmethod
@@ -104,6 +104,24 @@ class BasicDataset(ABC):
 
 @register_pytree_node_class
 class DatasetWrapper(BasicDataset):
+    r"""Create a dataset object around a data and labels pair.
+
+    # TODO: Complete
+    Methods
+    -------
+    tree_flatten()
+        Used to turn the class into a jitible pytree.
+    tree_unflatten(aux_data, children)
+        A class method used to recreate the class from a pytree.
+    shuffle()
+        Randomly rearrange the items in the dataset while preserving the connection between related items
+        such as data and labels.
+    __len__()
+        Returns the number of batches in the dataset.
+    __getitem__(ids)
+        Return a batch from the dataset.
+    """
+    
     def __init__(
             self,
             x: ArrayLike,
@@ -111,6 +129,10 @@ class DatasetWrapper(BasicDataset):
             batch_size: int = 1,
             seed: int = cnfg.General.SEED,
     ):
+        r"""Intiate the class.
+
+        # TODO: Complete
+        """
         chex.assert_equal(x.shape[0], y.shape[0])
         self.x = x
         self.y = y
@@ -157,7 +179,7 @@ class DatasetWrapper(BasicDataset):
     def __len__(
             self,
     ) -> int:
-        r"""Returns the number of batches in the dataset."""
+        r"""Return the number of batches in the dataset."""
         return self.size
 
     def tree_flatten(
