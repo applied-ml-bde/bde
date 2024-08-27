@@ -11,6 +11,7 @@ Submodules
 - `loss`: Contains loss functions implementations and loss function related utilities.
 - `models`: Defines the neural network architectures supported by the BDE framework.
 - `training`: Implements the training algorithms and routines used for model optimization.
+- `datasets`: Handles data and dataset management.
 
 Example Usage
 -------------
@@ -25,11 +26,13 @@ Example Usage
 from bde.ml import (
     loss,
     models,
-    training
+    training,
+    datasets,
 )
 
 __al__ = [
     loss,
     models,
-    training
+    training,
+    datasets,
 ]
