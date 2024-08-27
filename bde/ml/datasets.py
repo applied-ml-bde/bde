@@ -129,7 +129,7 @@ class DatasetWrapper(BasicDataset):
             batch_size: int = 1,
             seed: int = cnfg.General.SEED,
     ):
-        r"""Intiate the class.
+        r"""Initiate the class.
 
         # TODO: Complete
         """
@@ -145,7 +145,7 @@ class DatasetWrapper(BasicDataset):
 
         self.split_key = jax.random.key(seed=self.seed)
         self.rng_key = self.split_key
-        self.update_rng_state()
+        self.was_shuffled_ = False
         self.assignment = jnp.arange(self.items_lim)
         self.assignment = self.assignment.reshape(self.size, self.batch_size)
 
@@ -163,6 +163,17 @@ class DatasetWrapper(BasicDataset):
     def update_rng_state(self):
         r"""Prepare random-key for next randomness generation."""
         self.set_rng_state(*jax.random.split(self.split_key))
+        self.was_shuffled_ = True
+
+    def _shuffle_without_updates(
+            self,
+    ) -> None:
+        r"""Shuffle the data without updating the random state."""
+        self.assignment = jax.lax.cond(
+            self.was_shuffled_,
+            lambda: jax.random.permutation(self.rng_key, self.n_items)[:self.items_lim].reshape(self.size, self.batch_size),
+            lambda: self.assignment,
+        )
 
     def shuffle(
             self,
@@ -171,9 +182,8 @@ class DatasetWrapper(BasicDataset):
 
         Perform a random shuffle on the dataset items based on the dataset's seed.
         """
-        self.assignment = jax.random.permutation(self.rng_key, self.n_items)[:self.items_lim]
-        self.assignment = self.assignment.reshape(self.size, self.batch_size)
         self.update_rng_state()
+        self._shuffle_without_updates()
 
     @jax.jit
     def __len__(
@@ -200,6 +210,7 @@ class DatasetWrapper(BasicDataset):
             self.seed,
             self.rng_key,
             self.split_key,
+            self.was_shuffled_,
         )  # aux_data must contain static, hashable data.
         return children, aux_data
 
@@ -217,6 +228,8 @@ class DatasetWrapper(BasicDataset):
         """
         res = cls(*children, *aux_data[:2])
         res.set_rng_state(*aux_data[2:4])
+        res.was_shuffled_ = aux_data[4]
+        res._shuffle_without_updates()
         return res
 
     @jax.jit
@@ -229,7 +242,8 @@ class DatasetWrapper(BasicDataset):
         :param idx: Index of the batch to retrieve.
         :return: A tuple consisting of training data and corresponding labels.
         """
-        return self.x[idx], self.y[idx]
+        idx2 = self.assignment[idx]
+        return self.x[idx2], self.y[idx2]
 
 
 if __name__ == "__main__":
