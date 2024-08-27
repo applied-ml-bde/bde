@@ -82,6 +82,7 @@ class BasicModule(nn.Module, ABC):
         return children, aux_data
 
     @classmethod
+    @abstractmethod
     def tree_unflatten(
             cls,
             aux_data,
