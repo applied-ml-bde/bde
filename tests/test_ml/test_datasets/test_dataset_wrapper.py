@@ -42,7 +42,15 @@ class TestPyTreePacking:
         assert jnp.all(ds2.assignment.reshape(-1) == data.reshape(-1))
 
     @staticmethod
-    @pytest.mark.parametrize("att", ["batch_size", "seed", "n_items", "size", "items_lim", "was_shuffled_"])
+    @pytest.mark.parametrize("att", [
+        "_batch_size",
+        "batch_size",
+        "seed",
+        "n_items_",
+        "size_",
+        "items_lim_",
+        "was_shuffled_",
+    ])
     @pytest.mark.parametrize("do_shuffled", [True, False])
     @pytest.mark.parametrize("do_use_jit", [True, False])
     def test_aux_elements_are_recreated_properly(

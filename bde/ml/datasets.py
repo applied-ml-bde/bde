@@ -42,7 +42,7 @@ class BasicDataset(ABC):
         Return a batch from the dataset.
     """
 
-    batch_size: int
+    _batch_size: int
     seed: int
 
     @abstractmethod
@@ -106,6 +106,22 @@ class BasicDataset(ABC):
         r"""Iterate through the dataset."""
         ...
 
+    @property
+    @jax.jit
+    def batch_size(self):
+        r"""The number of items in each batch (leading axis)."""
+        return self._batch_size
+
+    @batch_size.setter
+    @abstractmethod
+    def batch_size(self, batch_size: int) -> None:
+        r"""Change the batch size.
+
+        Provide logic for updating the batch size while keeping related values consistent (like size).
+        :param batch_size: The new batch size.:
+        """
+        ...
+
 
 @register_pytree_node_class
 class DatasetWrapper(BasicDataset):
@@ -141,18 +157,18 @@ class DatasetWrapper(BasicDataset):
         chex.assert_equal(x.shape[0], y.shape[0])
         self.x = x
         self.y = y
-        self.batch_size = batch_size
+        self._batch_size = batch_size
         self.seed = seed
 
-        self.n_items = x.shape[0]
-        self.size = self.n_items // self.batch_size
-        self.items_lim = self.size * self.batch_size
+        self.n_items_ = x.shape[0]
+        self.size_ = self.n_items_ // self._batch_size
+        self.items_lim_ = self.size_ * self._batch_size
 
         self.split_key = jax.random.key(seed=self.seed)
         self.rng_key = self.split_key
         self.was_shuffled_ = False
-        self.assignment = jnp.arange(self.items_lim)
-        self.assignment = self.assignment.reshape(self.size, self.batch_size)
+        self.assignment = jnp.arange(self.items_lim_)
+        self.assignment = self.assignment.reshape(self.size_, self._batch_size)
 
     def set_rng_state(
             self,
@@ -176,7 +192,10 @@ class DatasetWrapper(BasicDataset):
         r"""Shuffle the data without updating the random state."""
         self.assignment = jax.lax.cond(
             self.was_shuffled_,
-            lambda: jax.random.permutation(self.rng_key, self.n_items)[:self.items_lim].reshape(self.size, self.batch_size),
+            lambda: jax.random.permutation(
+                self.rng_key,
+                self.n_items_,
+            )[:self.items_lim_].reshape(self.size_, self._batch_size),
             lambda: self.assignment,
         )
 
@@ -195,7 +214,7 @@ class DatasetWrapper(BasicDataset):
             self,
     ) -> int:
         r"""Return the number of batches in the dataset."""
-        return self.size
+        return self.size_
 
     def tree_flatten(
             self,
@@ -211,7 +230,7 @@ class DatasetWrapper(BasicDataset):
             self.y,
         )  # children must contain arrays & pytrees
         aux_data = (
-            self.batch_size,
+            self._batch_size,
             self.seed,
             self.rng_key,
             self.split_key,
@@ -252,7 +271,20 @@ class DatasetWrapper(BasicDataset):
 
     def __iter__(self):
         r"""Iterate through the dataset."""
-        return (self[idx] for idx in range(self.size))
+        return (self[idx] for idx in range(self.size_))
+
+    @BasicDataset.batch_size.setter
+    @jax.jit
+    def batch_size(self, batch_size: int) -> None:
+        r"""Change the batch size.
+
+        Provide logic for updating the batch size while keeping related values consistent (like size).
+        :param batch_size: The new batch size.:
+        """
+        self._batch_size = batch_size
+        self.size_ = self.n_items_ // self.batch_size
+        self.items_lim_ = len(self) * self.batch_size
+        self.assignment = self.assignment.reshape(len(self), self.batch_size)
 
 
 if __name__ == "__main__":
