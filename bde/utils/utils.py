@@ -153,12 +153,12 @@ def check_fit_input_chex(
             x.size > 0,
             True,
             custom_message=f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
-                           f"Got Got Cannot fit empty data.",
+                           f"Got Cannot fit empty data.",
         )
     except AssertionError as Err:
         raise ValueError(
             f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
-            f"Got Got Cannot fit empty data.",
+            f"Got Cannot fit empty data.",
         )
 
     try:
@@ -293,7 +293,7 @@ class JaxErrors:
         r"""Handle error in `fit`-methods when an empty array is given."""
         raise ValueError(
             f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
-            f"Got Got Cannot fit empty data.",
+            f"Got Cannot fit empty data.",
         )
 
     @staticmethod
