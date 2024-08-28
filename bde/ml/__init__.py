@@ -30,7 +30,7 @@ from bde.ml import (
     datasets,
 )
 
-__al__ = [
+__all__ = [
     loss,
     models,
     training,
