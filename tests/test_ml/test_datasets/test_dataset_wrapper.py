@@ -32,17 +32,6 @@ def recreate_with_pytree():
 
 class TestPyTreePacking:
     @staticmethod
-    def test_shuffle_randomness_is_conserved(
-            make_range_dataset,
-            recreate_with_pytree,
-    ):
-        n_items = 128
-        ds, _ = make_range_dataset(n_items=n_items, seed=SEED)
-        ds.shuffle()
-        ds2 = recreate_with_pytree(ds)
-        assert jnp.all(ds.assignment == ds2.assignment)
-
-    @staticmethod
     def test_pytree_recreation_with_no_shuffling_is_ordered(
             make_range_dataset,
             recreate_with_pytree,
@@ -51,6 +40,44 @@ class TestPyTreePacking:
         ds, data = make_range_dataset(n_items=n_items, seed=SEED)
         ds2 = recreate_with_pytree(ds)
         assert jnp.all(ds2.assignment.reshape(-1) == data.reshape(-1))
+
+    @staticmethod
+    @pytest.mark.parametrize("att", ["batch_size", "seed", "n_items", "size", "items_lim", "was_shuffled_"])
+    @pytest.mark.parametrize("do_shuffled", [True, False])
+    @pytest.mark.parametrize("do_use_jit", [True, False])
+    def test_aux_elements_are_recreated_properly(
+            att,
+            do_shuffled,
+            do_use_jit,
+            make_range_dataset,
+            recreate_with_pytree,
+    ):
+        n_items = 128
+        with jax.disable_jit(disable=not do_use_jit):
+            ds, _ = make_range_dataset(n_items=n_items, seed=SEED)
+            if do_shuffled:
+                ds.shuffle()
+            ds2 = recreate_with_pytree(ds)
+            assert getattr(ds, att) == getattr(ds2, att)
+
+    @staticmethod
+    @pytest.mark.parametrize("att", ["x", "y", "split_key", "rng_key", "assignment"])
+    @pytest.mark.parametrize("do_shuffled", [True, False])
+    @pytest.mark.parametrize("do_use_jit", [True, False])
+    def test_array_elements_are_recreated_properly(
+            att,
+            do_shuffled,
+            do_use_jit,
+            make_range_dataset,
+            recreate_with_pytree,
+    ):
+        n_items = 128
+        with jax.disable_jit(disable=not do_use_jit):
+            ds, _ = make_range_dataset(n_items=n_items, seed=SEED)
+            if do_shuffled:
+                ds.shuffle()
+            ds2 = recreate_with_pytree(ds)
+            assert jnp.all(getattr(ds, att) == getattr(ds2, att))
 
 
 class TestShuffling:
