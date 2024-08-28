@@ -194,7 +194,7 @@ class DatasetWrapper(BasicDataset):
 
     def tree_flatten(
             self,
-    ) -> Tuple[Optional[Any], Optional[Any]]:
+    ) -> Tuple[Optional[List], Optional[List]]:  # TODO: Update return signiture
         r"""Specify how to serialize the dataset into a JAX pytree.
 
         :return: A tuple with 2 elements:
