@@ -101,6 +101,11 @@ class BasicDataset(ABC):
         """
         ...
 
+    @abstractmethod
+    def __iter__(self):
+        r"""Iterate through the dataset."""
+        ...
+
 
 @register_pytree_node_class
 class DatasetWrapper(BasicDataset):
@@ -244,6 +249,10 @@ class DatasetWrapper(BasicDataset):
         """
         idx2 = self.assignment[idx]
         return self.x[idx2], self.y[idx2]
+
+    def __iter__(self):
+        r"""Iterate through the dataset."""
+        return (self[idx] for idx in range(self.size))
 
 
 if __name__ == "__main__":

@@ -124,5 +124,11 @@ class TestBatchRetrival:
         ...
 
 
+class TestIteration:
+    @staticmethod
+    def test_():
+        ...
+
+
 if __name__ == '__main__':
     pytest.main()

@@ -352,9 +352,9 @@ class FullyConnectedEstimator(BaseEstimator):
         bde.utils.utils.check_fit_input(X, y)
         metrics = [] if self.metrics is None else self.metrics
         if len(metrics) > 0:
-            raise ValueError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
+            raise NotImplementedError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
         if self.validation_size is not None:
-            raise ValueError(f"Validation is not yet supported.")  # TODO: Remove after implementation
+            raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
 
         self.params_ = None
         self.history_ = dict()
@@ -368,18 +368,9 @@ class FullyConnectedEstimator(BaseEstimator):
         self.model_ = self.model_class(**model_kwargs)
         optimizer = self.optimizer_class(**optimizer_kwargs)
 
-        n_splits = X.shape[0] // self.batch_size
-        if y is None:
-            y = X
         if y.ndim == X.ndim - 1 and self.model_.n_output_params == 1:
             y = y.reshape(-1, 1)
-        if y.shape[0] != X.shape[0]:
-            raise ValueError(f"X and y don't match in number of samples.")
-        X, y = X[:(n_splits * self.batch_size)], y[:(n_splits * self.batch_size)]
-        # TODO: Implement a function which shuffles, crops, and return a list of zipped batches.
-        #  Once it is done, remove the manual split above.
-        #  The idea is that if there are some extra items,
-        #  they would be used in some of the epochs due to the shuffling.
+        ds = bde.ml.datasets.DatasetWrapper(x=X, y=y, batch_size=self.batch_size, seed=cnfg.General.SEED)
 
         self.params_, _ = init_dense_model(
             model=self.model_,
@@ -394,8 +385,8 @@ class FullyConnectedEstimator(BaseEstimator):
         )
         name_base = f""  # use f"val_" for validation variations
         for epoch in range(self.epochs):
-            # ADD: optional shuffling
-            for xx, yy in zip(jnp.split(X, n_splits), jnp.split(y, n_splits)):
+            ds.shuffle()
+            for xx, yy in ds:
                 model_state, loss = training.train_step(
                     model_state,
                     batch=(xx, yy),
