@@ -15,7 +15,7 @@ from bde.utils import (
     utils,
 )
 
-__al__ = [
+__all__ = [
     configs,
     utils,
 ]
