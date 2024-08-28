@@ -220,28 +220,28 @@ class JaxErrors:
 
     # @staticmethod
     # def tree_flatten(
-    # ) -> Tuple[Optional[Any], Optional[Any]]:
-    #     r"""Specify how to serialize model into a JAX pytree.
+    # ) -> Tuple[ArrayLike, ArrayLike]:
+    #     r"""Specify how to serialize class into a JAX pytree.
     #
     #     :return: A tuple with 2 elements:
     #      - The `children`, containing arrays & pytrees
     #      - The `aux_data`, containing static and hashable data.
     #     """
-    #     children = None
+    #     children = ()
     #     aux_data = None
     #     return children, aux_data
     #
     # @classmethod
     # def tree_unflatten(
     #         cls,
-    #         aux_data,
-    #         children,
+    #         aux_data: Tuple[Any, ...],
+    #         children: Tuple[ArrayLike, ArrayLike],
     # ) -> "JaxErrors":
-    #     r"""Specify how to build a model from a JAX pytree.
+    #     r"""Specify how to reconstruct class from a JAX pytree.
     #
     #     :param aux_data: Contains static, hashable data.
     #     :param children: Contain arrays & pytrees.
-    #     :return:
+    #     :return: Reconstructed class.
     #     """
     #     return cls()
     #

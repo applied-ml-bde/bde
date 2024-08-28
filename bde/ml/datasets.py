@@ -18,7 +18,7 @@ from jax.typing import ArrayLike
 from jax.tree_util import register_pytree_node_class
 import pathlib
 import pytest
-from typing import Any, Union, Optional, Tuple, List, Dict
+from typing import Any, Union, Optional, Tuple, List, Dict, Sequence
 
 import bde.ml
 from bde.utils import configs as cnfg
@@ -48,7 +48,7 @@ class BasicDataset(ABC):
     @abstractmethod
     def tree_flatten(
             self,
-    ) -> Tuple[Optional[Any], Optional[Any]]:
+    ) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize the dataset into a JAX pytree.
 
         :return: A tuple with 2 elements:
@@ -61,8 +61,8 @@ class BasicDataset(ABC):
     @abstractmethod
     def tree_unflatten(
             cls,
-            aux_data,
-            children,
+            aux_data: Any,
+            children: Tuple[ArrayLike, ...],
     ) -> "BasicDataset":
         r"""Specify how to construct a dataset from a JAX pytree.
 
@@ -199,12 +199,12 @@ class DatasetWrapper(BasicDataset):
 
     def tree_flatten(
             self,
-    ) -> Tuple[Optional[List], Optional[List]]:  # TODO: Update return signiture
+    ) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize the dataset into a JAX pytree.
 
         :return: A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
-         - The `aux_data`, containing static and hashable data.
+         - The `children`, containing arrays & pytrees (2 elements).
+         - The `aux_data`, containing static and hashable data (5 elements).
         """
         children = (
             self.x,
@@ -222,13 +222,13 @@ class DatasetWrapper(BasicDataset):
     @classmethod
     def tree_unflatten(
             cls,
-            aux_data,
-            children,
+            aux_data: Tuple[Any, ...],
+            children: Tuple[ArrayLike, ArrayLike],
     ) -> "DatasetWrapper":
         r"""Specify how to construct a dataset from a JAX pytree.
 
-        :param aux_data: Contains static, hashable data.
-        :param children: Contain arrays & pytrees.
+        :param aux_data: Contains static, hashable data (5 elements).
+        :param children: Contain arrays & pytrees (2 elements).
         :return:
         """
         res = cls(*children, *aux_data[:2])

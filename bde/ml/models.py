@@ -18,7 +18,7 @@ Functions
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional, List, Tuple, Dict, Type
+from typing import Any, Union, Optional, List, Tuple, Dict, Type, Sequence
 import chex
 from collections.abc import Iterable, Generator, Callable
 import flax
@@ -67,8 +67,8 @@ class BasicModule(nn.Module, ABC):
 
     def tree_flatten(
             self,
-    ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specify how to serialize model into a JAX pytree.
+    ) -> Tuple[Sequence[ArrayLike], Any]:
+        r"""Specify how to serialize module into a JAX pytree.
 
         :return: A tuple with 2 elements:
          - The `children`, containing arrays & pytrees
@@ -85,14 +85,14 @@ class BasicModule(nn.Module, ABC):
     @abstractmethod
     def tree_unflatten(
             cls,
-            aux_data,
-            children,
+            aux_data: Tuple[Any, Any],
+            children: Tuple,
     ) -> "FullyConnectedModule":
-        r"""Specify how to build a model from a JAX pytree.
+        r"""Specify how to build a module from a JAX pytree.
 
         :param aux_data: Contains static, hashable data.
-        :param children: Contain arrays & pytrees. Not used by this class.
-        :return:
+        :param children: Contain arrays & pytrees.
+        :return: Reconstructed Module.
         """
         ...
 
@@ -139,12 +139,12 @@ class FullyConnectedModule(BasicModule):
 
     def tree_flatten(
             self,
-    ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specify how to serialize model into a JAX pytree.
+    ) -> Tuple[Sequence[ArrayLike], Any]:
+        r"""Specify how to serialize module into a JAX pytree.
 
         :return: A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
-         - The `aux_data`, containing static and hashable data.
+         - The `children`, containing arrays & pytrees (empty).
+         - The `aux_data`, containing static and hashable data (4 items).
         """
         children = tuple()  # children must contain arrays & pytrees
         aux_data = (
@@ -158,14 +158,14 @@ class FullyConnectedModule(BasicModule):
     @classmethod
     def tree_unflatten(
             cls,
-            aux_data,
-            children,
+            aux_data: Tuple[Any, Any, Any, Any],
+            children: Tuple,
     ) -> "FullyConnectedModule":
-        r"""Specify how to build a model from a JAX pytree.
+        r"""Specify how to build a module from a JAX pytree.
 
-        :param aux_data: Contains static, hashable data.
-        :param children: Contain arrays & pytrees. Not used by this class.
-        :return:
+        :param aux_data: Contains static, hashable data (4 elements).
+        :param children: Contain arrays & pytrees. Not used by this class - Should be empty.
+        :return: Reconstructed Module.
         """
         return cls(*aux_data)
 
@@ -264,12 +264,12 @@ class FullyConnectedEstimator(BaseEstimator):
 
     def tree_flatten(
             self,
-    ) -> Tuple[Optional[Any], Optional[Any]]:
-        r"""Specify how to serialize model into a JAX pytree.
+    ) -> Tuple[Sequence[ArrayLike], Any]:
+        r"""Specify how to serialize estimator into a JAX pytree.
 
         :return: A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
-         - The `aux_data`, containing static and hashable data.
+         - The `children`, containing arrays & pytrees (2 elements).
+         - The `aux_data`, containing static and hashable data (13 elements).
         """
         children = (
             self.model_,
@@ -296,14 +296,14 @@ class FullyConnectedEstimator(BaseEstimator):
     @classmethod
     def tree_unflatten(
             cls,
-            aux_data,
-            children,
+            aux_data: Tuple[Tuple, ...],
+            children: Tuple[Any, Any],
     ) -> "FullyConnectedEstimator":
-        r"""Specify how to build a model from a JAX pytree.
+        r"""Specify how to build an estimator from a JAX pytree.
 
-        :param aux_data: Contains static, hashable data.
-        :param children: Contain arrays & pytrees. Not used by this class.
-        :return:
+        :param aux_data: Contains static, hashable data (2 items).
+        :param children: Contain arrays & pytrees (13 items).
+        :return: Reconstructed estimator.
         """
         res = cls(
             *aux_data[:10]
