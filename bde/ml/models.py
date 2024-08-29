@@ -385,7 +385,7 @@ class FullyConnectedEstimator(BaseEstimator):
         )
         name_base = f""  # use f"val_" for validation variations
         for epoch in range(self.epochs):
-            ds.shuffle()
+            ds = ds.shuffle()
             for xx, yy in ds:
                 model_state, loss = training.train_step(
                     model_state,

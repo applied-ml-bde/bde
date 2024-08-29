@@ -45,6 +45,30 @@ class BasicDataset(ABC):
     _batch_size: int
     seed: int
 
+    def set_state(
+            self,
+            **kwargs,
+    ) -> "BasicDataset":
+        r"""Return a new instance with updated attributes.
+
+        Used for easily updating the state in jitted functions.
+
+        Parameters
+        ----------
+        **kwargs
+            The attributes to be updated.
+
+        Returns
+        -------
+            A copy of the object with updated attributes.
+        """
+        new_state = self.__dict__.copy()
+        new_state.update(**kwargs)
+
+        new_instance = DatasetWrapper.__new__(DatasetWrapper)
+        new_instance.__dict__.update(**new_state)
+        return new_instance
+
     @abstractmethod
     def tree_flatten(
             self,
@@ -75,7 +99,7 @@ class BasicDataset(ABC):
     @abstractmethod
     def shuffle(
             self,
-    ) -> None:
+    ) -> "BasicDataset":
         r"""Randomly reorganize the dataset.
 
         Perform a random shuffle on the dataset items based on the dataset's seed.
@@ -167,54 +191,7 @@ class DatasetWrapper(BasicDataset):
         self.split_key = jax.random.key(seed=self.seed)
         self.rng_key = self.split_key
         self.was_shuffled_ = False
-        self.assignment = jnp.arange(self.items_lim_)
-        self.assignment = self.assignment.reshape(self.size_, self._batch_size)
-
-    def set_rng_state(
-            self,
-            rng_key,
-            split_key,
-    ) -> None:
-        r"""Manually provide the random-key for next randomness generation.
-
-        Used mainly for pytree reconstruction.
-        """
-        self.rng_key, self.split_key = rng_key, split_key
-
-    def update_rng_state(self):
-        r"""Prepare random-key for next randomness generation."""
-        self.set_rng_state(*jax.random.split(self.split_key))
-        self.was_shuffled_ = True
-
-    def _shuffle_without_updates(
-            self,
-    ) -> None:
-        r"""Shuffle the data without updating the random state."""
-        self.assignment = jax.lax.cond(
-            self.was_shuffled_,
-            lambda: jax.random.permutation(
-                self.rng_key,
-                self.n_items_,
-            )[:self.items_lim_].reshape(self.size_, self._batch_size),
-            lambda: self.assignment,
-        )
-
-    def shuffle(
-            self,
-    ) -> None:
-        r"""Randomly reorganize the dataset.
-
-        Perform a random shuffle on the dataset items based on the dataset's seed.
-        """
-        self.update_rng_state()
-        self._shuffle_without_updates()
-
-    @jax.jit
-    def __len__(
-            self,
-    ) -> int:
-        r"""Return the number of batches in the dataset."""
-        return self.size_
+        self.assignment = jnp.arange(self.items_lim_).reshape(self.size_, self._batch_size)
 
     def tree_flatten(
             self,
@@ -228,12 +205,12 @@ class DatasetWrapper(BasicDataset):
         children = (
             self.x,
             self.y,
+            self.rng_key,
+            self.split_key,
         )  # children must contain arrays & pytrees
         aux_data = (
             self._batch_size,
             self.seed,
-            self.rng_key,
-            self.split_key,
             self.was_shuffled_,
         )  # aux_data must contain static, hashable data.
         return children, aux_data
@@ -250,11 +227,41 @@ class DatasetWrapper(BasicDataset):
         :param children: Contain arrays & pytrees (2 elements).
         :return:
         """
-        res = cls(*children, *aux_data[:2])
-        res.set_rng_state(*aux_data[2:4])
-        res.was_shuffled_ = aux_data[4]
-        res._shuffle_without_updates()
+        res = cls(*children[:2], *aux_data[:2])
+        res.rng_key, res.split_key = children[2:4]
+        res.was_shuffled_ = aux_data[2]
+        res.assignment = jax.lax.cond(
+            aux_data[2],
+            lambda: jax.random.permutation(
+                children[2],
+                res.n_items_,
+            )[:(res.size_ * aux_data[0])].reshape(res.size_, aux_data[0]),
+            lambda: res.assignment,
+        )
         return res
+
+    @jax.jit
+    def shuffle(
+            self,
+    ) -> "DatasetWrapper":
+        r"""Randomly reorganize the dataset.
+
+        Perform a random shuffle on the dataset items based on the dataset's seed.
+        """
+        rng_key, split_key = jax.random.split(self.split_key)
+        assignment = jax.random.permutation(
+            rng_key,
+            self.n_items_,
+        )[:self.items_lim_].reshape(self.size_, self._batch_size)
+
+        return self.set_state(assignment=assignment, rng_key=rng_key, split_key=split_key, was_shuffled_=True)
+
+    @jax.jit
+    def __len__(
+            self,
+    ) -> int:
+        r"""Return the number of batches in the dataset."""
+        return self.size_
 
     @jax.jit
     def __getitem__(

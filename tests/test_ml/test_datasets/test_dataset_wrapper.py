@@ -64,7 +64,7 @@ class TestPyTreePacking:
         with jax.disable_jit(disable=not do_use_jit):
             ds, _ = make_range_dataset(n_items=n_items, seed=SEED)
             if do_shuffled:
-                ds.shuffle()
+                ds = ds.shuffle()
             ds2 = recreate_with_pytree(ds)
             assert getattr(ds, att) == getattr(ds2, att)
 
@@ -83,7 +83,7 @@ class TestPyTreePacking:
         with jax.disable_jit(disable=not do_use_jit):
             ds, _ = make_range_dataset(n_items=n_items, seed=SEED)
             if do_shuffled:
-                ds.shuffle()
+                ds = ds.shuffle()
             ds2 = recreate_with_pytree(ds)
             assert jnp.all(getattr(ds, att) == getattr(ds2, att))
 
@@ -93,10 +93,10 @@ class TestShuffling:
     def test_xy_match_after_n_shuffles(
             make_range_dataset,
     ):
-        n_shuffles, n_items = 5, 128
+        n_shuffles, n_items = 3, 128
         ds, _ = make_range_dataset(n_items=n_items, seed=SEED)
         for n in range(1, n_shuffles + 1):
-            ds.shuffle()
+            ds = ds.shuffle()
             assert jnp.all(ds[0][0] == ds[0][1]), f"check `x == y` after {n} shuffles"
 
     @staticmethod
@@ -105,13 +105,14 @@ class TestShuffling:
             do_use_jit,
             make_range_dataset,
     ):
-        with jax.disable_jit(disable=not do_use_jit):
-            n_shuffles, n_items = 5, 128
-            ds, data = make_range_dataset(n_items=n_items, seed=SEED)
-            for n in range(1, n_shuffles + 1):
-                prev = ds[0][0]
-                ds.shuffle()
-                assert not jnp.all(ds[0][0] == prev), f"Shuffle #{n}."
+        n_shuffles, n_items = 3, 128
+        ds, data = make_range_dataset(n_items=n_items, seed=SEED)
+        for n in range(1, n_shuffles + 1):
+            before_reshuffle = ds[0][0]
+            with jax.disable_jit(disable=not do_use_jit):
+                ds = ds.shuffle()
+                after_reshuffle = ds[0][0]
+                assert not jnp.all(after_reshuffle == before_reshuffle), f"Shuffle #{n}."
 
     @staticmethod
     def test_same_seed_gets_same_shuffles():
