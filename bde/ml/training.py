@@ -10,7 +10,7 @@ Functions
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional, Callable, Dict, Tuple, List
+from typing import Any, Union, Optional, Callable, Dict, Tuple, List, Type
 from collections.abc import Iterable, Sequence
 import flax
 from flax.training import train_state
@@ -26,14 +26,16 @@ import pathlib
 # import bde
 import pytest
 
-import bde.ml.loss
+import bde.ml
+from bde.ml.datasets import BasicDataset
+from bde.ml.loss import Loss
 
 
 @jax.jit
 def train_step(
         state: TrainState,
         batch: tuple[ArrayLike, ArrayLike],
-        f_loss: Callable[[ArrayLike, ArrayLike], float],
+        f_loss: Loss,
 ) -> tuple[TrainState, float]:
     r"""Perform an optimization step for the network.
 
@@ -57,16 +59,16 @@ def train_step(
     return state, loss
 
 
-@jax.jit
+# @jax.jit
 def jitted_training_over_multiple_models(
         model: nn.Module,
         params,
         optimizer,
-        epochs,
-        f_loss,
+        epochs: int,
+        f_loss: Loss,
         metrics,
-        train,
-        valid,
+        train: BasicDataset,
+        valid: BasicDataset,
         history,
         **kwargs,
 ):
@@ -87,55 +89,56 @@ def jitted_training_over_multiple_models(
     )
 
 
-@jax.jit
+# @jax.jit
 def jitted_training(
+        # model_class: Type[nn.Module],
+        # model_kwargs: Dict[str, Any],
         model: nn.Module,
         params,
-        optimizer,
-        epochs,
-        f_loss,
-        metrics,
-        train,
-        valid,
+        optimizer_class: Type[optax._src.base.GradientTransformation],
+        optimizer_kwargs: Dict[str, Any],
+        epochs: int,
+        f_loss: Loss,
+        metrics: List,
+        train: BasicDataset,
+        valid: BasicDataset,
         history,
         **kwargs,
 ):
     model_state = train_state.TrainState.create(
         apply_fn=model.apply,
+        # apply_fn=model_class(**model_kwargs).apply,
         params=params,
-        tx=optimizer,
+        tx=optimizer_class(**optimizer_kwargs),
     )
-    model_state, history = jax.lax.fori_loop(
+    model_state, train, valid, history = jax.lax.fori_loop(
         lower=0,
         upper=epochs,
         body_fun=lambda i, val: jitted_training_epoch(
-            state_history=val,
+            state_data_history=val,
             num_epoch=i,
             f_loss=f_loss,
             metrics=metrics,
-            train=train,
-            valid=valid,
         ),
-        init_val=(model_state, history),
+        init_val=(model_state, train, valid, history),
     )
     return model_state.params, history
 
 
-@jax.jit
+# @jax.jit
 def jitted_training_epoch(
-        state_history,
-        num_epoch,
-        f_loss,
-        metrics,
-        train,
-        valid,
+        state_data_history: Tuple[TrainState, BasicDataset, BasicDataset, Any],
+        num_epoch: int,
+        f_loss: Loss,
+        metrics: List,
         **kwargs,
-) -> Tuple[TrainState, Any]:
-    n_batches = len(train)
-    model_state, history = state_history
-    loss = 0
+) -> Tuple[TrainState, BasicDataset, BasicDataset, Any]:
+    model_state, train, valid, history = state_data_history
+    # n_batches = len(train)
+    n_batches = train.size_
+    loss = 0.0
 
-    # ADD: Reshuffling of training data.
+    train = train.shuffle()
     model_state, loss = jax.lax.fori_loop(
         lower=0,
         upper=n_batches,
@@ -147,20 +150,37 @@ def jitted_training_epoch(
         ),
         init_val=(model_state, loss),
     )
-    history[0].append(loss / n_batches)
+    history.at[0, num_epoch].set(loss / n_batches)
 
+    # n_metrics = len(metrics)
+    # history = jax.lax.fori_loop(
+    #     lower=0,
+    #     upper=n_metrics,
+    #     body_fun=lambda i, val: jitted_evaluation_for_a_metric(
+    #         model_state=model_state,
+    #         history=val,
+    #         metrics=metrics,
+    #         idx_metric=i,
+    #         idx_history=i + 1,
+    #         idx_epoch=num_epoch,
+    #         batches=train,
+    #     ),
+    #     init_val=history,
+    # )
+
+    valid = valid.shuffle()
     # ADD:
-    #  - Metrics support (Iterate over each metric in the list. For each metric, repeat the above process).
+    #  - Validation step support.
     #  - Early stopping support.
     #  - General callbacks support (stretch goal).
-    return model_state, history
+    return model_state, train, valid, history
 
 
-@jax.jit
+# @jax.jit
 def jitted_training_over_batch(
         model_state_loss: Tuple[TrainState, float],
-        f_loss,
-        batches: Sequence[Tuple[ArrayLike, ArrayLike]],
+        f_loss: Loss,
+        batches: BasicDataset,
         num_batch: int,
   ) -> Tuple[TrainState, float]:
     r"""Perform a training step over a single batch.
@@ -177,7 +197,6 @@ def jitted_training_over_batch(
     """
     model_state, cum_loss = model_state_loss
     batch = batches[num_batch]
-
     model_state, loss = train_step(
         model_state,
         batch=batch,
@@ -185,6 +204,47 @@ def jitted_training_over_batch(
     )
     # params = model_state.params
     return model_state, cum_loss + loss
+
+
+# @jax.jit
+def jitted_evaluation_for_a_metric(
+        model_state: TrainState,
+        batches: BasicDataset,
+        metrics,
+        history,
+        idx_metric: int,
+        idx_history: int,
+        idx_epoch: int,
+):
+    metric = metrics[idx_metric]
+    m_val, n_batches = 0.0, len(batches)
+    m_val = jax.lax.fori_loop(
+        lower=0,
+        upper=n_batches,
+        body_fun=lambda i, val: jitted_evaluation_over_batch(
+            model_state=model_state,
+            batches=batches,
+            f_eval=metric,
+            num_batch=i,
+            m_val=val,
+        ),
+        init_val=m_val,
+    )
+    history.at[idx_history, idx_epoch].set(m_val / n_batches)
+    return history
+
+
+# @jax.jit
+def jitted_evaluation_over_batch(
+        model_state: TrainState,
+        batches: BasicDataset,
+        f_eval,
+        num_batch: int,
+        m_val: float,
+  ) -> float:
+    x, y_true = batches[num_batch]
+    y_pred = model_state.apply_fn(model_state.params, x)
+    return m_val + f_eval(y_true, y_pred)
 
 
 # @jax.jit

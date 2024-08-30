@@ -218,10 +218,10 @@ class FullyConnectedEstimator(BaseEstimator):
     def __init__(
             self,
             model_class: Type[BasicModule] = FullyConnectedModule,
-            model_kwargs: Optional[Dict] = None,
+            model_kwargs: Optional[Dict[str, Any]] = None,
             optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
-            optimizer_kwargs: Optional[Dict] = None,
-            loss: Callable = loss.LossMSE(),
+            optimizer_kwargs: Optional[Dict[str, Any]] = None,
+            loss: loss.Loss = loss.LossMSE(),
             batch_size: int = 1,
             epochs: int = 1,
             metrics: Optional[list] = None,
@@ -336,6 +336,21 @@ class FullyConnectedEstimator(BaseEstimator):
             "X_types": ["2darray", "2dlabels"]
         }
 
+    def _make_history_container(self) -> Array:
+        r"""Create an empty numpy array for recording the training process.
+
+        Returns
+        -------
+            A zeros array where the 1st axis represents the type of evaluation
+            and the 2nd axis represents the epoch number.
+        """
+        n_hist = 1
+        if self.metrics is not None:
+            n_hist += len(self.metrics)
+        if self.validation_size is not None:
+            n_hist = n_hist * 2
+        return jnp.zeros((n_hist, self.epochs))
+
     def fit(
             self,
             X: ArrayLike,
@@ -350,7 +365,7 @@ class FullyConnectedEstimator(BaseEstimator):
         if y is None:
             y = X
         bde.utils.utils.check_fit_input(X, y)
-        metrics = [] if self.metrics is None else self.metrics
+        metrics: List = [] if self.metrics is None else self.metrics
         if len(metrics) > 0:
             raise NotImplementedError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
         if self.validation_size is not None:
@@ -366,7 +381,7 @@ class FullyConnectedEstimator(BaseEstimator):
         } if self.optimizer_kwargs is None else self.optimizer_kwargs
 
         self.model_ = self.model_class(**model_kwargs)
-        optimizer = self.optimizer_class(**optimizer_kwargs)
+        # optimizer = self.optimizer_class(**optimizer_kwargs)
 
         if y.ndim == X.ndim - 1 and self.model_.n_output_params == 1:
             y = y.reshape(-1, 1)
@@ -378,45 +393,62 @@ class FullyConnectedEstimator(BaseEstimator):
             n_features=X.shape[-1],
             seed=self.seed,
         )
-        model_state = train_state.TrainState.create(
-            apply_fn=self.model_.apply,
-            params=self.params_,
-            tx=optimizer,
-        )
+        # model_state = train_state.TrainState.create(
+        #     apply_fn=self.model_.apply,
+        #     params=self.params_,
+        #     tx=optimizer,
+        # )
+
+        history_container = self._make_history_container()
         name_base = f""  # use f"val_" for validation variations
-        for epoch in range(self.epochs):
-            ds = ds.shuffle()
-            for xx, yy in ds:
-                model_state, loss = training.train_step(
-                    model_state,
-                    batch=(xx, yy),
-                    f_loss=self.loss,
-                )
-                self.history_[f"{name_base}loss"] = self.history_.get(f"{name_base}loss", list()) + [loss]
 
-                for metric_name, a_metric in metrics:
-                    metric_val = a_metric  # TODO: Calculate metric properly
-                    metric_key = f"{name_base}{metric_name}"
-                    self.history_[metric_key] = self.history_.get(metric_key, list()) + [metric_val]
-
-                # model_state_, loss_train = pde_net.ml.training.train_step(model_state_, (x_train, b_train))
-                # loss_test = loss_func(model_state_, model_state_.params, x_test, b_test)
-                # train_log.append(loss_train)
-                # test_log.append(loss_test)
-                # states_log.append(model_state_)
-                #
-                # if min_test is None or early_stop is None:
-                #     min_test = loss_test
-                #     continue
-                # if loss_test < min_test:
-                #     min_test = loss_test
-                #     cons_worse = 0
-                #     continue
-                # cons_worse += 1
-                # if cons_worse >= early_stop:
-                #     break
-            # ADD: Validation stage
-        self.params_ = model_state.params
+        self.params_, history_container = training.jitted_training(
+            model=self.model_,
+            # model_class=self.model_class,
+            # model_kwargs=model_kwargs,
+            params=self.params_,
+            optimizer_class=self.optimizer_class,
+            optimizer_kwargs=optimizer_kwargs,
+            epochs=self.epochs,
+            f_loss=self.loss,
+            metrics=metrics,
+            train=ds,
+            valid=ds,
+            history=history_container,
+        )
+        # for epoch in range(self.epochs):
+        #     ds = ds.shuffle()
+        #     for xx, yy in ds:
+        #         model_state, loss = training.train_step(
+        #             model_state,
+        #             batch=(xx, yy),
+        #             f_loss=self.loss,
+        #         )
+        #         self.history_[f"{name_base}loss"] = self.history_.get(f"{name_base}loss", list()) + [loss]
+        #
+        #         for metric_name, a_metric in metrics:
+        #             metric_val = a_metric  # TODO: Calculate metric properly
+        #             metric_key = f"{name_base}{metric_name}"
+        #             self.history_[metric_key] = self.history_.get(metric_key, list()) + [metric_val]
+        #
+        #         # model_state_, loss_train = pde_net.ml.training.train_step(model_state_, (x_train, b_train))
+        #         # loss_test = loss_func(model_state_, model_state_.params, x_test, b_test)
+        #         # train_log.append(loss_train)
+        #         # test_log.append(loss_test)
+        #         # states_log.append(model_state_)
+        #         #
+        #         # if min_test is None or early_stop is None:
+        #         #     min_test = loss_test
+        #         #     continue
+        #         # if loss_test < min_test:
+        #         #     min_test = loss_test
+        #         #     cons_worse = 0
+        #         #     continue
+        #         # cons_worse += 1
+        #         # if cons_worse >= early_stop:
+        #         #     break
+        #     # ADD: Validation stage
+        # self.params_ = model_state.params
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
