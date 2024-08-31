@@ -122,7 +122,7 @@ def jitted_training(
     return model_state.params, history
 
 
-# @jax.jit
+@jax.jit
 def jitted_training_epoch(
         state_data_history: Tuple[TrainState, BasicDataset, BasicDataset, Array],
         num_epoch: int,
@@ -172,7 +172,7 @@ def jitted_training_epoch(
     return model_state, train, valid, history
 
 
-# @jax.jit
+@jax.jit
 def jitted_training_over_batch(
         model_state_loss: Tuple[TrainState, float],
         f_loss: Loss,
@@ -202,7 +202,7 @@ def jitted_training_over_batch(
     return model_state, cum_loss + loss
 
 
-# @jax.jit
+@jax.jit
 def jitted_evaluation_for_a_metric(
         model_state: TrainState,
         batches: BasicDataset,
@@ -230,7 +230,7 @@ def jitted_evaluation_for_a_metric(
     return history
 
 
-# @jax.jit
+@jax.jit
 def jitted_evaluation_over_batch(
         model_state: TrainState,
         batches: BasicDataset,
