@@ -87,14 +87,14 @@ def jitted_training_over_multiple_models(
     )
 
 
-# @jax.jit
+@jax.jit
 def jitted_training(
         # model_class: Type[nn.Module],
         # model_kwargs: Dict[str, Any],
-        model: nn.Module,
-        params,
-        optimizer_class: Type[optax._src.base.GradientTransformation],
-        optimizer_kwargs: Dict[str, Any],
+        model_state: TrainState,
+        # params,
+        # optimizer_class: Type[optax._src.base.GradientTransformation],
+        # optimizer_kwargs: Dict[str, Any],
         epochs: int,
         f_loss: Loss,
         metrics: List,
@@ -102,12 +102,12 @@ def jitted_training(
         valid: BasicDataset,
         history: Array,
 ):
-    model_state = train_state.TrainState.create(
-        apply_fn=model.apply,
-        # apply_fn=model_class(**model_kwargs).apply,
-        params=params,
-        tx=optimizer_class(**optimizer_kwargs),
-    )
+    # model_state = train_state.TrainState.create(
+    #     # apply_fn=model.apply,
+    #     apply_fn=model_class(**model_kwargs).apply,
+    #     params=params,
+    #     tx=optimizer_class(**optimizer_kwargs),
+    # )
     model_state, train, valid, history = jax.lax.fori_loop(
         lower=0,
         upper=epochs,
@@ -130,9 +130,6 @@ def jitted_training_epoch(
         metrics: List,
 ) -> Tuple[TrainState, BasicDataset, BasicDataset, Array]:
     model_state, train, valid, history = state_data_history
-    # n_batches = len(train)
-    n_batches = train.size_
-    loss = 0.0
 
     train = train.shuffle()
     model_state, loss = jax.lax.scan(

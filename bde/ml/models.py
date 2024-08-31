@@ -380,6 +380,7 @@ class FullyConnectedEstimator(BaseEstimator):
             "learning_rate": 1e-3,
         } if self.optimizer_kwargs is None else self.optimizer_kwargs
         self.model_ = self.model_class(**model_kwargs)
+        optimizer = self.optimizer_class(**optimizer_kwargs)
 
         if y.ndim == X.ndim - 1 and self.model_.n_output_params == 1:
             y = y.reshape(-1, 1)
@@ -394,17 +395,23 @@ class FullyConnectedEstimator(BaseEstimator):
         history_container = self._make_history_container()
         name_base = f""  # use f"val_" for validation variations
 
+        model_state = train_state.TrainState.create(
+            # apply_fn=model.apply,
+            apply_fn=self.model_.apply,
+            params=self.params_,
+            tx=optimizer,
+        )
         if self.epochs > 0:
             self.params_, history_container = training.jitted_training(
-                model=self.model_,
+                model_state=model_state,
                 # model_class=self.model_class,
                 # model_kwargs=model_kwargs,
-                params=self.params_,
-                optimizer_class=self.optimizer_class,
-                optimizer_kwargs=optimizer_kwargs,
+                # params=self.params_,
+                # optimizer_class=self.optimizer_class,
+                # optimizer_kwargs=optimizer_kwargs,
                 epochs=self.epochs,
                 f_loss=self.loss,
-                metrics=metrics,
+                metrics=jnp.array(metrics),
                 train=ds,
                 valid=ds,
                 history=history_container,
