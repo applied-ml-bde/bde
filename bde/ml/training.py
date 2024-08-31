@@ -66,11 +66,10 @@ def jitted_training_over_multiple_models(
         optimizer,
         epochs: int,
         f_loss: Loss,
-        metrics,
+        metrics: List,
         train: BasicDataset,
         valid: BasicDataset,
-        history,
-        **kwargs,
+        history: Array,
 ):
     return jax.pmap(
         jitted_training,
@@ -85,7 +84,6 @@ def jitted_training_over_multiple_models(
         train=train,
         valid=valid,
         history=history,
-        **kwargs,
     )
 
 
@@ -102,8 +100,7 @@ def jitted_training(
         metrics: List,
         train: BasicDataset,
         valid: BasicDataset,
-        history,
-        **kwargs,
+        history: Array,
 ):
     model_state = train_state.TrainState.create(
         apply_fn=model.apply,
@@ -127,12 +124,11 @@ def jitted_training(
 
 # @jax.jit
 def jitted_training_epoch(
-        state_data_history: Tuple[TrainState, BasicDataset, BasicDataset, Any],
+        state_data_history: Tuple[TrainState, BasicDataset, BasicDataset, Array],
         num_epoch: int,
         f_loss: Loss,
         metrics: List,
-        **kwargs,
-) -> Tuple[TrainState, BasicDataset, BasicDataset, Any]:
+) -> Tuple[TrainState, BasicDataset, BasicDataset, Array]:
     model_state, train, valid, history = state_data_history
     # n_batches = len(train)
     n_batches = train.size_
@@ -150,7 +146,7 @@ def jitted_training_epoch(
         ),
         init_val=(model_state, loss),
     )
-    history.at[0, num_epoch].set(loss / n_batches)
+    history = history.at[0, num_epoch].set(loss / n_batches)
 
     # n_metrics = len(metrics)
     # history = jax.lax.fori_loop(
@@ -211,7 +207,7 @@ def jitted_evaluation_for_a_metric(
         model_state: TrainState,
         batches: BasicDataset,
         metrics,
-        history,
+        history: Array,
         idx_metric: int,
         idx_history: int,
         idx_epoch: int,
@@ -230,7 +226,7 @@ def jitted_evaluation_for_a_metric(
         ),
         init_val=m_val,
     )
-    history.at[idx_history, idx_epoch].set(m_val / n_batches)
+    history = history.at[idx_history, idx_epoch].set(m_val / n_batches)
     return history
 
 
@@ -253,7 +249,6 @@ def jitted_evaluation_over_batch(
 #         metric,
 #         x,
 #         y,
-#         **kwargs,
 #   ):
 #     metric_val = metric(x, y)
 #

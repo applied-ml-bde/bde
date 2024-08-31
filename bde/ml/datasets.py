@@ -65,7 +65,7 @@ class BasicDataset(ABC):
         new_state = self.__dict__.copy()
         new_state.update(**kwargs)
 
-        new_instance = DatasetWrapper.__new__(DatasetWrapper)
+        new_instance = self.__class__.__new__(self.__class__)
         new_instance.__dict__.update(**new_state)
         return new_instance
 
@@ -190,7 +190,7 @@ class DatasetWrapper(BasicDataset):
 
         self.split_key = jax.random.key(seed=self.seed)
         self.rng_key = self.split_key
-        self.was_shuffled_ = False
+        self.was_shuffled_ = jnp.array(False)
         self.assignment = jnp.arange(self.items_lim_).reshape(self.size_, self._batch_size)
 
     def tree_flatten(
@@ -207,11 +207,11 @@ class DatasetWrapper(BasicDataset):
             self.y,
             self.rng_key,
             self.split_key,
+            self.was_shuffled_,
         )  # children must contain arrays & pytrees
         aux_data = (
             self._batch_size,
             self.seed,
-            self.was_shuffled_,
         )  # aux_data must contain static, hashable data.
         return children, aux_data
 
@@ -229,11 +229,11 @@ class DatasetWrapper(BasicDataset):
         """
         res = cls(*children[:2], *aux_data[:2])
         res.rng_key, res.split_key = children[2:4]
-        res.was_shuffled_ = aux_data[2]
+        res.was_shuffled_ = children[4]
         res.assignment = jax.lax.cond(
-            aux_data[2],
+            res.was_shuffled_,
             lambda: jax.random.permutation(
-                children[2],
+                res.rng_key,
                 res.n_items_,
             )[:(res.size_ * aux_data[0])].reshape(res.size_, aux_data[0]),
             lambda: res.assignment,
@@ -254,7 +254,12 @@ class DatasetWrapper(BasicDataset):
             self.n_items_,
         )[:self.items_lim_].reshape(self.size_, self._batch_size)
 
-        return self.set_state(assignment=assignment, rng_key=rng_key, split_key=split_key, was_shuffled_=True)
+        return self.set_state(
+            assignment=assignment,
+            rng_key=rng_key,
+            split_key=split_key,
+            was_shuffled_=jnp.array(True),
+        )
 
     @jax.jit
     def __len__(
