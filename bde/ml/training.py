@@ -135,18 +135,16 @@ def jitted_training_epoch(
     loss = 0.0
 
     train = train.shuffle()
-    model_state, loss = jax.lax.fori_loop(
-        lower=0,
-        upper=n_batches,
-        body_fun=lambda i, val: jitted_training_over_batch(
-            model_state_loss=val,
+    model_state, loss = jax.lax.scan(
+        f=lambda cc, sx: train_step(
+            cc,
+            batch=sx,
             f_loss=f_loss,
-            batches=train,
-            num_batch=i,
         ),
-        init_val=(model_state, loss),
+        init=model_state,
+        xs=train.get_scannable(),
     )
-    history = history.at[0, num_epoch].set(loss / n_batches)
+    history = history.at[0, num_epoch].set(loss.mean())
 
     # n_metrics = len(metrics)
     # history = jax.lax.fori_loop(
@@ -170,36 +168,6 @@ def jitted_training_epoch(
     #  - Early stopping support.
     #  - General callbacks support (stretch goal).
     return model_state, train, valid, history
-
-
-@jax.jit
-def jitted_training_over_batch(
-        model_state_loss: Tuple[TrainState, float],
-        f_loss: Loss,
-        batches: BasicDataset,
-        num_batch: int,
-  ) -> Tuple[TrainState, float]:
-    r"""Perform a training step over a single batch.
-
-    :param model_state_loss: A tuple containing:
-     - Model + params.
-     - The cumulative loss over the batch.
-    :param f_loss: Loss functions.
-    :param batches: The training dataset, where each entry is a batch of the form (x, y).
-    :param num_batch: The index of the current batch in the dataset.
-    :return: A tuples with:
-     - The updated model + params.
-     - The updated cumulative loss.
-    """
-    model_state, cum_loss = model_state_loss
-    batch = batches[num_batch]
-    model_state, loss = train_step(
-        model_state,
-        batch=batch,
-        f_loss=f_loss,
-    )
-    # params = model_state.params
-    return model_state, cum_loss + loss
 
 
 @jax.jit

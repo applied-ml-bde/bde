@@ -130,6 +130,18 @@ class BasicDataset(ABC):
         r"""Iterate through the dataset."""
         ...
 
+    @abstractmethod
+    def get_scannable(
+            self,
+    ) -> Tuple[Array, Array]:
+        r"""Return the dataset in a scannable form, corresponding to its shuffled state.
+
+        Returns
+        -------
+            A tuple representing the x and y in their shuffled form.
+        """
+        ...
+
     @property
     @jax.jit
     def batch_size(self):
@@ -165,6 +177,12 @@ class DatasetWrapper(BasicDataset):
         Returns the number of batches in the dataset.
     __getitem__(ids)
         Return a batch from the dataset.
+    __iter__()
+        Return a generator which retrieves all batches from the dataset.
+    get_scannable()
+        Returns a flattened and shuffled form of the dataset which can be used with `jax.lax.scan()`.
+    batch_size()
+        A property for setting the batch size while adjusting other corresponding parameters.
     """
     
     def __init__(
@@ -284,6 +302,18 @@ class DatasetWrapper(BasicDataset):
     def __iter__(self):
         r"""Iterate through the dataset."""
         return (self[idx] for idx in range(self.size_))
+
+    @jax.jit
+    def get_scannable(
+            self,
+    ) -> Tuple[Array, Array]:
+        r"""Return the dataset in a scannable form, corresponding to its shuffled state.
+
+        Returns
+        -------
+            A tuple representing the x and y in their shuffled form.
+        """
+        return self.x[self.assignment], self.y[self.assignment]
 
     @BasicDataset.batch_size.setter
     @jax.jit
