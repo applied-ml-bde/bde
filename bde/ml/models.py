@@ -257,7 +257,7 @@ class FullyConnectedEstimator(BaseEstimator):
         self.seed = seed
 
         self.params_ = dict()
-        self.history_ = dict()
+        self.history_ = None
         self.model_ = None
         self.is_fitted_ = False
         self.n_features_in_ = None
@@ -348,7 +348,8 @@ class FullyConnectedEstimator(BaseEstimator):
         if self.metrics is not None:
             n_hist += len(self.metrics)
         if self.validation_size is not None:
-            n_hist = n_hist * 2
+            if self.validation_size > 0:
+                n_hist = n_hist * 2
         return jnp.zeros((n_hist, self.epochs))
 
     def fit(
@@ -372,7 +373,6 @@ class FullyConnectedEstimator(BaseEstimator):
             raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
 
         self.params_ = None
-        self.history_ = dict()
         model_kwargs: Dict = {
             "n_output_params": 1,
         } if self.model_kwargs is None else self.model_kwargs
@@ -392,9 +392,6 @@ class FullyConnectedEstimator(BaseEstimator):
             n_features=X.shape[-1],
             seed=self.seed,
         )
-        history_container = self._make_history_container()
-        name_base = f""  # use f"val_" for validation variations
-
         model_state = train_state.TrainState.create(
             # apply_fn=model.apply,
             apply_fn=self.model_.apply,
@@ -402,24 +399,49 @@ class FullyConnectedEstimator(BaseEstimator):
             tx=optimizer,
         )
         if self.epochs > 0:
-            self.params_, history_container = training.jitted_training(
+            self.params_, self.history_ = training.jitted_training(
                 model_state=model_state,
                 # model_class=self.model_class,
                 # model_kwargs=model_kwargs,
                 # params=self.params_,
                 # optimizer_class=self.optimizer_class,
                 # optimizer_kwargs=optimizer_kwargs,
-                epochs=self.epochs,
+                epochs=jnp.arange(self.epochs),
                 f_loss=self.loss,
                 metrics=jnp.array(metrics),
                 train=ds,
                 valid=ds,
-                history=history_container,
             )
         # TODO: Transform `history_container` to `self.history`
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
+
+    def history_description(
+            self,
+    ) -> Dict[str, Array]:
+        r"""Make a readable version of the training history.
+
+        Returns
+        -------
+        Dict
+            Each key corresponds to an evaluation metric/ loss
+            and each value is an array describing the values for different epochs.
+
+        Raises
+        ------
+        AssertionError
+            If the model is not fitted.
+        """
+        chex.assert_equal(self.is_fitted_, True)
+        res: Dict[str, int] = {
+            "loss": 0,
+        }
+        if self.validation_size:
+            if self.validation_size > 0:
+                res.update({f"val_{k}": v + len(res) for k, v in res})
+        res: Dict[str, Array] = {k: self.history_[idx] for k, idx in res}
+        return res
 
     @jax.jit
     def predict(self, X: ArrayLike) -> Array:
