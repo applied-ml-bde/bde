@@ -9,7 +9,6 @@ Functions
 - `jitted_training`: Fits a model over data for a parameters-set.
 - `jitted_training_epoch`: Performs 1 training epoch for model training
     (parameter optimization + metrics evaluation + validation).
-
 """
 
 from abc import ABC, abstractmethod
@@ -39,19 +38,28 @@ def train_step(
         state: TrainState,
         batch: tuple[ArrayLike, ArrayLike],
         f_loss: Loss,
-) -> tuple[TrainState, float]:
+) -> Tuple[TrainState, float]:
     r"""Perform an optimization step for the network.
 
     This function updates the model parameters by performing a single
     optimization step using the provided loss function.
 
-    :param state: The training-state of the network.
-    :param batch: Input data-points for the training set, containing 2 items:
-        - A set of training data-points.
-        - The corresponding labels.
-    :param f_loss: The loss function used while training. Should have the following signature:
-        (y_true, y_pred)
-    :return: Updated state of the network and the loss.
+    Parameters
+    ----------
+    state
+        The training-state of the network.
+    batch
+        Input data-points for the training set, containing 2 items:
+            - A set of training data-points.
+            - The corresponding labels.
+    f_loss
+        The loss function used while training. Should have the following signature:
+            (y_true, y_pred)
+
+    Returns
+    -------
+    Tuple[TrainState, float]
+        Updated state of the network and the loss.
     """
     grad_fn = jax.value_and_grad(bde.ml.loss.flax_training_loss_wrapper_regression(f_loss=f_loss),
                                  argnums=1,  # Parameters are second argument of the function
@@ -133,8 +141,8 @@ def jitted_training(
     valid
         The validation dataset.
 
-    Return
-    ------
+    Returns
+    -------
     Tuple[Dict, Array]
         A dictionary representing the optimized model parameters
         and an array describing the metrics over the training epochs.
@@ -186,8 +194,8 @@ def jitted_training_epoch(
     metrics
         An array of metric classes.
 
-    Return
-    ------
+    Returns
+    -------
     Tuple[Tuple[TrainState, BasicDataset, BasicDataset], Array]
         2 items are returned:
         - The first item is a triplet containing:
@@ -250,8 +258,8 @@ def jitted_evaluation_for_a_metric(
     ----------
     TODO: Complete
 
-    Return
-    ------
+    Returns
+    -------
     TODO: Complete
     """
     metric = metrics[idx_metric]
@@ -286,8 +294,8 @@ def jitted_evaluation_over_batch(
     ----------
     TODO: Complete
 
-    Return
-    ------
+    Returns
+    -------
     TODO: Complete
     """
     x, y_true = batches[num_batch]

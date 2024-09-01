@@ -29,6 +29,8 @@ class BasicDataset(ABC):
 
     Methods
     -------
+    set_state(**kwargs)
+        Updates attributes of state.
     tree_flatten()
         Used to turn the class into a jitible pytree.
     tree_unflatten(aux_data, children)
@@ -40,6 +42,10 @@ class BasicDataset(ABC):
         Returns the number of batches in the dataset.
     __getitem__(ids)
         Return a batch from the dataset.
+    __iter__()
+        Iterate through the dataset.
+    get_scannable()
+        Return the dataset in a scannable form, corresponding to its shuffled state.
     """
 
     _batch_size: int
@@ -90,9 +96,17 @@ class BasicDataset(ABC):
     ) -> "BasicDataset":
         r"""Specify how to construct a dataset from a JAX pytree.
 
-        :param aux_data: Contains static, hashable data.
-        :param children: Contain arrays & pytrees.
-        :return:
+        Parameters
+        ----------
+        aux_data
+            Contains static, hashable data.
+        children
+            Contain arrays & pytrees.
+
+        Returns
+        -------
+        BasicDataset
+            Reconstructs object from PyTree.
         """
         ...
 
@@ -103,6 +117,11 @@ class BasicDataset(ABC):
         r"""Randomly reorganize the dataset.
 
         Perform a random shuffle on the dataset items based on the dataset's seed.
+
+        Returns
+        -------
+        BasicDataset
+            Shuffled variation of the dataset.
         """
         ...
 
@@ -110,23 +129,38 @@ class BasicDataset(ABC):
     def __len__(
             self,
     ) -> int:
-        r"""Return the number of batches in the dataset."""
+        r"""Return the number of batches in the dataset.
+
+        Returns
+        -------
+        int
+            Number of batches in the dataset.
+        """
         ...
 
     @abstractmethod
     def __getitem__(
             self,
             idx: int,
-    ) -> Tuple[ArrayLike, ArrayLike]:
+    ) -> Tuple[Array, Array]:
         r"""Retrieve a batch from the dataset.
 
-        :param idx: Index of the batch to retrieve.
-        :return: A batch of data.
+        Parameters
+        ----------
+        idx
+            Index of the batch to retrieve.
+
+        Returns
+        -------
+        Tuple[ArrayLike, ArrayLike]
+            A batch of data: `(x, y)`.
         """
         ...
 
     @abstractmethod
-    def __iter__(self):
+    def __iter__(
+            self,
+    ):
         r"""Iterate through the dataset."""
         ...
 
@@ -144,7 +178,9 @@ class BasicDataset(ABC):
 
     @property
     @jax.jit
-    def batch_size(self):
+    def batch_size(
+            self,
+    ) -> int:
         r"""The number of items in each batch (leading axis)."""
         return self._batch_size
 
@@ -154,7 +190,11 @@ class BasicDataset(ABC):
         r"""Change the batch size.
 
         Provide logic for updating the batch size while keeping related values consistent (like size).
-        :param batch_size: The new batch size.:
+
+        Parameters
+        ----------
+        batch_size
+            The new batch size.
         """
         ...
 
@@ -216,9 +256,12 @@ class DatasetWrapper(BasicDataset):
     ) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize the dataset into a JAX pytree.
 
-        :return: A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees (2 elements).
-         - The `aux_data`, containing static and hashable data (5 elements).
+        Returns
+        -------
+        Tuple[Sequence[ArrayLike], Any]
+            A tuple with 2 elements:
+             - The `children`, containing arrays & pytrees (2 elements).
+             - The `aux_data`, containing static and hashable data (5 elements).
         """
         children = (
             self.x,
@@ -241,9 +284,17 @@ class DatasetWrapper(BasicDataset):
     ) -> "DatasetWrapper":
         r"""Specify how to construct a dataset from a JAX pytree.
 
-        :param aux_data: Contains static, hashable data (5 elements).
-        :param children: Contain arrays & pytrees (2 elements).
-        :return:
+        Parameters
+        ----------
+        aux_data
+            Contains static, hashable data (5 elements).
+        children
+            Contain arrays & pytrees (2 elements).
+
+        Returns
+        -------
+        DatasetWrapper
+            Reconstructs object from PyTree.
         """
         res = cls(*children[:2], *aux_data[:2])
         res.rng_key, res.split_key = children[2:4]
@@ -265,6 +316,11 @@ class DatasetWrapper(BasicDataset):
         r"""Randomly reorganize the dataset.
 
         Perform a random shuffle on the dataset items based on the dataset's seed.
+
+        Returns
+        -------
+        BasicDataset
+            Shuffled variation of the dataset.
         """
         rng_key, split_key = jax.random.split(self.split_key)
         assignment = jax.random.permutation(
@@ -283,23 +339,38 @@ class DatasetWrapper(BasicDataset):
     def __len__(
             self,
     ) -> int:
-        r"""Return the number of batches in the dataset."""
+        r"""Return the number of batches in the dataset.
+
+        Returns
+        -------
+        int
+            Number of batches in the dataset.
+        """
         return self.size_
 
     @jax.jit
     def __getitem__(
             self,
             idx: int,
-    ) -> Tuple[ArrayLike, ArrayLike]:
+    ) -> Tuple[Array, Array]:
         r"""Retrieve a batch from the dataset.
 
-        :param idx: Index of the batch to retrieve.
-        :return: A tuple consisting of training data and corresponding labels.
+        Parameters
+        ----------
+        idx
+            Index of the batch to retrieve.
+
+        Returns
+        -------
+        Tuple[ArrayLike, ArrayLike]
+            A tuple consisting of training data and corresponding labels
         """
         idx2 = self.assignment[idx]
         return self.x[idx2], self.y[idx2]
 
-    def __iter__(self):
+    def __iter__(
+            self,
+    ):
         r"""Iterate through the dataset."""
         return (self[idx] for idx in range(self.size_))
 
@@ -321,7 +392,16 @@ class DatasetWrapper(BasicDataset):
         r"""Change the batch size.
 
         Provide logic for updating the batch size while keeping related values consistent (like size).
-        :param batch_size: The new batch size.:
+
+        Parameters
+        ----------
+        batch_size
+            The new batch size.
+
+        Parameters
+        ----------
+        batch_size
+            The new batch size.
         """
         self._batch_size = batch_size
         self.size_ = self.n_items_ // self.batch_size
