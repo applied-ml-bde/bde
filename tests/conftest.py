@@ -1,9 +1,13 @@
 import pytest
 
+from flax.training import train_state
 import jax
 import jax.numpy as jnp
+import optax
 
+import bde.ml
 from bde.ml.datasets import DatasetWrapper
+from bde.ml.models import FullyConnectedModule
 from bde.utils import configs as cnfg
 
 
@@ -11,10 +15,42 @@ from bde.utils import configs as cnfg
 def make_range_dataset():
     def func(
             n_items,
-            seed,
+            seed=cnfg.General.SEED,
+            batch_size=None,
     ):
         data = jnp.arange(n_items, dtype=int).reshape(-1, 1)
-        return DatasetWrapper(x=data, y=data, batch_size=n_items, seed=seed), data
+        batch_size = n_items if batch_size is None else batch_size
+        return DatasetWrapper(x=data, y=data, batch_size=batch_size, seed=seed), data
+    return func
+
+
+@pytest.fixture
+def generate_model_state():
+    def func(
+            n_input_params=1,
+            n_output_params=1,
+            batch_size=1,
+            layer_sizes=None,
+            seed=cnfg.General.SEED,
+            **kwargs,
+    ):
+        model = FullyConnectedModule(
+            n_input_params=n_input_params,
+            n_output_params=n_output_params,
+            layer_sizes=layer_sizes,
+        )
+        params, _ = bde.ml.models.init_dense_model(
+            model=model,
+            batch_size=batch_size,
+            n_features=n_input_params,
+            seed=seed,
+        )
+        model_state = train_state.TrainState.create(
+            apply_fn=model.apply,
+            params=params,
+            tx=optax.adam(learning_rate=1e-3),
+        )
+        return model_state
     return func
 
 

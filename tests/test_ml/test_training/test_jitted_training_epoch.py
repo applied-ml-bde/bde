@@ -12,66 +12,87 @@ import bde.ml
 from bde.utils import configs as cnfg
 
 
-# TODO: Should this file be removed?
-# @pytest.mark.parametrize("do_use_jit", [True, False])
-# @pytest.mark.parametrize("batch_size", [1, 2])
-# def test_same_as_training_step(do_use_jit, batch_size):
-#     n_features = 1
-#     net = bde.ml.models.FullyConnectedModule(
-#         n_input_params=n_features,
-#         n_output_params=n_features,
-#         layer_sizes=None,
-#         do_final_activation=False,
-#     )
-#     params_base, _ = bde.ml.models.init_dense_model(
-#         model=net,
-#         batch_size=batch_size,
-#         seed=cnfg.General.SEED,
-#     )
-#     optimizer = optax.adam(learning_rate=1e-1)
-#     f_loss = bde.ml.loss.LogLikelihoodLoss()
-#     rng_key = jax.random.key(seed=cnfg.General.SEED)
-#     x = jax.random.normal(rng_key, (batch_size, n_features), jnp.float32)
-#
-#     model_state_raw = train_state.TrainState.create(
-#         apply_fn=net.apply,
-#         params=params_base,
-#         tx=optimizer,
-#     )
-#     model_state_tested = train_state.TrainState.create(
-#         apply_fn=net.apply,
-#         params=params_base,
-#         tx=optimizer,
-#     )
-#
-#     model_state_raw, _ = bde.ml.training.train_step(
-#         model_state_raw,
-#         batch=(x, x),
-#         f_loss=f_loss,
-#     )
-#     dataset = bde.ml.datasets.DatasetWrapper(x=x, y=x, batch_size=batch_size)
-#     with jax.disable_jit(disable=not do_use_jit):
-#         model_state_tested, _ = bde.ml.training.jitted_training_over_batch(
-#             model_state_loss=(model_state_tested, 0.0),
-#             f_loss=f_loss,
-#             batches=dataset,
-#             num_batch=0,
-#         )
-#         raw_and_tested_are_the_same = [
-#             jnp.allclose(x, y) for x, y in zip(
-#                 jax.tree_util.tree_flatten(model_state_tested.params)[0],
-#                 jax.tree_util.tree_flatten(model_state_raw.params)[0],
-#             )
-#         ]
-#         raw_and_tested_are_the_same = jnp.all(jnp.array(raw_and_tested_are_the_same))
-#         changed_during_training = [
-#             not jnp.allclose(x, y) for x, y in zip(
-#                 jax.tree_util.tree_flatten(model_state_tested.params)[0],
-#                 jax.tree_util.tree_flatten(params_base)[0],
-#             )
-#         ]
-#         changed_during_training = jnp.all(jnp.array(changed_during_training))
-#     assert raw_and_tested_are_the_same and changed_during_training
+class TestHistory:
+    @staticmethod
+    @pytest.mark.parametrize("do_use_jit", [True, False])
+    def test_history_is_1d(
+            do_use_jit,
+            make_range_dataset,
+            generate_model_state,
+    ):
+        with jax.disable_jit(disable=not do_use_jit):
+            _, history = bde.ml.training.jitted_training_epoch(
+                model_state=generate_model_state(batch_size=4),
+                train=make_range_dataset(24, batch_size=4)[0],
+                valid=make_range_dataset(0, batch_size=4)[0],
+                f_loss=bde.ml.loss.LossMSE(),
+                metrics=jnp.array([]),
+            )
+        assert history.ndim == 1
+
+    @staticmethod
+    @pytest.mark.parametrize("do_use_jit", [True, False])
+    @pytest.mark.parametrize("num_train_batches", [1, 4])
+    def test_when_only_loss_history_size_is_1(
+            do_use_jit,
+            num_train_batches,
+            make_range_dataset,
+            generate_model_state,
+    ):
+        train_size = 24
+        batch_size = train_size // num_train_batches
+        with jax.disable_jit(disable=not do_use_jit):
+            _, history = bde.ml.training.jitted_training_epoch(
+                model_state=generate_model_state(batch_size=batch_size),
+                train=make_range_dataset(train_size, batch_size=batch_size)[0],
+                valid=make_range_dataset(0, batch_size=batch_size)[0],
+                f_loss=bde.ml.loss.LossMSE(),
+                metrics=jnp.array([]),
+            )
+        assert history.shape[0] == 1
+
+
+@pytest.mark.parametrize("do_use_jit", [True, False])
+@pytest.mark.parametrize("do_validation", [False, True])
+@pytest.mark.parametrize("do_metrics", [False])  # TODO: Implement
+def test_epoch_covers_whole_batch_is_the_same_as_training_step(
+        do_use_jit,
+        do_validation,
+        do_metrics,
+        make_range_dataset,
+        generate_model_state,
+):
+    n_features, n_items = 1, 128
+    batch_size = n_items
+    f_loss = bde.ml.loss.LossMSE()
+    train = make_range_dataset(n_items, batch_size=batch_size)[0]
+    valid = train if do_validation else make_range_dataset(0, batch_size=batch_size)[0]
+    metrics = None if do_metrics else jnp.array([])  # ADD: Once metrics are implemented
+    model_state_raw = generate_model_state(
+        n_input_params=n_features,
+        n_output_params=n_features,
+        batch_size=batch_size,
+    )
+    model_state_tested = generate_model_state(
+        n_input_params=n_features,
+        n_output_params=n_features,
+        batch_size=batch_size,
+    )
+
+    model_state_raw, _ = bde.ml.training.train_step(
+        model_state_raw,
+        batch=train[0],
+        f_loss=f_loss,
+    )
+    with jax.disable_jit(disable=not do_use_jit):
+        (model_state_tested, _, _), _ = bde.ml.training.jitted_training_epoch(
+            model_state=model_state_tested,
+            f_loss=f_loss,
+            train=train,
+            valid=valid,
+            metrics=metrics,
+        )
+        assert model_state_raw.params == model_state_tested.params
 
 
 if __name__ == '__main__':
