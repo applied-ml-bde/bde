@@ -3,31 +3,10 @@ from jax import numpy as jnp
 import pathlib
 import pytest
 
-from bde.ml.datasets import DatasetWrapper
 from bde.utils import configs as cnfg
 
 SEED = cnfg.General.SEED
 TESTED_SEEDS = [0, 24, 42]
-
-
-@pytest.fixture
-def make_range_dataset():
-    def func(
-            n_items,
-            seed,
-    ):
-        data = jnp.arange(n_items, dtype=int).reshape(-1, 1)
-        return DatasetWrapper(x=data, y=data, batch_size=n_items, seed=seed), data
-    return func
-
-
-@pytest.fixture
-def recreate_with_pytree():
-    def func(
-            ds,
-    ):
-        return DatasetWrapper.tree_unflatten(*ds.tree_flatten()[::-1])
-    return func
 
 
 class TestPyTreePacking:
@@ -69,7 +48,13 @@ class TestPyTreePacking:
             assert getattr(ds, att) == getattr(ds2, att)
 
     @staticmethod
-    @pytest.mark.parametrize("att", ["x", "y", "split_key", "rng_key", "assignment"])
+    @pytest.mark.parametrize("att", [
+        "x",
+        "y",
+        "split_key",
+        "rng_key",
+        "assignment",
+    ])
     @pytest.mark.parametrize("do_shuffled", [True, False])
     @pytest.mark.parametrize("do_use_jit", [True, False])
     def test_array_elements_are_recreated_properly(
