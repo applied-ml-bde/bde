@@ -19,38 +19,44 @@ Functions
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Union, Optional
+from typing import Any, Union, Optional, List, Tuple, Dict, Type, Sequence
+import chex
 from collections.abc import Iterable, Generator, Callable
 import flax
 from flax import linen as nn
 from flax.struct import dataclass, field
 from flax.training import train_state
+from flax.core import FrozenDict
+from functools import partial
 import jax
 from jax import numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
+from jax.tree_util import register_pytree_node_class
 import optax
 import pathlib
 import pytest
 
 from sklearn.base import BaseEstimator
 
-import bde.ml.training
+from bde.ml import loss, training, datasets
+import bde.utils
 from bde.utils import configs as cnfg
 
 
+@register_pytree_node_class
 class BasicModule(nn.Module, ABC):
     r"""An abstract base class for easy inheritance and API implementation.
 
     Attributes
     ----------
-    n_input_params : Union[int, list[int]]
-        The number of input parameters or the shape of the input tensor(s).
-        This can be an integer for models with a single-input
-        or a list of integers for multi-input models.
     n_output_params : Union[int, list[int]]
         The number of output parameters or the shape of the output tensor(s). Similar
         to `n_input_params`, this can be an integer or a list.
+    n_input_params : Optional[Union[int, list[int]]]
+        The number of input parameters or the shape of the input tensor(s).
+        This can be an integer for models with a single-input
+        or a list of integers for multi-input models.
 
     Methods
     -------
@@ -58,8 +64,39 @@ class BasicModule(nn.Module, ABC):
         Abstract method to be implemented by subclasses, defining the API of a forward pass of the module.
     """
 
-    n_input_params: Union[int, list[int]]
     n_output_params: Union[int, list[int]]
+    n_input_params: Optional[Union[int, list[int]]] = None
+
+    def tree_flatten(
+            self,
+    ) -> Tuple[Sequence[ArrayLike], Any]:
+        r"""Specify how to serialize module into a JAX pytree.
+
+        :return: A tuple with 2 elements:
+         - The `children`, containing arrays & pytrees
+         - The `aux_data`, containing static and hashable data.
+        """
+        children = tuple()  # children must contain arrays & pytrees
+        aux_data = (
+            self.n_output_params,
+            self.n_input_params,
+        )  # aux_data must contain static, hashable data.
+        return children, aux_data
+
+    @classmethod
+    @abstractmethod
+    def tree_unflatten(
+            cls,
+            aux_data: Tuple[Any, Any],
+            children: Tuple,
+    ) -> "FullyConnectedModule":
+        r"""Specify how to build a module from a JAX pytree.
+
+        :param aux_data: Contains static, hashable data.
+        :param children: Contain arrays & pytrees.
+        :return: Reconstructed Module.
+        """
+        ...
 
     @abstractmethod
     def __call__(self, *args, **kwargs):
@@ -67,6 +104,7 @@ class BasicModule(nn.Module, ABC):
         ...
 
 
+@register_pytree_node_class
 class FullyConnectedModule(BasicModule):
     r"""A class for easy initialization of fully connected neural networks with flax.
 
@@ -76,10 +114,11 @@ class FullyConnectedModule(BasicModule):
 
     Attributes
     ----------
-    n_input_params : int
-        The number of input features or neurons in the input layer.
     n_output_params : int
         The number of output features or neurons in the output layer.
+    n_input_params : Optional[int]
+        The number of input features or neurons in the input layer.
+        If None, the number if determined based on the used params (usually determined by the data used for fitting).
     layer_sizes : Optional[Union[Iterable[int], int]], optional
         The number of neurons in each hidden layer.
         If an integer is provided, a single hidden layer with that many neurons is created.
@@ -95,10 +134,42 @@ class FullyConnectedModule(BasicModule):
         Define the forward pass of the fully connected network.
     """
 
-    n_input_params: int
     n_output_params: int
+    n_input_params: Optional[int] = None
     layer_sizes: Optional[Union[Iterable[int], int]] = None
     do_final_activation: bool = True
+
+    def tree_flatten(
+            self,
+    ) -> Tuple[Sequence[ArrayLike], Any]:
+        r"""Specify how to serialize module into a JAX pytree.
+
+        :return: A tuple with 2 elements:
+         - The `children`, containing arrays & pytrees (empty).
+         - The `aux_data`, containing static and hashable data (4 items).
+        """
+        children = tuple()  # children must contain arrays & pytrees
+        aux_data = (
+            self.n_output_params,
+            self.n_input_params,
+            self.layer_sizes,
+            self.do_final_activation,
+        )  # aux_data must contain static, hashable data.
+        return children, aux_data
+
+    @classmethod
+    def tree_unflatten(
+            cls,
+            aux_data: Tuple[Any, Any, Any, Any],
+            children: Tuple,
+    ) -> "FullyConnectedModule":
+        r"""Specify how to build a module from a JAX pytree.
+
+        :param aux_data: Contains static, hashable data (4 elements).
+        :param children: Contain arrays & pytrees. Not used by this class - Should be empty.
+        :return: Reconstructed Module.
+        """
+        return cls(*aux_data)
 
     @nn.compact
     def __call__(self, x):
@@ -125,6 +196,7 @@ class FullyConnectedModule(BasicModule):
         return x
 
 
+@register_pytree_node_class
 class FullyConnectedEstimator(BaseEstimator):
     r"""SKlearn-compatible estimator for training fully connected neural networks with Jax.
 
@@ -141,24 +213,30 @@ class FullyConnectedEstimator(BaseEstimator):
         Fit the model to the training data.
     predict(X)
         Predict the output for the given input data using the trained model.
+    _more_tags()
+        Used by the SKlearn API to set model tags.
     """
 
     def __init__(
             self,
-            model: BasicModule,
-            optimizer: optax._src.base.GradientTransformation,
-            loss: Callable,
+            model_class: Type[BasicModule] = FullyConnectedModule,
+            model_kwargs: Optional[Dict[str, Any]] = None,
+            optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
+            optimizer_kwargs: Optional[Dict[str, Any]] = None,
+            loss: loss.Loss = loss.LossMSE(),
             batch_size: int = 1,
             epochs: int = 1,
             metrics: Optional[list] = None,
-            validation_size: Optional[Union[float, tuple[ArrayLike, ArrayLike]]] = None,
+            validation_size: Optional[Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]] = None,
             seed: int = cnfg.General.SEED,
             **kwargs,
     ):
         r"""Initialize the estimator architecture and training parameters.
 
-        :param model: The neural network model to train.
-        :param optimizer: The optimizer for training the model.
+        :param model_class: The neural network model class wrapped by the estimator.
+        :param model_kwargs: The kwargs used to init the wrapped model.
+        :param optimizer_class: The optimizer class used by the estimator for training.
+        :param optimizer_kwargs: The kwargs used to init optimizer.
         :param loss: The loss function used during training.
         :param batch_size: The batch size for training, by default 1.
         :param epochs: Number of epochs for training, by default 1.
@@ -169,14 +247,112 @@ class FullyConnectedEstimator(BaseEstimator):
         :param kwargs: Additional keyword arguments.
         """
         super().__init__(**kwargs)
-        self.model = model
-        self.optimizer = optimizer
+        self.model_class = model_class
+        self.model_kwargs = model_kwargs
+        self.optimizer_class = optimizer_class
+        self.optimizer_kwargs = optimizer_kwargs
         self.loss = loss
         self.batch_size = batch_size
         self.epochs = epochs
         self.metrics = metrics
         self.validation_size = validation_size
         self.seed = seed
+
+        self.params_: Union[FrozenDict, Dict] = dict()
+        self.history_: Optional[Array] = None
+        self.model_: Optional[BasicModule] = None
+        self.is_fitted_: bool = False
+        self.n_features_in_: Optional[int] = None
+
+    def tree_flatten(
+            self,
+    ) -> Tuple[Sequence[ArrayLike], Any]:
+        r"""Specify how to serialize estimator into a JAX pytree.
+
+        :return: A tuple with 2 elements:
+         - The `children`, containing arrays & pytrees (2 elements).
+         - The `aux_data`, containing static and hashable data (13 elements).
+        """
+        children = (
+            self.model_,
+            self.params_,
+        )  # children must contain arrays & pytrees
+        aux_data = (
+            self.model_class,
+            self.model_kwargs,
+            self.optimizer_class,
+            self.optimizer_kwargs,
+            self.loss,
+            self.batch_size,
+            self.epochs,
+            self.metrics,
+            self.validation_size,
+            self.seed,
+
+            self.is_fitted_,
+            self.n_features_in_,
+            self.history_,
+        )  # aux_data must contain static, hashable data.
+        return children, aux_data
+
+    @classmethod
+    def tree_unflatten(
+            cls,
+            aux_data: Tuple[Tuple, ...],
+            children: Tuple[Any, Any],
+    ) -> "FullyConnectedEstimator":
+        r"""Specify how to build an estimator from a JAX pytree.
+
+        :param aux_data: Contains static, hashable data (2 items).
+        :param children: Contain arrays & pytrees (13 items).
+        :return: Reconstructed estimator.
+        """
+        res = cls(
+            *aux_data[:10]
+        )
+        res.model_ = children[0]
+        res.params_ = children[1]
+        res.is_fitted_ = aux_data[10]
+        res.n_features_in_ = aux_data[11]
+        res.history_ = aux_data[12]
+        return res
+
+    def __sklearn_is_fitted__(self) -> bool:
+        r"""Check if the estimator is fitted."""
+        return self.is_fitted_
+
+    def _more_tags(self):
+        return {
+            "_xfail_checks": {
+                # Note: By default SKlearn assumes models do not support complex valued data.
+                #  If we decide we want to support it, the following line should be uncommented.
+                # "check_complex_data": "Complex data is supported.",
+                "check_dtype_object": "Numpy input not supported. jax.numpy is required.",
+                "check_fit1d": "1D data is not supported.",
+                "check_no_attributes_set_in_init": "The model must set some internal attributes like params "
+                                                   "in order to to properly turn it into a pytree.",
+                "check_n_features_in": "Needs to be set before fitting to allow passing when flattening pytree.",
+            },
+            # "array_api_support": True,
+            "multioutput_only": True,
+            "X_types": ["2darray", "2dlabels"]
+        }
+
+    def _make_history_container(self) -> Array:
+        r"""Create an empty numpy array for recording the training process.
+
+        Returns
+        -------
+            A zeros array where the 1st axis represents the type of evaluation
+            and the 2nd axis represents the epoch number.
+        """
+        n_hist = 1
+        if self.metrics is not None:
+            n_hist += len(self.metrics)
+        if self.validation_size is not None:
+            if self.validation_size > 0:
+                n_hist = n_hist * 2
+        return jnp.zeros((n_hist, self.epochs))
 
     def fit(
             self,
@@ -189,80 +365,96 @@ class FullyConnectedEstimator(BaseEstimator):
         :param y: The labels. If y is None, X is assumed to include the labels as well.
         :return: The fitted estimator.
         """
-        self.params_ = None
-        self.history_ = dict()
-        if self.metrics is None:
-            self.metrics = list()
-        else:
-            raise ValueError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
-        if self.validation_size is not None:
-            raise ValueError(f"Validation is not yet supported.")  # TODO: Remove after implementation
-
-        n_splits = X.shape[0] // self.batch_size
         if y is None:
             y = X
-        if y.shape[0] != X.shape[0]:
-            raise ValueError(f"X and y don't match in number of samples.")
-        X, y = X[:(n_splits * self.batch_size)], y[:(n_splits * self.batch_size)]
-        # TODO: Implement a function which shuffles, crops, and return a list of zipped batches.
-        #  Once it is done, remove the manual split above.
-        #  The idea is that if there are some extra items,
-        #  they would be used in some of the epochs due to the shuffling.
+        bde.utils.utils.check_fit_input(X, y)
+        metrics: List = [] if self.metrics is None else self.metrics
+        if len(metrics) > 0:
+            raise NotImplementedError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
+        if self.validation_size is not None:
+            raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
+
+        self.params_ = None
+        model_kwargs: Dict = {
+            "n_output_params": 1,
+        } if self.model_kwargs is None else self.model_kwargs
+        optimizer_kwargs: Dict = {
+            "learning_rate": 1e-3,
+        } if self.optimizer_kwargs is None else self.optimizer_kwargs
+        self.model_ = self.model_class(**model_kwargs)
+        optimizer = self.optimizer_class(**optimizer_kwargs)
+
+        if y.ndim == X.ndim - 1 and self.model_.n_output_params == 1:
+            y = y.reshape(-1, 1)
+        ds = bde.ml.datasets.DatasetWrapper(x=X, y=y, batch_size=self.batch_size, seed=cnfg.General.SEED)
 
         self.params_, _ = init_dense_model(
-            model=self.model,
+            model=self.model_,
             batch_size=self.batch_size,
+            n_features=X.shape[-1],
             seed=self.seed,
         )
         model_state = train_state.TrainState.create(
-            apply_fn=self.model.apply,
+            # apply_fn=model.apply,
+            apply_fn=self.model_.apply,
             params=self.params_,
-            tx=self.optimizer,
+            tx=optimizer,
         )
-        name_base = f""  # use f"val_" for validation variations
-        for epoch in range(self.epochs):
-            # ADD: optional shuffling
-            for xx, yy in zip(jnp.split(X, n_splits), jnp.split(y, n_splits)):
-                model_state, loss = bde.ml.training.train_step(
-                    model_state,
-                    batch=(xx, yy),
-                    f_loss=self.loss,
-                )
-                self.history_[f"{name_base}loss"] = self.history_.get(f"{name_base}loss", list()) + [loss]
-
-                for metric_name, a_metric in self.metrics:
-                    metric_val = a_metric  # TODO: Calculate metric properly
-                    metric_key = f"{name_base}{metric_name}"
-                    self.history_[metric_key] = self.history_.get(metric_key, list()) + [metric_val]
-
-                # model_state_, loss_train = pde_net.ml.training.train_step(model_state_, (x_train, b_train))
-                # loss_test = loss_func(model_state_, model_state_.params, x_test, b_test)
-                # train_log.append(loss_train)
-                # test_log.append(loss_test)
-                # states_log.append(model_state_)
-                #
-                # if min_test is None or early_stop is None:
-                #     min_test = loss_test
-                #     continue
-                # if loss_test < min_test:
-                #     min_test = loss_test
-                #     cons_worse = 0
-                #     continue
-                # cons_worse += 1
-                # if cons_worse >= early_stop:
-                #     break
-            # ADD: Validation stage
-        self.params_ = model_state.params
-        self.is_fitted_ = True  # TODO: Check if this is required by the API
+        if self.epochs > 0:
+            self.params_, self.history_ = training.jitted_training(
+                model_state=model_state,
+                # model_class=self.model_class,
+                # model_kwargs=model_kwargs,
+                # params=self.params_,
+                # optimizer_class=self.optimizer_class,
+                # optimizer_kwargs=optimizer_kwargs,
+                epochs=jnp.arange(self.epochs),
+                f_loss=self.loss,
+                metrics=jnp.array(metrics),
+                train=ds,
+                valid=ds,
+            )
+        # TODO: Transform `history_container` to `self.history`
+        self.is_fitted_ = True
+        self.n_features_in_ = X.shape[-1]
         return self
 
+    def history_description(
+            self,
+    ) -> Dict[str, Array]:
+        r"""Make a readable version of the training history.
+
+        Returns
+        -------
+        Dict
+            Each key corresponds to an evaluation metric/ loss
+            and each value is an array describing the values for different epochs.
+
+        Raises
+        ------
+        AssertionError
+            If the model is not fitted.
+        """
+        chex.assert_equal(self.is_fitted_, True)
+        res: Dict[str, int] = {
+            "loss": 0,
+        }
+        if self.validation_size:
+            if self.validation_size > 0:
+                res.update({f"val_{k}": v + len(res) for k, v in res})
+        res: Dict[str, Array] = {k: self.history_[idx] for k, idx in res}
+        return res
+
+    @jax.jit
     def predict(self, X: ArrayLike) -> Array:
         r"""Apply the fitted model to the input data.
 
         :param X: The input data.
         :return: Predicted labels.
         """
-        return self.model.apply(self.params_, X)
+        bde.utils.utils.check_predict_input(X)
+        chex.assert_equal(self.is_fitted_, True)
+        return self.model_.apply(self.params_, X)
 
 
 class BDEEstimator(FullyConnectedEstimator):
@@ -287,20 +479,29 @@ class BDEEstimator(FullyConnectedEstimator):
 def init_dense_model(
         model: BasicModule,
         batch_size: int = 1,
+        n_features: Optional[int] = None,
         seed: int = cnfg.General.SEED,
 ) -> tuple[dict, Array]:
     r"""Fast initialization for a fully connected dense network.
 
     :param model: A model object.
     :param batch_size: The batch size for training.
+    :param n_features: The size of the input layer.
+    If it is set to `None`, it is inferred based on the provided model.
     :param seed: A seed for initialization.
     :return: A dict with the params, and the input used for the initialization.
     """
     rng = jax.random.key(seed=seed)
     rng, inp_rng, init_rng = jax.random.split(rng, 3)
-    if not isinstance(model.n_input_params, int):
-        raise NotImplementedError(f"Only 1 input is currently supported")
-    inp = jax.random.normal(inp_rng, (batch_size, model.n_input_params))
+    if n_features is None:
+        n_features = model.n_input_params
+    if model.n_input_params is None:
+        if n_features is None:
+            raise ValueError("`n_features` and `model.n_input_params` can't both be `None`.")
+        # model.n_input_params = n_features
+    elif not isinstance(model.n_input_params, int):
+        raise NotImplementedError("Only 1 input is currently supported")
+    inp = jax.random.normal(inp_rng, (batch_size, n_features))
     params = model.init(init_rng, inp)
     return params, inp
 
