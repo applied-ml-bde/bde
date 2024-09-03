@@ -38,7 +38,7 @@ import pytest
 
 from sklearn.base import BaseEstimator
 
-from bde.ml import loss, training
+from bde.ml import loss, training, datasets
 import bde.utils
 from bde.utils import configs as cnfg
 
@@ -226,7 +226,7 @@ class FullyConnectedEstimator(BaseEstimator):
             batch_size: int = 1,
             epochs: int = 1,
             metrics: Optional[list] = None,
-            validation_size: Optional[Union[float, Tuple[ArrayLike, ArrayLike], bde.ml.datasets.BasicDataset]] = None,
+            validation_size: Optional[Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]] = None,
             seed: int = cnfg.General.SEED,
             **kwargs,
     ):
