@@ -100,8 +100,12 @@ class TestShuffling:
                 assert not jnp.all(after_reshuffle == before_reshuffle), f"Shuffle #{n}."
 
     @staticmethod
-    def test_same_seed_gets_same_shuffles():
-        ...
+    def test_same_seed_gets_same_shuffles(make_range_dataset):
+        n_items = 128
+        ds1, _ = make_range_dataset(n_items=n_items, seed=SEED)
+        ds2, _ = make_range_dataset(n_items=n_items, seed=SEED)
+        ds1, ds2 = ds1.shuffle(), ds2.shuffle()
+        assert jnp.all(ds1.assignment == ds2.assignment)
 
     @staticmethod
     def test_raw_data_is_not_shuffled(
