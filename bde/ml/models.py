@@ -25,6 +25,7 @@ import flax
 from flax import linen as nn
 from flax.struct import dataclass, field
 from flax.training import train_state
+from flax.core import FrozenDict
 from functools import partial
 import jax
 from jax import numpy as jnp
@@ -37,7 +38,7 @@ import pytest
 
 from sklearn.base import BaseEstimator
 
-from bde.ml import loss, training
+from bde.ml import loss, training, datasets
 import bde.utils
 from bde.utils import configs as cnfg
 
@@ -218,14 +219,14 @@ class FullyConnectedEstimator(BaseEstimator):
     def __init__(
             self,
             model_class: Type[BasicModule] = FullyConnectedModule,
-            model_kwargs: Optional[Dict] = None,
+            model_kwargs: Optional[Dict[str, Any]] = None,
             optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
-            optimizer_kwargs: Optional[Dict] = None,
-            loss: Callable = loss.LossMSE(),
+            optimizer_kwargs: Optional[Dict[str, Any]] = None,
+            loss: loss.Loss = loss.LossMSE(),
             batch_size: int = 1,
             epochs: int = 1,
             metrics: Optional[list] = None,
-            validation_size: Optional[Union[float, tuple[ArrayLike, ArrayLike]]] = None,
+            validation_size: Optional[Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]] = None,
             seed: int = cnfg.General.SEED,
             **kwargs,
     ):
@@ -256,11 +257,11 @@ class FullyConnectedEstimator(BaseEstimator):
         self.validation_size = validation_size
         self.seed = seed
 
-        self.params_ = dict()
-        self.history_ = dict()
-        self.model_ = None
-        self.is_fitted_ = False
-        self.n_features_in_ = None
+        self.params_: Union[FrozenDict, Dict] = dict()
+        self.history_: Optional[Array] = None
+        self.model_: Optional[BasicModule] = None
+        self.is_fitted_: bool = False
+        self.n_features_in_: Optional[int] = None
 
     def tree_flatten(
             self,
@@ -336,6 +337,22 @@ class FullyConnectedEstimator(BaseEstimator):
             "X_types": ["2darray", "2dlabels"]
         }
 
+    def _make_history_container(self) -> Array:
+        r"""Create an empty numpy array for recording the training process.
+
+        Returns
+        -------
+            A zeros array where the 1st axis represents the type of evaluation
+            and the 2nd axis represents the epoch number.
+        """
+        n_hist = 1
+        if self.metrics is not None:
+            n_hist += len(self.metrics)
+        if self.validation_size is not None:
+            if self.validation_size > 0:
+                n_hist = n_hist * 2
+        return jnp.zeros((n_hist, self.epochs))
+
     def fit(
             self,
             X: ArrayLike,
@@ -350,21 +367,19 @@ class FullyConnectedEstimator(BaseEstimator):
         if y is None:
             y = X
         bde.utils.utils.check_fit_input(X, y)
-        metrics = [] if self.metrics is None else self.metrics
+        metrics: List = [] if self.metrics is None else self.metrics
         if len(metrics) > 0:
             raise NotImplementedError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
         if self.validation_size is not None:
             raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
 
         self.params_ = None
-        self.history_ = dict()
         model_kwargs: Dict = {
             "n_output_params": 1,
         } if self.model_kwargs is None else self.model_kwargs
         optimizer_kwargs: Dict = {
             "learning_rate": 1e-3,
         } if self.optimizer_kwargs is None else self.optimizer_kwargs
-
         self.model_ = self.model_class(**model_kwargs)
         optimizer = self.optimizer_class(**optimizer_kwargs)
 
@@ -379,47 +394,55 @@ class FullyConnectedEstimator(BaseEstimator):
             seed=self.seed,
         )
         model_state = train_state.TrainState.create(
+            # apply_fn=model.apply,
             apply_fn=self.model_.apply,
             params=self.params_,
             tx=optimizer,
         )
-        name_base = f""  # use f"val_" for validation variations
-        for epoch in range(self.epochs):
-            ds = ds.shuffle()
-            for xx, yy in ds:
-                model_state, loss = training.train_step(
-                    model_state,
-                    batch=(xx, yy),
-                    f_loss=self.loss,
-                )
-                self.history_[f"{name_base}loss"] = self.history_.get(f"{name_base}loss", list()) + [loss]
-
-                for metric_name, a_metric in metrics:
-                    metric_val = a_metric  # TODO: Calculate metric properly
-                    metric_key = f"{name_base}{metric_name}"
-                    self.history_[metric_key] = self.history_.get(metric_key, list()) + [metric_val]
-
-                # model_state_, loss_train = pde_net.ml.training.train_step(model_state_, (x_train, b_train))
-                # loss_test = loss_func(model_state_, model_state_.params, x_test, b_test)
-                # train_log.append(loss_train)
-                # test_log.append(loss_test)
-                # states_log.append(model_state_)
-                #
-                # if min_test is None or early_stop is None:
-                #     min_test = loss_test
-                #     continue
-                # if loss_test < min_test:
-                #     min_test = loss_test
-                #     cons_worse = 0
-                #     continue
-                # cons_worse += 1
-                # if cons_worse >= early_stop:
-                #     break
-            # ADD: Validation stage
-        self.params_ = model_state.params
+        if self.epochs > 0:
+            self.params_, self.history_ = training.jitted_training(
+                model_state=model_state,
+                # model_class=self.model_class,
+                # model_kwargs=model_kwargs,
+                # params=self.params_,
+                # optimizer_class=self.optimizer_class,
+                # optimizer_kwargs=optimizer_kwargs,
+                epochs=jnp.arange(self.epochs),
+                f_loss=self.loss,
+                metrics=jnp.array(metrics),
+                train=ds,
+                valid=ds,
+            )
+        # TODO: Transform `history_container` to `self.history`
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
+
+    def history_description(
+            self,
+    ) -> Dict[str, Array]:
+        r"""Make a readable version of the training history.
+
+        Returns
+        -------
+        Dict
+            Each key corresponds to an evaluation metric/ loss
+            and each value is an array describing the values for different epochs.
+
+        Raises
+        ------
+        AssertionError
+            If the model is not fitted.
+        """
+        chex.assert_equal(self.is_fitted_, True)
+        res: Dict[str, int] = {
+            "loss": 0,
+        }
+        if self.validation_size:
+            if self.validation_size > 0:
+                res.update({f"val_{k}": v + len(res) for k, v in res})
+        res: Dict[str, Array] = {k: self.history_[idx] for k, idx in res}
+        return res
 
     @jax.jit
     def predict(self, X: ArrayLike) -> Array:

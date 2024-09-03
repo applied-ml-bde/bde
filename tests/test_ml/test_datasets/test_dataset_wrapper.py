@@ -3,31 +3,10 @@ from jax import numpy as jnp
 import pathlib
 import pytest
 
-from bde.ml.datasets import DatasetWrapper
 from bde.utils import configs as cnfg
 
 SEED = cnfg.General.SEED
 TESTED_SEEDS = [0, 24, 42]
-
-
-@pytest.fixture
-def make_range_dataset():
-    def func(
-            n_items,
-            seed,
-    ):
-        data = jnp.arange(n_items, dtype=int).reshape(-1, 1)
-        return DatasetWrapper(x=data, y=data, batch_size=n_items, seed=seed), data
-    return func
-
-
-@pytest.fixture
-def recreate_with_pytree():
-    def func(
-            ds,
-    ):
-        return DatasetWrapper.tree_unflatten(*ds.tree_flatten()[::-1])
-    return func
 
 
 class TestPyTreePacking:
@@ -69,7 +48,13 @@ class TestPyTreePacking:
             assert getattr(ds, att) == getattr(ds2, att)
 
     @staticmethod
-    @pytest.mark.parametrize("att", ["x", "y", "split_key", "rng_key", "assignment"])
+    @pytest.mark.parametrize("att", [
+        "x",
+        "y",
+        "split_key",
+        "rng_key",
+        "assignment",
+    ])
     @pytest.mark.parametrize("do_shuffled", [True, False])
     @pytest.mark.parametrize("do_use_jit", [True, False])
     def test_array_elements_are_recreated_properly(
@@ -115,8 +100,12 @@ class TestShuffling:
                 assert not jnp.all(after_reshuffle == before_reshuffle), f"Shuffle #{n}."
 
     @staticmethod
-    def test_same_seed_gets_same_shuffles():
-        ...
+    def test_same_seed_gets_same_shuffles(make_range_dataset):
+        n_items = 128
+        ds1, _ = make_range_dataset(n_items=n_items, seed=SEED)
+        ds2, _ = make_range_dataset(n_items=n_items, seed=SEED)
+        ds1, ds2 = ds1.shuffle(), ds2.shuffle()
+        assert jnp.all(ds1.assignment == ds2.assignment)
 
     @staticmethod
     def test_raw_data_is_not_shuffled(
@@ -127,10 +116,48 @@ class TestShuffling:
         assert jnp.all(ds[0][0] == data)
 
 
-class TestBatchRetrival:
+class TestBatching:
     @staticmethod
-    def test_():
-        ...
+    @pytest.mark.parametrize("do_change_batch_size_after_init", [True, False])
+    @pytest.mark.parametrize("checking", [
+        "len",
+        "size_",
+        "batch_size",
+        "_batch_size",
+        "n_items_",
+        "items_lim_",
+    ])
+    def test_batch_size_calculations(
+            do_change_batch_size_after_init,
+            checking,
+            make_range_dataset,
+    ):
+        n_items, batch_size = 24, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        if do_change_batch_size_after_init:
+            batch_size = 5
+            ds.batch_size = batch_size
+        expected_size = n_items // batch_size
+        n_available = batch_size * expected_size
+
+        if checking == "len":
+            assert len(ds) == expected_size
+            return
+        if checking == "size_":
+            assert len(ds) == expected_size
+            return
+        if checking == "batch_size":
+            assert ds.batch_size == batch_size
+            return
+        if checking == "_batch_size":
+            assert ds._batch_size == batch_size
+            return
+        if checking == "n_items_":
+            assert ds.n_items_ == n_items
+            return
+        if checking == "items_lim_":
+            assert ds.items_lim_ == n_available
+            return
 
 
 class TestIteration:
