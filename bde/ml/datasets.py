@@ -387,7 +387,6 @@ class DatasetWrapper(BasicDataset):
         return self.x[self.assignment], self.y[self.assignment]
 
     @BasicDataset.batch_size.setter
-    @jax.jit
     def batch_size(self, batch_size: int) -> None:
         r"""Change the batch size.
 
@@ -406,7 +405,10 @@ class DatasetWrapper(BasicDataset):
         self._batch_size = batch_size
         self.size_ = self.n_items_ // self.batch_size
         self.items_lim_ = len(self) * self.batch_size
-        self.assignment = self.assignment.reshape(len(self), self.batch_size)
+        self.assignment = jax.random.permutation(
+            self.rng_key,
+            self.n_items_,
+        )[:self.items_lim_].reshape(self.size_, self._batch_size)
 
 
 if __name__ == "__main__":

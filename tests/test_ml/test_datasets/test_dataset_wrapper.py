@@ -112,10 +112,48 @@ class TestShuffling:
         assert jnp.all(ds[0][0] == data)
 
 
-class TestBatchRetrival:
+class TestBatching:
     @staticmethod
-    def test_():
-        ...
+    @pytest.mark.parametrize("do_change_batch_size_after_init", [True, False])
+    @pytest.mark.parametrize("checking", [
+        "len",
+        "size_",
+        "batch_size",
+        "_batch_size",
+        "n_items_",
+        "items_lim_",
+    ])
+    def test_batch_size_calculations(
+            do_change_batch_size_after_init,
+            checking,
+            make_range_dataset,
+    ):
+        n_items, batch_size = 24, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        if do_change_batch_size_after_init:
+            batch_size = 5
+            ds.batch_size = batch_size
+        expected_size = n_items // batch_size
+        n_available = batch_size * expected_size
+
+        if checking == "len":
+            assert len(ds) == expected_size
+            return
+        if checking == "size_":
+            assert len(ds) == expected_size
+            return
+        if checking == "batch_size":
+            assert ds.batch_size == batch_size
+            return
+        if checking == "_batch_size":
+            assert ds._batch_size == batch_size
+            return
+        if checking == "n_items_":
+            assert ds.n_items_ == n_items
+            return
+        if checking == "items_lim_":
+            assert ds.items_lim_ == n_available
+            return
 
 
 class TestIteration:
