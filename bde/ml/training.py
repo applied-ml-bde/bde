@@ -17,8 +17,7 @@ from collections.abc import Iterable, Sequence
 import flax
 from flax.training import train_state
 from flax.training.train_state import TrainState
-from flax import linen as nn
-from flax.struct import dataclass, field
+from flax.core import FrozenDict
 import jax
 from jax import numpy as jnp
 from jax import Array
@@ -121,7 +120,7 @@ def jitted_training(
         metrics: Array,
         train: BasicDataset,
         valid: BasicDataset,
-) -> Tuple[Dict, Array]:
+) -> Tuple[FrozenDict[str, Any], Array]:
     r"""Train a model on a single parameters set.
 
     A jitted training loop for a model using a single parameter set.
@@ -164,8 +163,7 @@ def jitted_training(
         init=(model_state, train, valid),
         xs=epochs,
     )
-
-    return model_state.params, history
+    return model_state.params, history.T
 
 
 @jax.jit

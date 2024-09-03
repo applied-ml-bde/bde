@@ -25,6 +25,7 @@ import flax
 from flax import linen as nn
 from flax.struct import dataclass, field
 from flax.training import train_state
+from flax.core import FrozenDict
 from functools import partial
 import jax
 from jax import numpy as jnp
@@ -225,7 +226,7 @@ class FullyConnectedEstimator(BaseEstimator):
             batch_size: int = 1,
             epochs: int = 1,
             metrics: Optional[list] = None,
-            validation_size: Optional[Union[float, tuple[ArrayLike, ArrayLike]]] = None,
+            validation_size: Optional[Union[float, Tuple[ArrayLike, ArrayLike], bde.ml.datasets.BasicDataset]] = None,
             seed: int = cnfg.General.SEED,
             **kwargs,
     ):
@@ -256,11 +257,11 @@ class FullyConnectedEstimator(BaseEstimator):
         self.validation_size = validation_size
         self.seed = seed
 
-        self.params_ = dict()
-        self.history_ = None
-        self.model_ = None
-        self.is_fitted_ = False
-        self.n_features_in_ = None
+        self.params_: Union[FrozenDict, Dict] = dict()
+        self.history_: Optional[Array] = None
+        self.model_: Optional[BasicModule] = None
+        self.is_fitted_: bool = False
+        self.n_features_in_: Optional[int] = None
 
     def tree_flatten(
             self,

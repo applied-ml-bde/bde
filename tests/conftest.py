@@ -55,6 +55,23 @@ def generate_model_state():
 
 
 @pytest.fixture
+def gen_training_items(make_range_dataset):
+    def func(
+            n_items,
+            batch_size=None,
+            seed=cnfg.General.SEED,
+            do_validation: bool = False,
+            do_metrics: bool = False,
+    ):
+        f_loss = bde.ml.loss.LossMSE()
+        train = make_range_dataset(n_items, batch_size=batch_size, seed=seed)[0]
+        valid = train if do_validation else make_range_dataset(0, batch_size=batch_size, seed=seed)[0]
+        metrics = None if do_metrics else jnp.array([])  # ADD: Once metrics are implemented
+        return f_loss, train, valid, metrics
+    return func
+
+
+@pytest.fixture
 def recreate_with_pytree():
     def func(
             ds,
