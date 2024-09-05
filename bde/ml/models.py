@@ -44,6 +44,13 @@ from bde.ml import loss, training, datasets
 import bde.utils
 from bde.utils import configs as cnfg
 
+import os
+import multiprocessing
+
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count={}".format(
+    multiprocessing.cpu_count()
+)
+
 
 @register_pytree_node_class
 class BasicModule(nn.Module, ABC):
@@ -745,28 +752,28 @@ class BDEEstimator(FullyConnectedEstimator):
             "X_types": ["2darray", "2dlabels"]
         }
 
+    @jax.jit
     def _prior_fitting(
             self,
             model_states,
             train,
             valid,
             metrics,
-    ) -> None:
+    ) -> Tuple[Any, Array]:
         r"""Perform non-Bayesian parallelized training to initialize parameters before sampling."""
-        # TODO: This method can handle only 1 state. We need to pmap it.
-        # self.params_, self.history_ = jax.pmap(
-        #     fun=training.jitted_training,
-        #     in_axes=(0, None, None, None, None, None),
-        # )(
-        #     model_state=model_states,
-        #     epochs=jnp.arange(self.n_init_runs),
-        #     f_loss=self.loss,
-        #     metrics=jnp.array(metrics),
-        #     train=train,
-        #     valid=valid,
-        # )
-        # return self.params_, self.history_
-        ...
+        params, history = jax.pmap(
+            fun=training.jitted_training,
+            in_axes=(0, None, None, None, None, None),
+            static_broadcasted_argnums=[2],
+        )(
+            model_states,
+            jnp.arange(self.n_init_runs),
+            self.loss,
+            jnp.array(metrics),
+            train,
+            valid,
+        )
+        return params, history
 
     def fit(
             self,
@@ -791,26 +798,23 @@ class BDEEstimator(FullyConnectedEstimator):
         split_key = jax.random.key(seed=self.seed)
         rng = jax.random.split(split_key, self.n_chains + 2)
         init_key_list, prep_key, split_key = rng[:self.n_chains], rng[-2], rng[-1]
-        metrics, optimizer, train, valid = self._prep_fit_params(x=X, y=y, rng_key=prep_key)
-
-        model_states = []
-        for init_key in init_key_list:  # TODO: pmap this (low priority)
-            model_states.append(self.init_inner_params(
-                n_features=X.shape[-1],
-                optimizer=optimizer,
-                rng_key=init_key,
-            ))
-        self._prior_fitting(model_states, train, valid, metrics)
-        if self.epochs > 0:
-            self.params_, self.history_ = training.jitted_training(
-                model_state=model_states[0],  # TODO: Use parallelized version
-                epochs=jnp.arange(self.epochs),
-                f_loss=self.loss,
-                metrics=jnp.array(metrics),
-                train=train,
-                valid=valid,
-            )
-        # TODO: Transform `history_container` to `self.history`
+        metrics, optimizer, train, valid = self._prep_fit_params(
+            x=X,
+            y=y,
+            rng_key=prep_key,
+        )
+        model_states = jax.pmap(
+            fun=self.init_inner_params,
+            in_axes=(None, None, 0),
+            static_broadcasted_argnums=[0, 1],
+        )(X.shape[-1], optimizer, init_key_list)
+        self.params_, self.history_ = self._prior_fitting(
+            model_states,
+            train,
+            valid,
+            metrics,
+        )
+        # TODO: Implement MCMC sampling
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
@@ -834,7 +838,13 @@ class BDEEstimator(FullyConnectedEstimator):
         """
         bde.utils.utils.check_predict_input(X)
         chex.assert_equal(self.is_fitted_, True)
-        return self.model_.apply(self.params_, X)  # TODO: Change after fully implementing
+        return jax.pmap(
+            fun=self.model_.apply,
+            in_axes=(0, None),
+        )(
+            self.params_,
+            X,
+        ).mean(axis=0)  # NOTE: Temporary implementation until proper BDE sampling and inference are implemented.
 
 
 def init_dense_model(
