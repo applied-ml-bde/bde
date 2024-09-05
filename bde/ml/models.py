@@ -463,11 +463,11 @@ class FullyConnectedEstimator(BaseEstimator):
         train_state.TrainState
             Initialized training state.
         """
-        params, _ = init_dense_model(
+        params, _ = init_dense_model_jitted(
             model=self.model_,
+            rng_key=rng_key,
             batch_size=self.batch_size,
             n_features=n_features,
-            seed=rng_key,
         )
         model_state = train_state.TrainState.create(
             # apply_fn=model.apply,
@@ -795,18 +795,11 @@ class BDEEstimator(FullyConnectedEstimator):
 
         model_states = []
         for init_key in init_key_list:  # TODO: pmap this (low priority)
-            params, _ = init_dense_model(
-                model=self.model_,
-                batch_size=self.batch_size,
+            model_states.append(self.init_inner_params(
                 n_features=X.shape[-1],
-                seed=init_key,
-            )
-            model_state = train_state.TrainState.create(
-                apply_fn=self.model_.apply,
-                params=params,
-                tx=optimizer,
-            )
-            model_states.append(model_state)
+                optimizer=optimizer,
+                rng_key=init_key,
+            ))
         self._prior_fitting(model_states, train, valid, metrics)
         if self.epochs > 0:
             self.params_, self.history_ = training.jitted_training(
@@ -882,6 +875,43 @@ def init_dense_model(
         # model.n_input_params = n_features
     elif not isinstance(model.n_input_params, int):
         raise NotImplementedError("Only 1 input is currently supported")
+    inp = jax.random.normal(inp_rng, (batch_size, n_features))
+    params = model.init(init_rng, inp)
+    return params, inp
+
+
+@partial(jax.jit, static_argnums=[2, 3])
+def init_dense_model_jitted(
+        model: BasicModule,
+        rng_key: PRNGKeyArray,
+        batch_size: int = 1,
+        n_features: int = 1,
+) -> Tuple[dict, Array]:
+    r"""Fast initialization for a fully connected dense network.
+
+    A jitted version of `init_dense_model()`.
+
+    Parameters
+    ----------
+    model
+        A model object.
+    rng_key
+        A PRNGKey used for randomness in initialization.
+    batch_size
+        The batch size for training.
+    n_features
+        The size of the input layer.
+        If it is set to `None`, it is inferred based on the provided model.
+
+    Returns
+    -------
+    Tuple[dict, Array]
+        A tuple with:
+         - A parameters dict,
+         - The input used for the initialization.
+    """
+    inp_rng, init_rng = jax.random.split(rng_key, 2)
+    # TODO: Consider using chex.
     inp = jax.random.normal(inp_rng, (batch_size, n_features))
     params = model.init(init_rng, inp)
     return params, inp
