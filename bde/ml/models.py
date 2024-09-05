@@ -33,6 +33,7 @@ from jax import numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 from jax.tree_util import register_pytree_node_class
+from jax._src.prng import PRNGKeyArray
 import optax
 import pathlib
 import pytest
@@ -409,6 +410,7 @@ class FullyConnectedEstimator(BaseEstimator):
             self,
             x: ArrayLike,
             y: Optional[ArrayLike] = None,
+            rng_key: Union[PRNGKeyArray, int] = cnfg.General.SEED,
     ) -> Tuple[List, optax._src.base.GradientTransformation, datasets.BasicDataset, datasets.BasicDataset]:
         r"""Handle model and parameter initialization before fitting."""
         if y is None:
@@ -420,6 +422,8 @@ class FullyConnectedEstimator(BaseEstimator):
         if self.validation_size is not None:
             raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
 
+        if not isinstance(rng_key, PRNGKeyArray):
+            rng_key = jax.random.key(seed=rng_key)  # TODO: Use when creating datasets.
         self.params_ = None
         model_kwargs: Dict = {
             "n_output_params": 1,
@@ -435,6 +439,43 @@ class FullyConnectedEstimator(BaseEstimator):
         train = bde.ml.datasets.DatasetWrapper(x=x, y=y, batch_size=self.batch_size, seed=cnfg.General.SEED)
         # TODO: Make validation data
         return metrics, optimizer, train, train
+
+    # @jax.jit
+    def init_inner_params(
+            self,
+            n_features,
+            optimizer,
+            rng_key,
+    ) -> train_state.TrainState:
+        r"""Create trainable model state.
+
+        Parameters
+        ----------
+        n_features
+            Number of input features.
+        optimizer
+            Optimization algorithm used for training.
+        rng_key
+            Randomness key.
+
+        Returns
+        -------
+        train_state.TrainState
+            Initialized training state.
+        """
+        params, _ = init_dense_model(
+            model=self.model_,
+            batch_size=self.batch_size,
+            n_features=n_features,
+            seed=rng_key,
+        )
+        model_state = train_state.TrainState.create(
+            # apply_fn=model.apply,
+            apply_fn=self.model_.apply,
+            params=params,
+            tx=optimizer,
+        )
+        return model_state
 
     def fit(
             self,
@@ -456,19 +497,13 @@ class FullyConnectedEstimator(BaseEstimator):
         FullyConnectedEstimator
             The fitted estimator.
         """
-        metrics, optimizer, train, valid = self._prep_fit_params(x=X, y=y)
-
-        self.params_, _ = init_dense_model(
-            model=self.model_,
-            batch_size=self.batch_size,
+        rng = jax.random.key(seed=self.seed)
+        rng_init, prep_key, split_key = jax.random.split(rng, 3)
+        metrics, optimizer, train, valid = self._prep_fit_params(x=X, y=y, rng_key=prep_key)
+        model_state = self.init_inner_params(
             n_features=X.shape[-1],
-            seed=self.seed,
-        )
-        model_state = train_state.TrainState.create(
-            # apply_fn=model.apply,
-            apply_fn=self.model_.apply,
-            params=self.params_,
-            tx=optimizer,
+            optimizer=optimizer,
+            rng_key=rng_init,
         )
         if self.epochs > 0:
             self.params_, self.history_ = training.jitted_training(
@@ -484,6 +519,8 @@ class FullyConnectedEstimator(BaseEstimator):
                 train=train,
                 valid=valid,
             )
+        else:
+            self.params_ = model_state.params
         # TODO: Transform `history_container` to `self.history`
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
@@ -751,15 +788,18 @@ class BDEEstimator(FullyConnectedEstimator):
         BDEEstimator
             The fitted estimator.
         """
-        metrics, optimizer, train, valid = self._prep_fit_params(x=X, y=y)
+        split_key = jax.random.key(seed=self.seed)
+        rng = jax.random.split(split_key, self.n_chains + 2)
+        init_key_list, prep_key, split_key = rng[:self.n_chains], rng[-2], rng[-1]
+        metrics, optimizer, train, valid = self._prep_fit_params(x=X, y=y, rng_key=prep_key)
 
         model_states = []
-        for _ in range(self.n_chains):  # TODO: pmap this
+        for init_key in init_key_list:  # TODO: pmap this (low priority)
             params, _ = init_dense_model(
                 model=self.model_,
                 batch_size=self.batch_size,
                 n_features=X.shape[-1],
-                seed=self.seed,  # TODO: This should be updated, since we want different initial conditions.
+                seed=init_key,
             )
             model_state = train_state.TrainState.create(
                 apply_fn=self.model_.apply,
@@ -801,14 +841,14 @@ class BDEEstimator(FullyConnectedEstimator):
         """
         bde.utils.utils.check_predict_input(X)
         chex.assert_equal(self.is_fitted_, True)
-        return self.model_.apply(self.params_, X)
+        return self.model_.apply(self.params_, X)  # TODO: Change after fully implementing
 
 
 def init_dense_model(
         model: BasicModule,
         batch_size: int = 1,
         n_features: Optional[int] = None,
-        seed: int = cnfg.General.SEED,
+        seed: Union[PRNGKeyArray, int] = cnfg.General.SEED,
 ) -> Tuple[dict, Array]:
     r"""Fast initialization for a fully connected dense network.
 
@@ -822,7 +862,7 @@ def init_dense_model(
         The size of the input layer.
         If it is set to `None`, it is inferred based on the provided model.
     seed
-        A seed for initialization.
+        A seed or a PRNGKey for initialization.
 
     Returns
     -------
@@ -831,8 +871,9 @@ def init_dense_model(
          - A parameters dict,
          - The input used for the initialization.
     """
-    rng = jax.random.key(seed=seed)
-    rng, inp_rng, init_rng = jax.random.split(rng, 3)
+    if not isinstance(seed, PRNGKeyArray):
+        seed = jax.random.key(seed=seed)
+    inp_rng, init_rng = jax.random.split(seed, 2)
     if n_features is None:
         n_features = model.n_input_params
     if model.n_input_params is None:
