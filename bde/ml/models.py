@@ -430,7 +430,7 @@ class FullyConnectedEstimator(BaseEstimator):
             raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
 
         if not isinstance(rng_key, PRNGKeyArray):
-            rng_key = jax.random.key(seed=rng_key)  # TODO: Use when creating datasets.
+            rng_key = jax.random.key(seed=rng_key)
         self.params_ = None
         model_kwargs: Dict = {
             "n_output_params": 1,
@@ -443,9 +443,20 @@ class FullyConnectedEstimator(BaseEstimator):
 
         if y.ndim == x.ndim - 1 and self.model_.n_output_params == 1:
             y = y.reshape(-1, 1)  # TODO: Good only for 2D data. Fix
-        train = bde.ml.datasets.DatasetWrapper(x=x, y=y, batch_size=self.batch_size, seed=cnfg.General.SEED)
-        # TODO: Make validation data
-        return metrics, optimizer, train, train
+
+        rng_key, train_key, valid_key = rng_key, rng_key, rng_key
+        val_size = 0 if self.validation_size is None else self.validation_size
+        train_key = int(jax.random.randint(train_key, (), 0, jnp.iinfo(jnp.int32).max))
+        valid_key = int(jax.random.randint(valid_key, (), 0, jnp.iinfo(jnp.int32).max))
+
+        if val_size > 0:
+            ...  # TODO: Split the data between train and valid
+        train = bde.ml.datasets.DatasetWrapper(x=x, y=y, batch_size=self.batch_size, seed=train_key)
+        valid = train
+        if val_size <= 0:
+            valid = train.gen_empty()
+            valid.seed = valid_key
+        return metrics, optimizer, train, valid
 
     # @jax.jit
     def init_inner_params(

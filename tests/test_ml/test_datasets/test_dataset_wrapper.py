@@ -24,6 +24,7 @@ class TestPyTreePacking:
     @pytest.mark.parametrize("att", [
         "_batch_size",
         "batch_size",
+        "_seed",
         "seed",
         "n_items_",
         "size_",
