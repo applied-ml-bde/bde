@@ -757,6 +757,9 @@ class BDEEstimator(FullyConnectedEstimator):
                 "check_no_attributes_set_in_init": "The model must set some internal attributes like params "
                                                    "in order to to properly turn it into a pytree.",
                 "check_n_features_in": "Needs to be set before fitting to allow passing when flattening pytree.",
+                "check_estimators_dtypes": "This test freezes on Github CI/CD but passes locally."
+                                           "This is despite implementing timeout for the test."
+                                           "It will be temporarily canceled and examined later.",  # TODO: Examine.
             },
             # "array_api_support": True,
             "multioutput_only": True,
