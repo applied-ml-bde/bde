@@ -1,3 +1,4 @@
+from contextlib import nullcontext as does_not_raise
 import jax
 from jax import numpy as jnp
 import pathlib
@@ -7,6 +8,10 @@ from bde.utils import configs as cnfg
 
 SEED = cnfg.General.SEED
 TESTED_SEEDS = [0, 24, 42]
+DATA_IDX = {
+    "x": 0,
+    "y": 1,
+}
 
 
 class TestPyTreePacking:
@@ -74,7 +79,7 @@ class TestPyTreePacking:
             assert jnp.all(getattr(ds, att) == getattr(ds2, att))
 
 
-class TestShuffling:
+class TestShufflingAndRandomness:
     @staticmethod
     def test_xy_match_after_n_shuffles(
             make_range_dataset,
@@ -98,7 +103,41 @@ class TestShuffling:
             with jax.disable_jit(disable=not do_use_jit):
                 ds = ds.shuffle()
                 after_reshuffle = ds[0][0]
-                assert not jnp.all(after_reshuffle == before_reshuffle), f"Shuffle #{n}."
+                assert not jnp.all(after_reshuffle == before_reshuffle), f"Shuffle #{n}/{n_shuffles}."
+
+    @staticmethod
+    @pytest.mark.parametrize("reseed_with", ["equals", "plus_equals"])
+    def test_reseed_shuffled_dataset_is_rearranged(
+            reseed_with,
+            make_range_dataset,
+    ):
+        n_reseed, n_items = 2, 128
+        ds, _ = make_range_dataset(n_items=n_items, seed=SEED)
+        ds = ds.shuffle()
+        for n in range(1, n_reseed + 1):
+            before_reseed = ds[0][0]
+            if reseed_with == "equals":
+                ds.seed = SEED + n
+            elif reseed_with == "plus_equals":
+                ds.seed += 1
+            else:
+                raise ValueError(f"The test was executed with an unsupported value of `reseed_with`: {reseed_with}")
+            after_reseed = ds[0][0]
+            assert not jnp.all(after_reseed == before_reseed), f"Reseed #{n}/{n_reseed}."
+
+    @staticmethod
+    def test_reseed_to_self_when_shuffled_resets_randomness_to_1st_shuffle(
+            make_range_dataset,
+    ):
+        n_shuffles, n_items = 2, 128
+        ds, data = make_range_dataset(n_items=n_items, seed=SEED)
+        ds = ds.shuffle()
+        first_shuffle_before_reseed = ds[0][0]
+        for n in range(1, n_shuffles + 1):
+            ds.seed = SEED
+            after_reseed = ds[0][0]
+            assert jnp.all(after_reseed == first_shuffle_before_reseed), f"Shuffle #{n}/{n_shuffles}."
+            ds = ds.shuffle()
 
     @staticmethod
     def test_same_seed_gets_same_shuffles(make_range_dataset):
@@ -109,11 +148,15 @@ class TestShuffling:
         assert jnp.all(ds1.assignment == ds2.assignment)
 
     @staticmethod
+    @pytest.mark.parametrize("do_reseed", [False, True])
     def test_raw_data_is_not_shuffled(
+            do_reseed,
             make_range_dataset,
     ):
         n_items = 128
         ds, data = make_range_dataset(n_items=n_items, seed=SEED)
+        if do_reseed:
+            ds.seed = SEED + 1
         assert jnp.all(ds[0][0] == data)
 
 
@@ -161,10 +204,119 @@ class TestBatching:
             return
 
 
-class TestIteration:
+class TestGenEmpty:
     @staticmethod
-    def test_():
-        ...
+    @pytest.mark.parametrize("checking", [
+        "size_",
+        "n_items_",
+        "items_lim_",
+    ])
+    def test_size_related_attributes(
+            checking,
+            make_range_dataset,
+    ):
+        n_items, batch_size = 24, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        ds = ds.gen_empty()
+        assert getattr(ds, checking) == 0
+
+    @staticmethod
+    def test_len_0(
+            make_range_dataset,
+    ):
+        n_items, batch_size = 24, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        ds = ds.gen_empty()
+        assert len(ds) == 0
+
+    @staticmethod
+    @pytest.mark.parametrize("checking", [
+        "x",
+        "y",
+        "assignment",
+    ])
+    def test_xy_are_empty(
+            checking,
+            make_range_dataset,
+    ):
+        n_items, batch_size = 24, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        ds = ds.gen_empty()
+        assert getattr(ds, checking).shape[0] == 0
+
+
+# class TestIteration:
+#     @staticmethod
+#     def test_():
+#         ...
+
+
+class TestScannableDatasetForm:
+    @staticmethod
+    @pytest.mark.xfail(
+        condition=False,
+        reason="Check that no errors are raised when scanning over with Jax",
+        raises=BaseException,
+        run=True,
+    )
+    @pytest.mark.parametrize("do_use_jit", [True, False])
+    def test_can_be_scanned_with_jax(
+            do_use_jit,
+            make_range_dataset,
+    ):
+        n_items, batch_size = 128, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        with jax.disable_jit(disable=not do_use_jit):
+            jax.lax.scan(
+                f=lambda cc, sx: (0, 0),
+                init=0,
+                xs=ds.get_scannable(),
+            )
+
+    @staticmethod
+    def test_scanning_gets_right_number_of_iterations(make_range_dataset):
+        n_items, batch_size = 128, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        _, scanned = jax.lax.scan(
+            f=lambda cc, sx: (cc + 1, 0),
+            init=0,
+            xs=ds.get_scannable(),
+        )
+        assert scanned.shape[0] == len(ds)
+
+    @staticmethod
+    def test_xy_correspondence(make_range_dataset):
+        n_items, batch_size = 128, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        xx, yy = ds.get_scannable()
+        assert jnp.allclose(xx, yy)
+
+    @staticmethod
+    @pytest.mark.parametrize("data_name", ["x", "y"])
+    @pytest.mark.parametrize("tested", [
+        "iter_same_as_scan",
+        "scan_preserves_data_shape",
+    ])
+    def test_scanned_data(
+            data_name,
+            tested,
+            make_range_dataset,
+    ):
+        n_items, batch_size, idx = 128, 4, DATA_IDX[data_name]
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        _, scanned = jax.lax.scan(
+            f=lambda cc, sx: (cc + 1, sx[idx]),
+            init=0,
+            xs=ds.get_scannable(),
+        )
+        if tested == "iter_same_as_scan":
+            iterred = jnp.array([x[idx] for x in ds])
+            assert jnp.allclose(scanned, iterred)
+            return
+        if tested == "scan_preserves_data_shape":
+            assert scanned.shape[1:] == ds[0][idx].shape
+            return
+        raise ValueError(f"An unsupported test name was given: `{tested}`")
 
 
 if __name__ == '__main__':
