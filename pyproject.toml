@@ -57,6 +57,7 @@ scikit-learn = ">1.4"
 scipy = ">1.13"
 seaborn = ">0.12"
 array-api-compat = ">=1.8"
+pre-commit = ">=3.4"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -93,6 +94,7 @@ scikit-learn = ">=1.4"
 scipy = ">1.13"
 seaborn = ">0.12"
 array-api-compat = ">=1.8"
+pre-commit = ">=3.4"
 
 [tool.pixi.pypi-dependencies]
 bde = { path = ".", editable = true }
