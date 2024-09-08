@@ -16,7 +16,11 @@ DATA_IDX = {
 
 class TestPyTreePacking:
     @staticmethod
-    @pytest.fixture(scope="class", params=[True, False])
+    @pytest.fixture(
+        scope="class",
+        params=[True, False],
+        ids=["with_shuffle", "no_shuffle"],
+    )
     def default_ds(
             request,
             make_range_dataset,
@@ -165,7 +169,23 @@ class TestShufflingAndRandomness:
 
 class TestBatching:
     @staticmethod
-    @pytest.mark.parametrize("do_change_batch_size_after_init", [True, False])
+    @pytest.fixture(
+        scope="class",
+        params=[True, False],
+        ids=["batch_size_changed_after_init", "batch_size_set_on_init_only"],
+    )
+    def default_ds_n_bs(
+            request,
+            make_range_dataset,
+    ):
+        n_items, batch_size = 24, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        if request.param:
+            batch_size = 5
+            ds.batch_size = batch_size
+        yield ds, n_items, batch_size
+
+    @staticmethod
     @pytest.mark.parametrize("checking", [
         "len",
         "size_",
@@ -175,15 +195,10 @@ class TestBatching:
         "items_lim_",
     ])
     def test_batch_size_calculations(
-            do_change_batch_size_after_init,
             checking,
-            make_range_dataset,
+            default_ds_n_bs,
     ):
-        n_items, batch_size = 24, 4
-        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
-        if do_change_batch_size_after_init:
-            batch_size = 5
-            ds.batch_size = batch_size
+        ds, n_items, batch_size = default_ds_n_bs
         expected_size = n_items // batch_size
         n_available = batch_size * expected_size
 
@@ -209,6 +224,17 @@ class TestBatching:
 
 class TestGenEmpty:
     @staticmethod
+    @pytest.fixture(scope="class")
+    def default_empty_ds(
+            request,
+            make_range_dataset,
+    ):
+        n_items, batch_size = 24, 4
+        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
+        ds = ds.gen_empty()
+        yield ds
+
+    @staticmethod
     @pytest.mark.parametrize("checking", [
         "size_",
         "n_items_",
@@ -216,21 +242,13 @@ class TestGenEmpty:
     ])
     def test_size_related_attributes(
             checking,
-            make_range_dataset,
+            default_empty_ds,
     ):
-        n_items, batch_size = 24, 4
-        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
-        ds = ds.gen_empty()
-        assert getattr(ds, checking) == 0
+        assert getattr(default_empty_ds, checking) == 0
 
     @staticmethod
-    def test_len_0(
-            make_range_dataset,
-    ):
-        n_items, batch_size = 24, 4
-        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
-        ds = ds.gen_empty()
-        assert len(ds) == 0
+    def test_len_0(default_empty_ds):
+        assert len(default_empty_ds) == 0
 
     @staticmethod
     @pytest.mark.parametrize("checking", [
@@ -240,12 +258,9 @@ class TestGenEmpty:
     ])
     def test_xy_are_empty(
             checking,
-            make_range_dataset,
+            default_empty_ds,
     ):
-        n_items, batch_size = 24, 4
-        ds, _ = make_range_dataset(n_items=n_items, batch_size=batch_size)
-        ds = ds.gen_empty()
-        assert getattr(ds, checking).shape[0] == 0
+        assert getattr(default_empty_ds, checking).shape[0] == 0
 
 
 # class TestIteration:
