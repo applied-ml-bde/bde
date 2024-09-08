@@ -24,7 +24,15 @@ class TestInit:
 
 class TestPyTree:
     @staticmethod
-    @pytest.mark.parametrize("do_fit", [True, False])
+    @pytest.fixture(scope="class", params=[True, False])
+    def default_model(request):
+        model_original = FullyConnectedEstimator()
+        if request.param:
+            x = jnp.arange(20).reshape(-1, 1)
+            model_original = model_original.fit(x)
+        yield model_original
+
+    @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
     @pytest.mark.parametrize("att", [
         "model_class",
@@ -43,17 +51,14 @@ class TestPyTree:
         "is_fitted_",
         "n_features_in_",
     ])
-    def test_reconstruct_before_fit(
-            do_fit,
+    def test_reconstructed_attributes_are_correct(
             do_use_jit,
             att,
             recreate_with_pytree,
+            default_model,
     ):
         with jax.disable_jit(disable=not do_use_jit):
-            model_original = FullyConnectedEstimator()
-            if do_fit:
-                x = jnp.arange(20).reshape(-1, 1)
-                model_original = model_original.fit(x)
+            model_original = default_model
             model_recreated = recreate_with_pytree(model_original)
             assert getattr(model_original, att) == getattr(model_recreated, att)
 

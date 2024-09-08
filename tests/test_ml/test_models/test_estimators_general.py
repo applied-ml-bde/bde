@@ -12,7 +12,7 @@ from bde.utils import configs as cnfg
 ])
 @pytest.mark.parametrize("do_use_jit", [False])
 @pytest.mark.timeout(180)
-@pytest.mark.skip(reason="This causes the tests to freeze on github (not locally). Temp skip until resolved.")
+# @pytest.mark.skip(reason="This causes the tests to freeze on github (not locally). Temp skip until resolved.")
 def test_sklearn_estimator(do_use_jit, estimator, check):
     # NOTE: These tests fail in jitted mode.
     #  Make sure that these is due to the test design, and not our code.

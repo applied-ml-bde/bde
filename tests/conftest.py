@@ -11,7 +11,7 @@ from bde.ml.models import FullyConnectedModule
 from bde.utils import configs as cnfg
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def make_range_dataset():
     def func(
             n_items,
@@ -24,7 +24,7 @@ def make_range_dataset():
     return func
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def generate_model_state():
     def func(
             n_input_params=1,
@@ -54,7 +54,7 @@ def generate_model_state():
     return func
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def gen_training_items(make_range_dataset):
     def func(
             n_items,
@@ -71,7 +71,7 @@ def gen_training_items(make_range_dataset):
     return func
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def recreate_with_pytree():
     def func(
             src,
