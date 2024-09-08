@@ -417,7 +417,7 @@ class FullyConnectedEstimator(BaseEstimator):
             self,
             x: ArrayLike,
             y: Optional[ArrayLike] = None,
-            rng_key: Union[PRNGKeyArray, int] = cnfg.General.SEED,
+            seed: int = cnfg.General.SEED,
     ) -> Tuple[List, optax._src.base.GradientTransformation, datasets.BasicDataset, datasets.BasicDataset]:
         r"""Handle model and parameter initialization before fitting."""
         if y is None:
@@ -429,8 +429,7 @@ class FullyConnectedEstimator(BaseEstimator):
         if self.validation_size is not None:
             raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
 
-        if not isinstance(rng_key, PRNGKeyArray):
-            rng_key = jax.random.key(seed=rng_key)
+        rng_key = jax.random.key(seed=seed)
         self.params_ = None
         model_kwargs: Dict = {
             "n_output_params": 1,
@@ -517,7 +516,11 @@ class FullyConnectedEstimator(BaseEstimator):
         """
         rng = jax.random.key(seed=self.seed)
         rng_init, prep_key, split_key = jax.random.split(rng, 3)
-        metrics, optimizer, train, valid = self._prep_fit_params(x=X, y=y, rng_key=prep_key)
+        metrics, optimizer, train, valid = self._prep_fit_params(
+            x=X,
+            y=y,
+            seed=int(jax.random.randint(prep_key, (), 0, jnp.iinfo(jnp.int32).max)),
+        )
         model_state = self.init_inner_params(
             n_features=X.shape[-1],
             optimizer=optimizer,
@@ -789,6 +792,9 @@ class BDEEstimator(FullyConnectedEstimator):
         )
         return params, history
 
+    def mcmc_loop(self):
+        ...
+
     def fit(
             self,
             X: ArrayLike,
@@ -815,7 +821,7 @@ class BDEEstimator(FullyConnectedEstimator):
         metrics, optimizer, train, valid = self._prep_fit_params(
             x=X,
             y=y,
-            rng_key=prep_key,
+            seed=int(jax.random.randint(prep_key, (), 0, jnp.iinfo(jnp.int32).max)),
         )
         model_states = jax.pmap(
             fun=self.init_inner_params,
@@ -828,7 +834,8 @@ class BDEEstimator(FullyConnectedEstimator):
             valid,
             metrics,
         )
-        # TODO: Implement MCMC sampling
+        self.mcmc_loop()  # TODO: Implement MCMC sampling
+
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
