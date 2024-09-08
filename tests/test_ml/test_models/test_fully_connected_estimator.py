@@ -14,11 +14,48 @@ import pathlib
 
 from sklearn.utils.estimator_checks import check_estimator, parametrize_with_checks
 import bde
+from bde.ml.models import FullyConnectedEstimator
 from bde.utils import configs as cnfg
 
 
-class TestPredict:
+class TestInit:
     ...
+
+
+class TestPyTree:
+    @staticmethod
+    @pytest.mark.parametrize("do_fit", [True, False])
+    @pytest.mark.parametrize("do_use_jit", [True, False])
+    @pytest.mark.parametrize("att", [
+        "model_class",
+        "model_kwargs",
+        "optimizer_class",
+        "optimizer_kwargs",
+        "loss",
+        "batch_size",
+        "epochs",
+        "metrics",
+        "validation_size",
+        "seed",
+        "params_",
+        "history_",
+        "model_",
+        "is_fitted_",
+        "n_features_in_",
+    ])
+    def test_reconstruct_before_fit(
+            do_fit,
+            do_use_jit,
+            att,
+            recreate_with_pytree,
+    ):
+        with jax.disable_jit(disable=not do_use_jit):
+            model_original = FullyConnectedEstimator()
+            if do_fit:
+                x = jnp.arange(20).reshape(-1, 1)
+                model_original = model_original.fit(x)
+            model_recreated = recreate_with_pytree(model_original)
+            assert getattr(model_original, att) == getattr(model_recreated, att)
 
 
 class TestFit:
@@ -84,7 +121,7 @@ class TestFit:
                 )
 
 
-class TestInit:
+class TestPredict:
     ...
 
 

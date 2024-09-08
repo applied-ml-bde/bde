@@ -10,6 +10,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
+chex = ">0.1.86"
 python = ">3.10, <3.12"
 flax = ">0.8.3"
 ipython = ">8.22"

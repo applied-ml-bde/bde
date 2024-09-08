@@ -593,6 +593,7 @@ class FullyConnectedEstimator(BaseEstimator):
         return self.model_.apply(self.params_, X)
 
 
+@register_pytree_node_class
 class BDEEstimator(FullyConnectedEstimator):
     r"""SKlearn-compatible implementation of a BDE estimator.
 
@@ -743,9 +744,9 @@ class BDEEstimator(FullyConnectedEstimator):
         )
         res.model_ = children[0]
         res.params_ = children[1]
-        res.is_fitted_ = aux_data[10]
-        res.n_features_in_ = aux_data[11]
-        res.history_ = aux_data[12]
+        res.is_fitted_ = aux_data[14]
+        res.n_features_in_ = aux_data[15]
+        res.history_ = aux_data[16]
         return res
 
     def _more_tags(self):
@@ -760,9 +761,6 @@ class BDEEstimator(FullyConnectedEstimator):
                 "check_no_attributes_set_in_init": "The model must set some internal attributes like params "
                                                    "in order to to properly turn it into a pytree.",
                 "check_n_features_in": "Needs to be set before fitting to allow passing when flattening pytree.",
-                "check_estimators_dtypes": "This test freezes on Github CI/CD but passes locally."
-                                           "This is despite implementing timeout for the test."
-                                           "It will be temporarily canceled and examined later.",  # TODO: Examine.
             },
             # "array_api_support": True,
             "multioutput_only": True,
@@ -793,6 +791,7 @@ class BDEEstimator(FullyConnectedEstimator):
         return params, history
 
     def mcmc_loop(self):
+        r"""Perform MCMC sampling for BDE estimator."""
         ...
 
     def fit(

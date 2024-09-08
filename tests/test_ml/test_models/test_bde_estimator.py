@@ -38,7 +38,7 @@ class TestPyTree:
         "n_features_in_",
 
     ])
-    @pytest.mark.skip(reason="In development.")
+    # @pytest.mark.skip(reason="In development.")
     def test_reconstruct_before_fit(
             do_fit,
             do_use_jit,
@@ -54,7 +54,7 @@ class TestPyTree:
             assert getattr(model_original, att) == getattr(model_recreated, att)
 
 
-class TestTraining:
+class TestFit:
     ...
 
 

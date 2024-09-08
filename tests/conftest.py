@@ -74,9 +74,9 @@ def gen_training_items(make_range_dataset):
 @pytest.fixture
 def recreate_with_pytree():
     def func(
-            ds,
+            src,
     ):
-        return DatasetWrapper.tree_unflatten(*ds.tree_flatten()[::-1])
+        return src.__class__.tree_unflatten(*src.tree_flatten()[::-1])
     return func
 
 
