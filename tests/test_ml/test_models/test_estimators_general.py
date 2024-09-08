@@ -15,7 +15,7 @@ from bde.utils import configs as cnfg
 # @pytest.mark.skip(reason="This causes the tests to freeze on github (not locally). Temp skip until resolved.")
 def test_sklearn_estimator(do_use_jit, estimator, check):
     # NOTE: These tests fail in jitted mode.
-    #  Make sure that these is due to the test design, and not our code.
+    #  Make sure that this is due to the test design, and not our code.
     with jax.disable_jit(disable=not do_use_jit):
         check(estimator)
 
