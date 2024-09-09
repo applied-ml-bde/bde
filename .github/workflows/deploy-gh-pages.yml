@@ -3,10 +3,12 @@ name: Documentation
 # on:
 #   push:
 #     branches:
-#     - main
+#     - 'master'
+#     - 'main'
 #   pull_request:
 #     branches:
-#       - main
+#     - 'master'
+#     - 'main'
 
 # jobs:
 #   deploy-gh-pages:

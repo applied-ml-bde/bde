@@ -1,12 +1,12 @@
-name: Python Package Check
+name: Unit Tests
 
 on:
   push:
-    branches: 
+    branches:
     - 'master'
     - 'main'
   pull_request:
-    branches: 
+    branches:
     - 'master'
     - 'main'
 
@@ -81,7 +81,7 @@ jobs:
     #   run: |
     #     source .venv/bin/activate
     #     flake8 --max-line-length=88 --ignore=E203,F722,W503 bde
-    
+
     # - name: Test proper typehints with MyPy
     #   if: ${{ always() }}
     #   run: |
