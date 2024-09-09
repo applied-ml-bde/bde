@@ -61,7 +61,6 @@ seaborn = ">0.12"
 array-api-compat = ">=1.8"
 pre-commit = ">=3.4"
 
-
 [tool.poetry.group.dev.dependencies]
 sphinx-autodoc-typehints = "^2.0.0"
 sphinx-rtd-theme = "^2.0.0"
@@ -74,32 +73,32 @@ build-backend = "hatchling.build"
 requires = ["hatchling"]
 
 [tool.pixi.project]
-channels = ["conda-forge"]
-# platforms = ["linux-64"]
+name = "bde"
+channels = ["conda-forge", "nvidia", "pytorch"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 python = ">=3.9"
-flax = ">0.8.3"
-ipython = ">8.22"
-jax = ">0.4.26"
-jupyter = "^1.0.0"
-jupyterlab = ">4.1"
-matplotlib = ">3.8.3"
-notebook = ">7.1"
-numpy = ">1.26"
-optax = ">0.2"
-pandas = ">2.2"
-pip = ">24.0"
-pytest = ">7.4"
+ipython = ">=8.22"
+jupyter = "~=1.0.0"
+jupyterlab = ">=4.1"
+matplotlib = ">=3.8.3"
+notebook = ">=7.1"
+numpy = ">=1.26"
+pandas = ">=2.2"
+pip = ">=24.0"
+pytest = ">=7.4"
 scikit-learn = ">=1.4"
-scipy = ">1.13"
-seaborn = ">0.12"
+scipy = ">=1.13"
+seaborn = ">=0.12"
 array-api-compat = ">=1.8"
 pre-commit = ">=3.4"
 
 [tool.pixi.pypi-dependencies]
-bde = { path = ".", editable = true }
+#bde = { path = ".", editable = true }
+jax = ">=0.4.26"
+optax = ">=0.2"
+flax = ">=0.8.3"
 
 [tool.pixi.tasks]
 
