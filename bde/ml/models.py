@@ -47,10 +47,9 @@ from bde.utils import configs as cnfg
 import os
 import multiprocessing
 
-# os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count={}".format(
-#     multiprocessing.cpu_count()
-# )
-# os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count=24"
+os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count={}".format(
+    multiprocessing.cpu_count()
+)
 
 
 @register_pytree_node_class
