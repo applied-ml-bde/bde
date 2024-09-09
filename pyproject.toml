@@ -68,10 +68,10 @@ sphinx-rtd-theme = "^2.0.0"
 coverage = "^7.5.0"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-# build-backend = "hatchling.build"
-# requires = ["hatchling"]
+# requires = ["poetry-core"]
+# build-backend = "poetry.core.masonry.api"
+build-backend = "hatchling.build"
+requires = ["hatchling"]
 
 [tool.pixi.project]
 channels = ["conda-forge"]
@@ -103,12 +103,7 @@ bde = { path = ".", editable = true }
 
 [tool.pixi.tasks]
 
-
-
-
-
-
-
+###################################
 
 [tool.pixi.feature.lint.dependencies]
 # The version below should be aligned with the one of `.pre-commit-config.yaml`

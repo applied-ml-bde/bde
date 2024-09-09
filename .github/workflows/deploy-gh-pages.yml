@@ -1,18 +1,18 @@
 name: Documentation
 
-# on:
-#   push:
-#     branches:
-#     - 'master'
-#     - 'main'
-#   pull_request:
-#     branches:
-#     - 'master'
-#     - 'main'
+on:
+  push:
+    branches:
+    - 'master'
+    - 'main'
+  pull_request:
+    branches:
+    - 'master'
+    - 'main'
 
-# jobs:
-#   deploy-gh-pages:
-#     runs-on: ubuntu-latest
+jobs:
+  deploy-gh-pages:
+    runs-on: ubuntu-latest
 
 #     steps:
 #     - uses: actions/checkout@v4
