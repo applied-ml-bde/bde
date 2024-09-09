@@ -14,20 +14,53 @@ import pathlib
 
 from sklearn.utils.estimator_checks import check_estimator, parametrize_with_checks
 import bde
+from bde.ml.models import FullyConnectedEstimator
 from bde.utils import configs as cnfg
 
 
-@parametrize_with_checks([bde.ml.models.FullyConnectedEstimator()])
-@pytest.mark.parametrize("do_use_jit", [False])
-def test_sklearn_estimator(do_use_jit, estimator, check):
-    # NOTE: These tests fail in jitted mode.
-    #  Make sure that these is due to the test design, and not our code.
-    with jax.disable_jit(disable=not do_use_jit):
-        check(estimator)
-
-
-class TestPredict:
+class TestInit:
     ...
+
+
+class TestPyTree:
+    @staticmethod
+    @pytest.fixture(scope="class", params=[True, False])
+    def default_model(request):
+        model_original = FullyConnectedEstimator()
+        if request.param:
+            x = jnp.arange(20).reshape(-1, 1)
+            model_original = model_original.fit(x)
+        yield model_original
+
+    @staticmethod
+    @pytest.mark.parametrize("do_use_jit", [True, False])
+    @pytest.mark.parametrize("att", [
+        "model_class",
+        "model_kwargs",
+        "optimizer_class",
+        "optimizer_kwargs",
+        "loss",
+        "batch_size",
+        "epochs",
+        "metrics",
+        "validation_size",
+        "seed",
+        "params_",
+        "history_",
+        "model_",
+        "is_fitted_",
+        "n_features_in_",
+    ])
+    def test_reconstructed_attributes_are_correct(
+            do_use_jit,
+            att,
+            recreate_with_pytree,
+            default_model,
+    ):
+        with jax.disable_jit(disable=not do_use_jit):
+            model_original = default_model
+            model_recreated = recreate_with_pytree(model_original)
+            assert getattr(model_original, att) == getattr(model_recreated, att)
 
 
 class TestFit:
@@ -93,7 +126,7 @@ class TestFit:
                 )
 
 
-class TestInit:
+class TestPredict:
     ...
 
 
