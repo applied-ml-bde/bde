@@ -9,18 +9,22 @@ Classes
 
 """
 
+import pathlib
 from abc import ABC, abstractmethod
+from typing import (
+    Any,
+    Sequence,
+    Tuple,
+)
+
 import chex
 import jax
-from jax import numpy as jnp
-from jax import Array
-from jax.typing import ArrayLike
-from jax.tree_util import register_pytree_node_class
-import pathlib
 import pytest
-from typing import Any, Union, Optional, Tuple, List, Dict, Sequence
+from jax import Array
+from jax import numpy as jnp
+from jax.tree_util import register_pytree_node_class
+from jax.typing import ArrayLike
 
-import bde.ml
 from bde.utils import configs as cnfg
 
 
@@ -46,14 +50,14 @@ class BasicDataset(ABC):
         Iterate through the dataset.
     get_scannable()
         Return the dataset in a scannable form, corresponding to its shuffled state.
-    """
+    """  # noqa: E501
 
     _batch_size: int
     _seed: int
 
     def set_state(
-            self,
-            **kwargs,
+        self,
+        **kwargs,
     ) -> "BasicDataset":
         r"""Return a new instance with updated attributes.
 
@@ -88,9 +92,9 @@ class BasicDataset(ABC):
     @classmethod
     @abstractmethod
     def tree_unflatten(
-            cls,
-            aux_data: Any,
-            children: Tuple[ArrayLike, ...],
+        cls,
+        aux_data: Any,
+        children: Tuple[ArrayLike, ...],
     ) -> "BasicDataset":
         r"""Specify how to construct a dataset from a JAX pytree.
 
@@ -139,8 +143,8 @@ class BasicDataset(ABC):
 
     @abstractmethod
     def __getitem__(
-            self,
-            idx: int,
+        self,
+        idx: int,
     ) -> Tuple[Array, Array]:
         r"""Retrieve a batch from the dataset.
 
@@ -180,8 +184,8 @@ class BasicDataset(ABC):
     @batch_size.setter
     @abstractmethod
     def batch_size(
-            self,
-            batch_size: int,
+        self,
+        batch_size: int,
     ) -> None:
         r"""Change the batch size.
 
@@ -191,7 +195,7 @@ class BasicDataset(ABC):
         ----------
         batch_size
             The new batch size.
-        """
+        """  # noqa: E501
         ...
 
     @property
@@ -203,8 +207,8 @@ class BasicDataset(ABC):
     @seed.setter
     @abstractmethod
     def seed(
-            self,
-            seed: int,
+        self,
+        seed: int,
     ) -> None:
         r"""Change the seed.
 
@@ -214,7 +218,7 @@ class BasicDataset(ABC):
         ----------
         seed
             The new seed.
-        """
+        """  # noqa: E501
         ...
 
 
@@ -242,14 +246,14 @@ class DatasetWrapper(BasicDataset):
         Returns a flattened and shuffled form of the dataset which can be used with `jax.lax.scan()`.
     batch_size()
         A property for setting the batch size while adjusting other corresponding parameters.
-    """
-    
+    """  # noqa: E501
+
     def __init__(
-            self,
-            x: ArrayLike,
-            y: ArrayLike,
-            batch_size: int = 1,
-            seed: int = cnfg.General.SEED,
+        self,
+        x: ArrayLike,
+        y: ArrayLike,
+        batch_size: int = 1,
+        seed: int = cnfg.General.SEED,
     ):
         r"""Initiate the class.
 
@@ -268,7 +272,9 @@ class DatasetWrapper(BasicDataset):
         self.split_key = jax.random.key(seed=self._seed)
         self.rng_key = self.split_key
         self.was_shuffled_ = jnp.array(False)
-        self.assignment = jnp.arange(self.items_lim_).reshape(self.size_, self._batch_size)
+        self.assignment = jnp.arange(self.items_lim_).reshape(
+            self.size_, self._batch_size
+        )
 
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize the dataset into a JAX pytree.
@@ -295,9 +301,9 @@ class DatasetWrapper(BasicDataset):
 
     @classmethod
     def tree_unflatten(
-            cls,
-            aux_data: Tuple[Any, ...],
-            children: Tuple[ArrayLike, ArrayLike],
+        cls,
+        aux_data: Tuple[Any, ...],
+        children: Tuple[ArrayLike, ArrayLike],
     ) -> "DatasetWrapper":
         r"""Specify how to construct a dataset from a JAX pytree.
 
@@ -321,7 +327,10 @@ class DatasetWrapper(BasicDataset):
             lambda: jax.random.permutation(
                 res.rng_key,
                 res.n_items_,
-            )[:(res.size_ * aux_data[0])].reshape(res.size_, aux_data[0]),
+            )[: (res.size_ * aux_data[0])].reshape(
+                res.size_,
+                aux_data[0],
+            ),
             lambda: res.assignment,
         )
         return res
@@ -341,7 +350,10 @@ class DatasetWrapper(BasicDataset):
         assignment = jax.random.permutation(
             rng_key,
             self.n_items_,
-        )[:self.items_lim_].reshape(self.size_, self._batch_size)
+        )[: self.items_lim_].reshape(
+            self.size_,
+            self._batch_size,
+        )
 
         return self.set_state(
             assignment=assignment,
@@ -374,8 +386,8 @@ class DatasetWrapper(BasicDataset):
 
     @jax.jit
     def __getitem__(
-            self,
-            idx: int,
+        self,
+        idx: int,
     ) -> Tuple[Array, Array]:
         r"""Retrieve a batch from the dataset.
 
@@ -408,8 +420,8 @@ class DatasetWrapper(BasicDataset):
 
     @BasicDataset.batch_size.setter
     def batch_size(
-            self,
-            batch_size: int,
+        self,
+        batch_size: int,
     ) -> None:
         r"""Change the batch size.
 
@@ -424,19 +436,22 @@ class DatasetWrapper(BasicDataset):
         ----------
         batch_size
             The new batch size.
-        """
+        """  # noqa: E501
         self._batch_size = batch_size
         self.size_ = self.n_items_ // self.batch_size
         self.items_lim_ = len(self) * self.batch_size
         self.assignment = jax.random.permutation(
             self.rng_key,
             self.n_items_,
-        )[:self.items_lim_].reshape(self.size_, self._batch_size)
+        )[: self.items_lim_].reshape(
+            self.size_,
+            self._batch_size,
+        )
 
     @BasicDataset.seed.setter
     def seed(
-            self,
-            seed: int,
+        self,
+        seed: int,
     ) -> None:
         r"""Change the seed.
 
@@ -446,7 +461,7 @@ class DatasetWrapper(BasicDataset):
         ----------
         seed
             The new seed.
-        """
+        """  # noqa: E501
         self._seed = seed
         self.split_key = jax.random.key(seed=self._seed)
         if self.was_shuffled_:
@@ -456,9 +471,14 @@ class DatasetWrapper(BasicDataset):
             self.assignment = shuffled.assignment
             return
         self.rng_key = self.split_key
-        self.assignment = jnp.arange(self.items_lim_).reshape(self.size_, self._batch_size)
+        self.assignment = jnp.arange(self.items_lim_).reshape(
+            self.size_,
+            self._batch_size,
+        )
 
 
 if __name__ == "__main__":
-    tests_path = pathlib.Path(__file__).parent.parent / "test" / "test_ml" / "test_datasets"
+    tests_path = (
+        pathlib.Path(__file__).parent.parent / "test" / "test_ml" / "test_datasets"
+    )
     pytest.main([str(tests_path)])

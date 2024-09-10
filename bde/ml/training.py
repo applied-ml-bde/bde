@@ -11,21 +11,18 @@ Functions
     (parameter optimization + metrics evaluation + validation).
 """
 
-from abc import ABC, abstractmethod
-from typing import Any, Union, Optional, Callable, Dict, Tuple, List, Type
-from collections.abc import Iterable, Sequence
-import flax
-from flax.training import train_state
-from flax.training.train_state import TrainState
-from flax.core import FrozenDict
-import jax
-from jax import numpy as jnp
-from jax import Array
-from jax.typing import ArrayLike
-import optax
 import pathlib
+from typing import Any, Tuple
+
+import jax
+
 # import bde
 import pytest
+from flax.core import FrozenDict
+from flax.training.train_state import TrainState
+from jax import Array
+from jax import numpy as jnp
+from jax.typing import ArrayLike
 
 import bde.ml
 from bde.ml.datasets import BasicDataset
@@ -34,9 +31,9 @@ from bde.ml.loss import Loss
 
 @jax.jit
 def train_step(
-        state: TrainState,
-        batch: tuple[ArrayLike, ArrayLike],
-        f_loss: Loss,
+    state: TrainState,
+    batch: tuple[ArrayLike, ArrayLike],
+    f_loss: Loss,
 ) -> Tuple[TrainState, float]:
     r"""Perform an optimization step for the network.
 
@@ -60,10 +57,11 @@ def train_step(
     Tuple[TrainState, float]
         Updated state of the network and the loss.
     """
-    grad_fn = jax.value_and_grad(bde.ml.loss.flax_training_loss_wrapper_regression(f_loss=f_loss),
-                                 argnums=1,  # Parameters are second argument of the function
-                                 has_aux=False  # Function has additional outputs, here accuracy
-                                 )
+    grad_fn = jax.value_and_grad(
+        bde.ml.loss.flax_training_loss_wrapper_regression(f_loss=f_loss),
+        argnums=1,  # Parameters are second argument of the function
+        has_aux=False,  # Function has additional outputs, here accuracy
+    )
     loss, grads = grad_fn(state, state.params, batch)
     state = state.apply_gradients(grads=grads)
     return state, loss
@@ -109,17 +107,17 @@ def train_step(
 
 @jax.jit
 def jitted_training(
-        # model_class: Type[nn.Module],
-        # model_kwargs: Dict[str, Any],
-        model_state: TrainState,
-        # params,
-        # optimizer_class: Type[optax._src.base.GradientTransformation],
-        # optimizer_kwargs: Dict[str, Any],
-        epochs: Array,
-        f_loss: Loss,
-        metrics: Array,
-        train: BasicDataset,
-        valid: BasicDataset,
+    # model_class: Type[nn.Module],
+    # model_kwargs: Dict[str, Any],
+    model_state: TrainState,
+    # params,
+    # optimizer_class: Type[optax._src.base.GradientTransformation],
+    # optimizer_kwargs: Dict[str, Any],
+    epochs: Array,
+    f_loss: Loss,
+    metrics: Array,
+    train: BasicDataset,
+    valid: BasicDataset,
 ) -> Tuple[FrozenDict[str, Any], Array]:
     r"""Train a model on a single parameters set.
 
@@ -168,11 +166,11 @@ def jitted_training(
 
 @jax.jit
 def jitted_training_epoch(
-        model_state: TrainState,
-        train: BasicDataset,
-        valid: BasicDataset,
-        f_loss: Loss,
-        metrics: Array,
+    model_state: TrainState,
+    train: BasicDataset,
+    valid: BasicDataset,
+    f_loss: Loss,
+    metrics: Array,
 ) -> Tuple[Tuple[TrainState, BasicDataset, BasicDataset], Array]:
     r"""Train a model for 1 epoch.
 
@@ -201,8 +199,10 @@ def jitted_training_epoch(
             - Updated training dataset (updates shuffling).
             - Updated validation dataset (updates shuffling).
         - The 2nd item is a 1D-array describing the evaluation of all metrics over this epoch.
-    """
-    history = jnp.array([], dtype=jnp.float32)  # An empty 1D-array to store the history for current epoch.
+    """  # noqa: E501
+    history = jnp.array(
+        [], dtype=jnp.float32
+    )  # An empty 1D-array to store the history for current epoch.
 
     train = train.shuffle()
     model_state, loss = jax.lax.scan(
@@ -242,13 +242,13 @@ def jitted_training_epoch(
 
 @jax.jit
 def jitted_evaluation_for_a_metric(
-        model_state: TrainState,
-        batches: BasicDataset,
-        metrics,
-        history: Array,
-        idx_metric: int,
-        idx_history: int,
-        idx_epoch: int,
+    model_state: TrainState,
+    batches: BasicDataset,
+    metrics,
+    history: Array,
+    idx_metric: int,
+    idx_history: int,
+    idx_epoch: int,
 ):
     r"""Evaluate a training epoch for 1 metric.
 
@@ -280,12 +280,12 @@ def jitted_evaluation_for_a_metric(
 
 @jax.jit
 def jitted_evaluation_over_batch(
-        model_state: TrainState,
-        batches: BasicDataset,
-        f_eval,
-        num_batch: int,
-        m_val: float,
-  ) -> float:
+    model_state: TrainState,
+    batches: BasicDataset,
+    f_eval,
+    num_batch: int,
+    m_val: float,
+) -> float:
     r"""Perform intermediate evaluation over a metric for 1 batch of data.
 
     Parameters
@@ -302,5 +302,7 @@ def jitted_evaluation_over_batch(
 
 
 if __name__ == "__main__":
-    tests_path = pathlib.Path(__file__).parent.parent / "test" / "test_ml" / "test_training"
+    tests_path = (
+        pathlib.Path(__file__).parent.parent / "test" / "test_ml" / "test_training"
+    )
     pytest.main([str(tests_path)])

@@ -14,21 +14,29 @@ according to the SKlearn specifications for estimators.
 - `check_predict_input`: Validates the input of predict functions in a jit compatible way
 according to the SKlearn specifications for estimators.
 
-"""
-import jax
-import pytest
+"""  # noqa: E501
+
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
+
 import chex
+import jax
 import jax.numpy as jnp
-from jax import Array
+import pytest
 from jax.typing import ArrayLike
-from jax.tree_util import register_pytree_node_class
-from typing import Any, Union, Callable, Dict, Tuple, List, Optional
 
 
 def apply_to_multilayer_data(
-        data: Union[Dict, List, Any],
-        f: Callable[[Any], Any],
-        dtypes: Optional[Union[type, Tuple[type, ...]]] = None,
+    data: Union[Dict, List, Any],
+    f: Callable[[Any], Any],
+    dtypes: Optional[Union[type, Tuple[type, ...]]] = None,
 ) -> Union[Dict, List, Any]:
     r"""Apply a transformation over a multilayer collection of data.
 
@@ -43,7 +51,7 @@ def apply_to_multilayer_data(
     If None is given, the transformation is applied on all data types.
     If a tuple of datatypes is given, all datatypes in the tuple will be considered.
     :return:
-    """
+    """  # noqa: E501
     if isinstance(data, List):
         for idx, d in enumerate(data):
             data[idx] = apply_to_multilayer_data(d, f, dtypes)
@@ -62,8 +70,8 @@ def apply_to_multilayer_data(
 
 # @jax.jit
 def check_fit_input(
-        x: ArrayLike,
-        y: ArrayLike,
+    x: ArrayLike,
+    y: ArrayLike,
 ) -> None:
     r"""Validate the input of `fit` functions according to the SKlearn specifications for estimators.
 
@@ -75,7 +83,7 @@ def check_fit_input(
      - `x` or `y` are complex.
      - `x` is empty.
      - `x` or `y` contain Nans or infs.
-    """
+    """  # noqa: E501
     jax.lax.cond(
         jnp.iscomplexobj(x) or jnp.iscomplexobj(y),
         lambda: jax.debug.callback(JaxErrors.raise_error_for_fit_on_complex_data_error),
@@ -85,7 +93,7 @@ def check_fit_input(
         x.size > 0,
         JaxErrors.raise_no_error,
         lambda xx: jax.debug.callback(JaxErrors.raise_error_for_fit_on_empty_data, xx),
-        x
+        x,
     )
     jax.lax.cond(
         jnp.all(jnp.isfinite(x)) and jnp.all(jnp.isfinite(y)),
@@ -96,7 +104,7 @@ def check_fit_input(
 
 @jax.jit
 def check_predict_input(
-        x: ArrayLike,
+    x: ArrayLike,
 ) -> None:
     r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
 
@@ -106,7 +114,7 @@ def check_predict_input(
     :raises ValueError: If:
      - the input has Nans/ infs.
      - the input is empty.
-    """
+    """  # noqa: E501
     jax.lax.cond(
         jnp.all(jnp.isfinite(x)),
         JaxErrors.raise_no_error,
@@ -120,8 +128,8 @@ def check_predict_input(
 
 
 def check_fit_input_chex(
-        x: ArrayLike,
-        y: ArrayLike,
+    x: ArrayLike,
+    y: ArrayLike,
 ) -> None:
     r"""Validate the input of `fit` functions according to the SKlearn specifications for estimators.
 
@@ -133,7 +141,7 @@ def check_fit_input_chex(
      - `x` or `y` are complex.
      - `x` is empty.
      - `x` or `y` contain Nans or infs.
-    """
+    """  # noqa: E501
     try:
         chex.assert_equal(
             jnp.iscomplexobj(x),
@@ -145,17 +153,19 @@ def check_fit_input_chex(
             False,
             custom_message="Complex data not supported.",
         )
-    except AssertionError as Err:
+    except AssertionError:
         raise ValueError("Complex data not supported.")
 
     try:
         chex.assert_equal(
             x.size > 0,
             True,
-            custom_message=f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
-                           f"Got Cannot fit empty data.",
+            custom_message=(
+                f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required. "
+                f"Got Cannot fit empty data."
+            ),
         )
-    except AssertionError as Err:
+    except AssertionError:
         raise ValueError(
             f"0 feature(s) (shape={x.shape}) while a minimum of 1 is required."
             f"Got Cannot fit empty data.",
@@ -172,13 +182,13 @@ def check_fit_input_chex(
             True,
             custom_message="While fitting, encountered in y: Nans/ inf not supported.",
         )
-    except AssertionError as Err:
+    except AssertionError:
         raise ValueError("Nans/ inf not supported.")
 
 
 @jax.jit
 def check_predict_input_chex(
-        x: ArrayLike,
+    x: ArrayLike,
 ) -> None:
     r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
 
@@ -188,7 +198,7 @@ def check_predict_input_chex(
     :raises ValueError: If:
      - the input has Nans/ infs.
      - the input is empty.
-    """
+    """  # noqa: E501
     truth = jnp.array(True, dtype=bool)
     try:
         chex.assert_trees_all_equal(
@@ -197,7 +207,7 @@ def check_predict_input_chex(
             custom_message="While predicting. Nans/ inf not supported.",
         )
         chex.block_until_chexify_assertions_complete()
-    except AssertionError as Err:
+    except AssertionError:
         raise ValueError("Nans/ inf not supported.")
 
     try:
@@ -207,7 +217,7 @@ def check_predict_input_chex(
             custom_message="Input array must be at least 2D. Reshape your data.",
         )
         chex.block_until_chexify_assertions_complete()
-    except AssertionError as Err:
+    except AssertionError:
         raise ValueError("Input array must be at least 2D. Reshape your data.")
 
 
