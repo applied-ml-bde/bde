@@ -119,9 +119,9 @@ mypy = ">=1.11"
 black = { cmd = "black --check --diff bde" }
 #ruff = { cmd = "ruff check --output-format=full bde && ruff check --output-format=full examples" }
 ruff = { cmd = "ruff check --output-format=full bde" }
-isort = { cmd = "isort bde --diff --check-only --line-length=88 --multi-line=3 --ensure-newline-before-comments --fgw=3 --tc --up" }
-#isort = { cmd = "isort bde --diff --check-only" }
-flake8 = { cmd = "flake8 bde" }
+#isort = { cmd = "isort bde --diff --check-only --line-length=88 --multi-line=3 --ensure-newline-before-comments --fgw=3 --tc --up" }
+isort = { cmd = "isort bde --diff --check-only" }
+flake8 = { cmd = "flake8 bde --max-complexity=10 --max-line-length=88 --extend-ignore=E203,F722" }
 pydocstyle = { cmd = "" }
 mypy = { cmd = "" }
 lint = { depends_on = ["black", "ruff", "isort", "flake8", "pydocstyle", "mypy"]}
@@ -203,7 +203,7 @@ ignore=[
 addopts = "--doctest-modules --color=yes"
 doctest_optionflags = "NORMALIZE_WHITESPACE"
 
-[tool.flake8]
+[tool.flake8]  # This is not supported by flake8 (maybe leave here in case future support is added?)
 exclude=[
     ".git",
     "__pycache__",
@@ -218,10 +218,11 @@ max-line-length=88
 extend-ignore=["E203", "F722"]
 
 [tool.isort]
+py_version=38
 profile = "black"
 multi_line_output = 3
 include_trailing_comma = true
-force_grid_wrap = 0
+force_grid_wrap = 3  # Issues were raised when this was 0?
 use_parentheses = true
 ensure_newline_before_comments = true
 line_length = 88
