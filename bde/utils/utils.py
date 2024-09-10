@@ -313,5 +313,5 @@ class JaxErrors:
         raise ValueError("While fitting. Nans/ inf not supported.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pytest.main()
