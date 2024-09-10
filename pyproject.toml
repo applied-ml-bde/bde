@@ -119,11 +119,10 @@ mypy = ">=1.11"
 black = { cmd = "black --check --diff bde" }
 #ruff = { cmd = "ruff check --output-format=full bde && ruff check --output-format=full examples" }
 ruff = { cmd = "ruff check --output-format=full bde" }
-#isort = { cmd = "isort bde --diff --check-only --line-length=88 --multi-line=3 --ensure-newline-before-comments --fgw=3 --tc --up" }
 isort = { cmd = "isort bde --diff --check-only" }
 flake8 = { cmd = "flake8 bde --max-complexity=10 --max-line-length=88 --extend-ignore=E203,F722" }
-pydocstyle = { cmd = "" }
-mypy = { cmd = "" }
+pydocstyle = { cmd = "pydocstyle -s --count bde" }
+mypy = { cmd = "mypy -h" }
 lint = { depends_on = ["black", "ruff", "isort", "flake8", "pydocstyle", "mypy"]}
 
 [tool.pixi.feature.test.dependencies]
@@ -227,6 +226,7 @@ use_parentheses = true
 ensure_newline_before_comments = true
 line_length = 88
 
-#[tool.pydocstyle]
-#max-line-length = 88
-#ignore = ["E203", "E701"]
+[tool.pydocstyle]
+max-line-length = 88
+ignore = ["E203", "E701"]
+ignore-decorators="property"
