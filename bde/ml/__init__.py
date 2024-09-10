@@ -21,13 +21,13 @@ Example Usage
     >>>
     >>>
     >>>
-"""
+"""  # noqa: E501
 
 from bde.ml import (
+    datasets,
     loss,
     models,
     training,
-    datasets,
 )
 
 __all__ = [

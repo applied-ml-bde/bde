@@ -8,12 +8,9 @@ Modules
 -------
 - `configs`: Contains configuration management utilities for the BDE framework.
 - `utils`: Contains general utility functions used by other modules.
-"""
+"""  # noqa: E501
 
-from bde.utils import (
-    configs,
-    utils,
-)
+from bde.utils import configs, utils
 
 __all__ = [
     configs,
