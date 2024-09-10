@@ -8,10 +8,10 @@ and training procedures, enabling flexible and robust implementation of BDE mode
 
 Submodules
 ----------
+- `datasets`: Handles data and dataset management.
 - `loss`: Contains loss functions implementations and loss function related utilities.
 - `models`: Defines the neural network architectures supported by the BDE framework.
 - `training`: Implements the training algorithms and routines used for model optimization.
-- `datasets`: Handles data and dataset management.
 
 Example Usage
 -------------
@@ -31,8 +31,8 @@ from bde.ml import (
 )
 
 __all__ = [
-    loss,
-    models,
-    training,
-    datasets,
+    "loss",
+    "models",
+    "training",
+    "datasets",
 ]

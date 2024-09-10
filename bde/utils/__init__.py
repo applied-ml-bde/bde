@@ -13,6 +13,6 @@ Modules
 from bde.utils import configs, utils
 
 __all__ = [
-    configs,
-    utils,
+    "configs",
+    "utils",
 ]
