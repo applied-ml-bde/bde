@@ -131,7 +131,8 @@ pytest = ">=7.4"
 pytest-cov = "*"
 
 [tool.pixi.feature.test.tasks]
-test = { cmd = "pytest -vsl --cov=bde --cov-report=xml bde" }
+test = { cmd = "python -m pytest -vsl --cov=bde --cov-report=xml tests/" }
+test-l-cov = { cmd = "python -m pytest -vsl --cov=bde --cov-report=xml --cov-report=html --cov-report=json tests/" }
 
 [tool.pixi.feature.doc.dependencies]
 matplotlib = "*"
@@ -199,9 +200,15 @@ ignore=[
 "doc/conf.py"=["E402"]
 "doc/_templates/numpydoc_docstring.py"=["F821", "W292"]
 
+[tool.pytest]
+pythonpath = "."
+
 [tool.pytest.ini_options]
 addopts = "--doctest-modules --color=yes"
 doctest_optionflags = "NORMALIZE_WHITESPACE"
+pythonpath = [
+  "."
+]
 
 [tool.flake8]  # This is not supported by flake8 (maybe leave here in case future support is added?)
 exclude=[
