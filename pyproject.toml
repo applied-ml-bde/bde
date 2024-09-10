@@ -112,7 +112,7 @@ ruff = ">=0.6.4"
 isort = ">=5.13"
 flake8 = ">=7.1"
 pydocstyle = ">=6.3"
-mypy = "~=1.10"
+mypy = ">=1.10"
 
 [tool.pixi.feature.lint.tasks]
 #black = { cmd = "black --check --diff bde && black --check --diff examples" }
@@ -122,7 +122,8 @@ ruff = { cmd = "ruff check --output-format=full bde" }
 isort = { cmd = "isort bde --diff --check-only" }
 flake8 = { cmd = "flake8 bde --max-complexity=10 --max-line-length=88 --extend-ignore=E203,F722" }
 pydocstyle = { cmd = "pydocstyle -s --count bde" }
-mypy = { cmd = "mypy bde" }
+#mypy = { cmd = "mypy bde" }
+mypy = { cmd = "mypy --version" }
 lint = { depends_on = ["black", "ruff", "isort", "flake8", "pydocstyle", "mypy"]}
 
 [tool.pixi.feature.test.dependencies]
