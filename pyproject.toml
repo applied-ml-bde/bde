@@ -112,7 +112,7 @@ ruff = ">=0.6.4"
 isort = ">=5.13"
 flake8 = ">=7.1"
 pydocstyle = ">=6.3"
-mypy = ">=1.11"
+mypy = "~=1.10"
 
 [tool.pixi.feature.lint.tasks]
 #black = { cmd = "black --check --diff bde && black --check --diff examples" }
@@ -231,6 +231,7 @@ line_length = 88
 ignore-decorators="property"
 
 [tool.mypy]
+python_version="3.11"
 ignore_missing_imports=true
 scripts_are_modules=true
 follow_imports="skip"
