@@ -1,9 +1,39 @@
+[project]
+name = "bde"
+description = "A package implementing BDE models."
+version = "0.1.0"
+requires-python = ">= 3.11"
+authors = [
+    {name = "Kostya", email = "65129914+cklyne@users.noreply.github.com"},
+]
+dependencies = []
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+
+[project.urls]
+Homepage = "https://github.com/applied-ml-bde/bde"
+Issues = "https://github.com/applied-ml-bde/bde/issues"
+
+[tool.setuptools_scm]
+version_file = "bde/_version.py"
+
 [tool.poetry]
 name = "bde"
 version = "0.1.0"
 description = "A package implementing BDE models."
 authors = [
-    "Konstantin Krivokon <@uni-muenchen.de>",
+    "Kostya <65129914+cklyne@users.noreply.github.com>",
     "Steffen Jauchwalser <@uni-muenchen.de>",
 ]
 license = "MIT"
@@ -29,7 +59,7 @@ scikit-learn = ">1.4"
 scipy = ">1.13"
 seaborn = ">0.12"
 array-api-compat = ">=1.8"
-
+pre-commit = ">=3.4"
 
 [tool.poetry.group.dev.dependencies]
 sphinx-autodoc-typehints = "^2.0.0"
@@ -37,5 +67,181 @@ sphinx-rtd-theme = "^2.0.0"
 coverage = "^7.5.0"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+# requires = ["poetry-core"]
+# build-backend = "poetry.core.masonry.api"
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
+[tool.pixi.project]
+name = "bde"
+channels = ["conda-forge", "nvidia", "pytorch"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+
+[tool.pixi.dependencies]
+python = ">=3.9"
+ipython = ">=8.22"
+jupyter = "~=1.0.0"
+jupyterlab = ">=4.1"
+matplotlib = ">=3.8.3"
+notebook = ">=7.1"
+numpy = ">=1.26"
+pandas = ">=2.2"
+pip = ">=24.0"
+pytest = ">=7.4"
+scikit-learn = ">=1.4"
+scipy = ">=1.13"
+seaborn = ">=0.12"
+array-api-compat = ">=1.8"
+pre-commit = ">=3.4"
+
+[tool.pixi.pypi-dependencies]
+#bde = { path = ".", editable = true }
+jax = ">=0.4.26"
+optax = ">=0.2"
+flax = ">=0.8.3"
+
+[tool.pixi.tasks]
+
+###################################
+
+[tool.pixi.feature.lint.dependencies]
+# The version below should be aligned with the one of `.pre-commit-config.yaml`
+black = ">=24.8"
+pre-commit = ">=3.4"
+ruff = ">=0.6.4"
+isort = ">=5.13"
+flake8 = ">=7.1"
+pydocstyle = ">=6.3"
+mypy = ">=1.10"
+
+[tool.pixi.feature.lint.tasks]
+#black = { cmd = "black --check --diff bde && black --check --diff examples" }
+black = { cmd = "black --check --diff bde" }
+#ruff = { cmd = "ruff check --output-format=full bde && ruff check --output-format=full examples" }
+ruff = { cmd = "ruff check --output-format=full bde" }
+isort = { cmd = "isort bde --diff --check-only" }
+flake8 = { cmd = "flake8 bde --max-complexity=10 --max-line-length=88 --extend-ignore=E203,F722" }
+pydocstyle = { cmd = "pydocstyle -s --count bde" }
+#mypy = { cmd = "mypy bde" }
+mypy = { cmd = "mypy --version" }
+lint = { depends_on = ["black", "ruff", "isort", "flake8", "pydocstyle", "mypy"]}
+
+[tool.pixi.feature.test.dependencies]
+pytest = ">=7.4"
+pytest-cov = "*"
+
+[tool.pixi.feature.test.tasks]
+test = { cmd = "python -m pytest -vsl --cov=bde --cov-report=xml tests/" }
+test-l-cov = { cmd = "python -m pytest -vsl --cov=bde --cov-report=xml --cov-report=html --cov-report=json tests/" }
+
+[tool.pixi.feature.doc.dependencies]
+matplotlib = "*"
+numpydoc = "*"
+pydata-sphinx-theme = "*"
+setuptools-scm = ">=8"  # needed for the versioning
+sphinx = "*"
+sphinx-design = "*"
+sphinx-gallery = "*"
+sphinx-prompt = "*"
+
+[tool.pixi.feature.doc.tasks]
+build-doc = { cmd = "make html", cwd = "doc" }
+clean-doc = { cmd = "rm -rf _build", cwd = "doc" }
+
+[tool.pixi.environments]
+doc = ["doc"]
+lint = ["lint"]
+test = ["test"]
+dev = ["doc", "lint", "test"]
+
+[tool.black]
+line-length = 88
+target_version = ['py38', 'py39', 'py310', 'py311', 'py312', 'py313']
+preview = true
+exclude = '''
+/(
+    \.eggs         # exclude a few common directories in the
+  | \.git          # root of the project
+  | \.vscode
+)/
+'''
+force-exclude = "bde/_version.py"
+
+[tool.ruff]
+# max line length for black
+line-length = 88
+target-version = "py38"
+exclude=[
+    ".git",
+    "__pycache__",
+    "dist",
+    "doc/_build",
+    "doc/auto_examples",
+    "build",
+    "bde/_version.py",
+]
+
+[tool.ruff.lint]
+# all rules can be found here: https://beta.ruff.rs/docs/rules/
+select = ["E", "F", "W", "I"]
+ignore=[
+    # space before : (needed for how black formats slicing)
+    "E203",
+    # do not assign a lambda expression, use a def
+    "E731",
+    # do not use variables named 'l', 'O', or 'I'
+    "E741",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# It's fine not to put the import at the top of the file in the examples
+# folder.
+"examples/*"=["E402"]
+"doc/conf.py"=["E402"]
+"doc/_templates/numpydoc_docstring.py"=["F821", "W292"]
+
+[tool.pytest]
+pythonpath = "."
+
+[tool.pytest.ini_options]
+addopts = "--doctest-modules --color=yes"
+doctest_optionflags = "NORMALIZE_WHITESPACE"
+pythonpath = [
+  "."
+]
+
+[tool.flake8]  # This is not supported by flake8 (maybe leave here in case future support is added?)
+exclude=[
+    ".git",
+    "__pycache__",
+    "dist",
+    "doc/_build",
+    "doc/auto_examples",
+    "build",
+    "bde/_version.py",
+]
+max-complexity = 10
+max-line-length=88
+extend-ignore=["E203", "F722"]
+
+[tool.isort]
+py_version=38
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 3  # Issues were raised when this was 0?
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 88
+
+[tool.pydocstyle]
+#ignore = ["E203", "E701"]
+ignore-decorators="property"
+
+[tool.mypy]
+python_version="3.11"
+ignore_missing_imports=true
+scripts_are_modules=true
+follow_imports="skip"
+no_incremental=true
+show_traceback=true

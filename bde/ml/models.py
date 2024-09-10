@@ -16,36 +16,46 @@ Functions
 ---------
 - `init_dense_model`: Utility function for initializing a fully connected dense model.
 
-"""
+"""  # noqa: E501
 
-from abc import ABC, abstractmethod
-from typing import Any, Union, Optional, List, Tuple, Dict, Type, Sequence
-import chex
-from collections.abc import Iterable, Generator, Callable
-import flax
-from flax import linen as nn
-from flax.struct import dataclass, field
-from flax.training import train_state
-from flax.core import FrozenDict
-from functools import partial
-import jax
-from jax import numpy as jnp
-from jax import Array
-from jax.typing import ArrayLike
-from jax.tree_util import register_pytree_node_class
-from jax._src.prng import PRNGKeyArray
-import optax
+import multiprocessing
+import os
 import pathlib
-import pytest
+from abc import ABC, abstractmethod
+from collections.abc import Iterable
+from functools import partial
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+)
 
+import chex
+import jax
+import optax
+import pytest
+from flax import linen as nn
+from flax.core import FrozenDict
+from flax.training import train_state
+from jax import Array
+from jax import numpy as jnp
+from jax._src.prng import PRNGKeyArray
+from jax.tree_util import register_pytree_node_class
+from jax.typing import ArrayLike
 from sklearn.base import BaseEstimator
 
-from bde.ml import loss, training, datasets
 import bde.utils
+from bde.ml import (
+    datasets,
+    loss,
+    training,
+)
 from bde.utils import configs as cnfg
-
-import os
-import multiprocessing
 
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count={}".format(
     multiprocessing.cpu_count()
@@ -70,7 +80,7 @@ class BasicModule(nn.Module, ABC):
     -------
     __call__(*args, **kwargs)
         Abstract method to be implemented by subclasses, defining the API of a forward pass of the module.
-    """
+    """  # noqa: E501
 
     n_output_params: Union[int, list[int]]
     n_input_params: Optional[Union[int, list[int]]] = None
@@ -95,9 +105,9 @@ class BasicModule(nn.Module, ABC):
     @classmethod
     @abstractmethod
     def tree_unflatten(
-            cls,
-            aux_data: Tuple[Any, Any],
-            children: Tuple,
+        cls,
+        aux_data: Tuple[Any, Any],
+        children: Tuple,
     ) -> "FullyConnectedModule":
         r"""Specify how to build a module from a JAX pytree.
 
@@ -149,7 +159,7 @@ class FullyConnectedModule(BasicModule):
     -------
     __call__(x)
         Define the forward pass of the fully connected network.
-    """
+    """  # noqa: E501
 
     n_output_params: int
     n_input_params: Optional[int] = None
@@ -177,9 +187,9 @@ class FullyConnectedModule(BasicModule):
 
     @classmethod
     def tree_unflatten(
-            cls,
-            aux_data: Tuple[Any, Any, Any, Any],
-            children: Tuple,
+        cls,
+        aux_data: Tuple[Any, Any, Any, Any],
+        children: Tuple,
     ) -> "FullyConnectedModule":
         r"""Specify how to build a module from a JAX pytree.
 
@@ -199,8 +209,8 @@ class FullyConnectedModule(BasicModule):
 
     @nn.compact
     def __call__(
-            self,
-            x,
+        self,
+        x,
     ) -> Array:
         r"""Perform a forward pass of the fully connected network.
 
@@ -216,18 +226,18 @@ class FullyConnectedModule(BasicModule):
         -------
         Array
             The output of the network, with shape `(batch_size, n_output_params)`.
-        """
+        """  # noqa: E501
         if self.layer_sizes is not None:
             layer_sizes = self.layer_sizes
             if isinstance(layer_sizes, int):
-                layer_sizes = (layer_sizes, )
+                layer_sizes = (layer_sizes,)
             for idx, layer_size in enumerate(layer_sizes):
                 x = nn.Dense(
                     features=layer_size,
                     name=f"DenseLayer{idx}",
                 )(x)
                 x = nn.relu(x)
-        x = nn.Dense(features=self.n_output_params, name=f"Output")(x)
+        x = nn.Dense(features=self.n_output_params, name="Output")(x)
         x = nn.softmax(x) if self.do_final_activation else x
         return x
 
@@ -251,21 +261,23 @@ class FullyConnectedEstimator(BaseEstimator):
         Predict the output for the given input data using the trained model.
     _more_tags()
         Used by the SKlearn API to set model tags.
-    """
+    """  # noqa: E501
 
     def __init__(
-            self,
-            model_class: Type[BasicModule] = FullyConnectedModule,
-            model_kwargs: Optional[Dict[str, Any]] = None,
-            optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
-            optimizer_kwargs: Optional[Dict[str, Any]] = None,
-            loss: loss.Loss = loss.LossMSE(),
-            batch_size: int = 1,
-            epochs: int = 1,
-            metrics: Optional[list] = None,
-            validation_size: Optional[Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]] = None,
-            seed: int = cnfg.General.SEED,
-            **kwargs,
+        self,
+        model_class: Type[BasicModule] = FullyConnectedModule,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
+        optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        loss: loss.Loss = loss.LossMSE(),
+        batch_size: int = 1,
+        epochs: int = 1,
+        metrics: Optional[list] = None,
+        validation_size: Optional[
+            Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]
+        ] = None,
+        seed: int = cnfg.General.SEED,
+        **kwargs,
     ):
         r"""Initialize the estimator architecture and training parameters.
 
@@ -338,7 +350,6 @@ class FullyConnectedEstimator(BaseEstimator):
             self.metrics,
             self.validation_size,
             self.seed,
-
             self.is_fitted_,
             self.n_features_in_,
             self.history_,
@@ -347,9 +358,9 @@ class FullyConnectedEstimator(BaseEstimator):
 
     @classmethod
     def tree_unflatten(
-            cls,
-            aux_data: Tuple[Tuple, ...],
-            children: Tuple[Any, Any],
+        cls,
+        aux_data: Tuple[Tuple, ...],
+        children: Tuple[Any, Any],
     ) -> "FullyConnectedEstimator":
         r"""Specify how to build an estimator from a JAX pytree.
 
@@ -365,9 +376,7 @@ class FullyConnectedEstimator(BaseEstimator):
         FullyConnectedEstimator
             Reconstructed estimator.
         """
-        res = cls(
-            *aux_data[:10]
-        )
+        res = cls(*aux_data[:10])
         res.model_ = children[0]
         res.params_ = children[1]
         res.is_fitted_ = aux_data[10]
@@ -383,18 +392,27 @@ class FullyConnectedEstimator(BaseEstimator):
         r"""Define tags for SKlearn."""
         return {
             "_xfail_checks": {
-                # Note: By default SKlearn assumes models do not support complex valued data.
-                #  If we decide we want to support it, the following line should be uncommented.
+                # Note: By default SKlearn assumes models
+                #  do not support complex valued data.
+                #  If we decide we want to support it,
+                #  the following line should be uncommented.
                 # "check_complex_data": "Complex data is supported.",
-                "check_dtype_object": "Numpy input not supported. jax.numpy is required.",
+                "check_dtype_object": (
+                    "Numpy input not supported. `jax.numpy` is required."
+                ),
                 "check_fit1d": "1D data is not supported.",
-                "check_no_attributes_set_in_init": "The model must set some internal attributes like params "
-                                                   "in order to to properly turn it into a pytree.",
-                "check_n_features_in": "Needs to be set before fitting to allow passing when flattening pytree.",
+                "check_no_attributes_set_in_init": (
+                    "The model must set some internal attributes like params "
+                    "in order to to properly turn it into a pytree."
+                ),
+                "check_n_features_in": (
+                    "Needs to be set before fitting to "
+                    "allow passing when flattening pytree."
+                ),
             },
             # "array_api_support": True,
             "multioutput_only": True,
-            "X_types": ["2darray", "2dlabels"]
+            "X_types": ["2darray", "2dlabels"],
         }
 
     def _make_history_container(self) -> Array:
@@ -414,29 +432,46 @@ class FullyConnectedEstimator(BaseEstimator):
         return jnp.zeros((n_hist, self.epochs))
 
     def _prep_fit_params(
-            self,
-            x: ArrayLike,
-            y: Optional[ArrayLike] = None,
-            seed: int = cnfg.General.SEED,
-    ) -> Tuple[List, optax._src.base.GradientTransformation, datasets.BasicDataset, datasets.BasicDataset]:
+        self,
+        x: ArrayLike,
+        y: Optional[ArrayLike] = None,
+        seed: int = cnfg.General.SEED,
+    ) -> Tuple[
+        List,
+        optax._src.base.GradientTransformation,
+        datasets.BasicDataset,
+        datasets.BasicDataset,
+    ]:
         r"""Handle model and parameter initialization before fitting."""
         if y is None:
             y = x
         bde.utils.utils.check_fit_input(x, y)
         metrics: List = [] if self.metrics is None else self.metrics
         if len(metrics) > 0:
-            raise NotImplementedError(f"Metrics are not yet supported.")  # TODO: Remove after implementation
+            raise NotImplementedError(
+                "Metrics are not yet supported."
+            )  # TODO: Remove after implementation
         if self.validation_size is not None:
-            raise NotImplementedError(f"Validation is not yet supported.")  # TODO: Remove after implementation
+            raise NotImplementedError(
+                "Validation is not yet supported."
+            )  # TODO: Remove after implementation
 
         rng_key = jax.random.key(seed=seed)
         self.params_ = None
-        model_kwargs: Dict = {
-            "n_output_params": 1,
-        } if self.model_kwargs is None else self.model_kwargs
-        optimizer_kwargs: Dict = {
-            "learning_rate": 1e-3,
-        } if self.optimizer_kwargs is None else self.optimizer_kwargs
+        model_kwargs: Dict = (
+            {
+                "n_output_params": 1,
+            }
+            if self.model_kwargs is None
+            else self.model_kwargs
+        )
+        optimizer_kwargs: Dict = (
+            {
+                "learning_rate": 1e-3,
+            }
+            if self.optimizer_kwargs is None
+            else self.optimizer_kwargs
+        )
         self.model_ = self.model_class(**model_kwargs)
         optimizer = self.optimizer_class(**optimizer_kwargs)
 
@@ -450,7 +485,9 @@ class FullyConnectedEstimator(BaseEstimator):
 
         if val_size > 0:
             ...  # TODO: Split the data between train and valid
-        train = bde.ml.datasets.DatasetWrapper(x=x, y=y, batch_size=self.batch_size, seed=train_key)
+        train = bde.ml.datasets.DatasetWrapper(
+            x=x, y=y, batch_size=self.batch_size, seed=train_key
+        )
         valid = train
         if val_size <= 0:
             valid = train.gen_empty()
@@ -459,10 +496,10 @@ class FullyConnectedEstimator(BaseEstimator):
 
     # @jax.jit
     def init_inner_params(
-            self,
-            n_features,
-            optimizer,
-            rng_key,
+        self,
+        n_features,
+        optimizer,
+        rng_key,
     ) -> train_state.TrainState:
         r"""Create trainable model state.
 
@@ -495,9 +532,9 @@ class FullyConnectedEstimator(BaseEstimator):
         return model_state
 
     def fit(
-            self,
-            X: ArrayLike,
-            y: Optional[ArrayLike] = None,
+        self,
+        X: ArrayLike,
+        y: Optional[ArrayLike] = None,
     ) -> "FullyConnectedEstimator":
         r"""Fit the function to the given data.
 
@@ -573,8 +610,8 @@ class FullyConnectedEstimator(BaseEstimator):
 
     @jax.jit
     def predict(
-            self,
-            X: ArrayLike,
+        self,
+        X: ArrayLike,
     ) -> Array:
         r"""Apply the fitted model to the input data.
 
@@ -612,22 +649,24 @@ class BDEEstimator(FullyConnectedEstimator):
     """
 
     def __init__(
-            self,
-            model_class: Type[BasicModule] = FullyConnectedModule,
-            model_kwargs: Optional[Dict[str, Any]] = None,
-            n_chains: int = 1,
-            n_init_runs: int = 1,
-            chain_len: int = 1,
-            warmup: int = 1,
-            optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
-            optimizer_kwargs: Optional[Dict[str, Any]] = None,
-            loss: loss.Loss = loss.LossMSE(),
-            batch_size: int = 1,
-            epochs: int = 1,
-            metrics: Optional[list] = None,
-            validation_size: Optional[Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]] = None,
-            seed: int = cnfg.General.SEED,
-            **kwargs,
+        self,
+        model_class: Type[BasicModule] = FullyConnectedModule,
+        model_kwargs: Optional[Dict[str, Any]] = None,
+        n_chains: int = 1,
+        n_init_runs: int = 1,
+        chain_len: int = 1,
+        warmup: int = 1,
+        optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
+        optimizer_kwargs: Optional[Dict[str, Any]] = None,
+        loss: loss.Loss = loss.LossMSE(),
+        batch_size: int = 1,
+        epochs: int = 1,
+        metrics: Optional[list] = None,
+        validation_size: Optional[
+            Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]
+        ] = None,
+        seed: int = cnfg.General.SEED,
+        **kwargs,
     ):
         r"""Initialize the estimator architecture and training parameters.
 
@@ -712,7 +751,6 @@ class BDEEstimator(FullyConnectedEstimator):
             self.metrics,
             self.validation_size,
             self.seed,
-
             self.is_fitted_,
             self.n_features_in_,
             self.history_,
@@ -721,9 +759,9 @@ class BDEEstimator(FullyConnectedEstimator):
 
     @classmethod
     def tree_unflatten(
-            cls,
-            aux_data: Tuple[Tuple, ...],
-            children: Tuple[Any, Any],
+        cls,
+        aux_data: Tuple[Tuple, ...],
+        children: Tuple[Any, Any],
     ) -> "BDEEstimator":
         r"""Specify how to build an estimator from a JAX pytree.
 
@@ -739,9 +777,7 @@ class BDEEstimator(FullyConnectedEstimator):
         BDEEstimator
             Reconstructed estimator.
         """
-        res = cls(
-            *aux_data[:14]
-        )
+        res = cls(*aux_data[:14])
         res.model_ = children[0]
         res.params_ = children[1]
         res.is_fitted_ = aux_data[14]
@@ -753,29 +789,38 @@ class BDEEstimator(FullyConnectedEstimator):
         r"""Define tags for SKlearn."""
         return {
             "_xfail_checks": {
-                # Note: By default SKlearn assumes models do not support complex valued data.
-                #  If we decide we want to support it, the following line should be uncommented.
+                # Note: By default SKlearn assumes models
+                #  do not support complex valued data.
+                #  If we decide we want to support it,
+                #  the following line should be uncommented.
                 # "check_complex_data": "Complex data is supported.",
-                "check_dtype_object": "Numpy input not supported. jax.numpy is required.",
+                "check_dtype_object": (
+                    "Numpy input not supported. `jax.numpy` is required."
+                ),
                 "check_fit1d": "1D data is not supported.",
-                "check_no_attributes_set_in_init": "The model must set some internal attributes like params "
-                                                   "in order to to properly turn it into a pytree.",
-                "check_n_features_in": "Needs to be set before fitting to allow passing when flattening pytree.",
+                "check_no_attributes_set_in_init": (
+                    "The model must set some internal attributes like params "
+                    "in order to to properly turn it into a pytree."
+                ),
+                "check_n_features_in": (
+                    "Needs to be set before fitting to "
+                    "allow passing when flattening pytree."
+                ),
             },
             # "array_api_support": True,
             "multioutput_only": True,
-            "X_types": ["2darray", "2dlabels"]
+            "X_types": ["2darray", "2dlabels"],
         }
 
     @jax.jit
     def _prior_fitting(
-            self,
-            model_states,
-            train,
-            valid,
-            metrics,
+        self,
+        model_states,
+        train,
+        valid,
+        metrics,
     ) -> Tuple[Any, Array]:
-        r"""Perform non-Bayesian parallelized training to initialize parameters before sampling."""
+        r"""Perform non-Bayesian parallelized training to initialize parameters before sampling."""  # noqa: E501
         params, history = jax.pmap(
             fun=training.jitted_training,
             in_axes=(0, None, None, None, None, None),
@@ -795,9 +840,9 @@ class BDEEstimator(FullyConnectedEstimator):
         ...
 
     def fit(
-            self,
-            X: ArrayLike,
-            y: Optional[ArrayLike] = None,
+        self,
+        X: ArrayLike,
+        y: Optional[ArrayLike] = None,
     ) -> "BDEEstimator":
         r"""Fit the function to the given data.
 
@@ -816,7 +861,7 @@ class BDEEstimator(FullyConnectedEstimator):
         """
         split_key = jax.random.key(seed=self.seed)
         rng = jax.random.split(split_key, self.n_chains + 2)
-        init_key_list, prep_key, split_key = rng[:self.n_chains], rng[-2], rng[-1]
+        init_key_list, prep_key, split_key = rng[: self.n_chains], rng[-2], rng[-1]
         metrics, optimizer, train, valid = self._prep_fit_params(
             x=X,
             y=y,
@@ -841,8 +886,8 @@ class BDEEstimator(FullyConnectedEstimator):
 
     @jax.jit
     def predict(
-            self,
-            X: ArrayLike,
+        self,
+        X: ArrayLike,
     ) -> Array:
         r"""Apply the fitted model to the input data.
 
@@ -864,14 +909,16 @@ class BDEEstimator(FullyConnectedEstimator):
         )(
             self.params_,
             X,
-        ).mean(axis=0)  # NOTE: Temporary implementation until proper BDE sampling and inference are implemented.
+        ).mean(axis=0)
+        # NOTE: Temporary implementation until proper BDE sampling and
+        #  inference are implemented.
 
 
 def init_dense_model(
-        model: BasicModule,
-        batch_size: int = 1,
-        n_features: Optional[int] = None,
-        seed: Union[PRNGKeyArray, int] = cnfg.General.SEED,
+    model: BasicModule,
+    batch_size: int = 1,
+    n_features: Optional[int] = None,
+    seed: Union[PRNGKeyArray, int] = cnfg.General.SEED,
 ) -> Tuple[dict, Array]:
     r"""Fast initialization for a fully connected dense network.
 
@@ -901,7 +948,9 @@ def init_dense_model(
         n_features = model.n_input_params
     if model.n_input_params is None:
         if n_features is None:
-            raise ValueError("`n_features` and `model.n_input_params` can't both be `None`.")
+            raise ValueError(
+                "`n_features` and `model.n_input_params` can't both be `None`."
+            )
         # model.n_input_params = n_features
     elif not isinstance(model.n_input_params, int):
         raise NotImplementedError("Only 1 input is currently supported")
@@ -912,10 +961,10 @@ def init_dense_model(
 
 @partial(jax.jit, static_argnums=[2, 3])
 def init_dense_model_jitted(
-        model: BasicModule,
-        rng_key: PRNGKeyArray,
-        batch_size: int = 1,
-        n_features: int = 1,
+    model: BasicModule,
+    rng_key: PRNGKeyArray,
+    batch_size: int = 1,
+    n_features: int = 1,
 ) -> Tuple[dict, Array]:
     r"""Fast initialization for a fully connected dense network.
 
@@ -948,5 +997,7 @@ def init_dense_model_jitted(
 
 
 if __name__ == "__main__":
-    tests_path = pathlib.Path(__file__).parent.parent / "test" / "test_ml" / "test_models"
+    tests_path = (
+        pathlib.Path(__file__).parent.parent / "test" / "test_ml" / "test_models"
+    )
     pytest.main([str(tests_path)])

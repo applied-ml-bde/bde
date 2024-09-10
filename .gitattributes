@@ -10,4 +10,6 @@
 *.bat text eol=crlf
 
 # Declare files that will always have LF line endings on checkout.
-*.sh text eol=lf
+*.sh text eol=lf# GitHub syntax highlighting
+
+pixi.lock linguist-language=YAML linguist-generated=true

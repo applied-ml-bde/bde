@@ -31,14 +31,8 @@ Example:
     >>>
     >>>
     >>>
-"""
+"""  # noqa: E501
 
-from bde import (
-    ml,
-    utils
-)
+from bde import ml, utils
 
-__al__ = [
-    ml,
-    utils
-]
+__all__ = ["ml", "utils"]

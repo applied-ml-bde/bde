@@ -14,21 +14,20 @@ Functions
 - `flax_training_loss_wrapper_regression`: Wraps a regression loss function for training.
 - `flax_training_loss_wrapper_classification`: Wraps a classification loss function for training.
 
-"""
+"""  # noqa: E501
 
-from abc import ABC, abstractmethod
-from typing import Any, Union, Optional
-from collections.abc import Iterable, Generator, Callable
-from flax.training.train_state import TrainState
-from flax.struct import dataclass
-from functools import partial
-import jax
-from jax import numpy as jnp
-from jax import Array
-from jax.typing import ArrayLike
-import optax
 import pathlib
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+
+import jax
+import optax
 import pytest
+from flax.struct import dataclass
+from flax.training.train_state import TrainState
+from jax import Array
+from jax import numpy as jnp
+from jax.typing import ArrayLike
 
 # from bde.utils import configs as cnfg
 
@@ -39,10 +38,10 @@ class Loss(ABC):
 
     @abstractmethod
     def __call__(
-            self,
-            y_true: ArrayLike,
-            y_pred: ArrayLike,
-            **kwargs,
+        self,
+        y_true: ArrayLike,
+        y_pred: ArrayLike,
+        **kwargs,
     ) -> Array:
         r"""Evaluate the loss.
 
@@ -65,10 +64,10 @@ class Loss(ABC):
 
     @jax.jit
     def apply_reduced(
-            self,
-            y_true: ArrayLike,
-            y_pred: ArrayLike,
-            **kwargs,
+        self,
+        y_true: ArrayLike,
+        y_pred: ArrayLike,
+        **kwargs,
     ) -> ArrayLike:
         r"""Evaluate reduced the loss.
 
@@ -98,10 +97,10 @@ class LossMSE(Loss):
 
     @jax.jit
     def __call__(
-            self,
-            y_true: ArrayLike,
-            y_pred: ArrayLike,
-            **kwargs,
+        self,
+        y_true: ArrayLike,
+        y_pred: ArrayLike,
+        **kwargs,
     ) -> Array:
         r"""Evaluate the loss.
 
@@ -153,17 +152,17 @@ class LogLikelihoodLoss(Loss):
         Splits the predicted values into predictions and their corresponding uncertainties.
     apply_reduced()
         Evaluates the reduced loss (inherited from base class).
-    """
+    """  # noqa: E501
 
-    epsilon: float = 1e-6,
-    mean_weight: float = 1.0,
+    epsilon: float = 1e-6
+    mean_weight: float = 1.0
 
     @jax.jit
     def __call__(
-            self,
-            y_true: ArrayLike,
-            y_pred: ArrayLike,
-            **kwargs,
+        self,
+        y_true: ArrayLike,
+        y_pred: ArrayLike,
+        **kwargs,
     ) -> Array:
         r"""Compute the log-likelihood of the given predictions and labels.
 
@@ -184,7 +183,7 @@ class LogLikelihoodLoss(Loss):
         -------
         Array
             Returns the log-likelihood of the given values.
-        """
+        """  # noqa: E501
         mean_pred, std_pred = self._split_pred(y_true=y_true, y_pred=y_pred)
         res = jnp.log(std_pred)
         weight_factor = jnp.array(self.mean_weight).reshape(-1) / 2
@@ -193,9 +192,9 @@ class LogLikelihoodLoss(Loss):
 
     @jax.jit
     def _split_pred(
-            self,
-            y_true: ArrayLike,
-            y_pred: ArrayLike,
+        self,
+        y_true: ArrayLike,
+        y_pred: ArrayLike,
     ) -> tuple[Array, Array]:
         r"""Split the predicted values into 2 arrays of the same shape: predictions and uncertainties.
 
@@ -222,15 +221,18 @@ class LogLikelihoodLoss(Loss):
         -------
         tuple[Array, Array]
             A tuple containing the predicted labels and the predicted uncertainty.
-        """
+        """  # noqa: E501
         # TODO: Make sure that the prediction is not too large or too small.
         n_mean = y_true.shape[-1]
         mean_pred = y_pred[..., :n_mean]
-        std_pred = y_pred[..., n_mean:(2 * n_mean)]
+        std_pred = y_pred[..., n_mean : (2 * n_mean)]
         std_pred = jnp.clip(std_pred, a_min=jnp.array(self.epsilon), a_max=None)
         n_std = std_pred.shape[-1]
 
-        padding = [(0, 0) if ax != y_true.ndim - 1 else (0, n_mean - n_std) for ax in range(y_true.ndim)]
+        padding = [
+            (0, 0) if ax != y_true.ndim - 1 else (0, n_mean - n_std)
+            for ax in range(y_true.ndim)
+        ]
         std_pred = jnp.pad(
             std_pred,
             pad_width=padding,
@@ -241,8 +243,8 @@ class LogLikelihoodLoss(Loss):
 
 
 def flax_training_loss_wrapper_regression(
-        f_loss: Callable[[ArrayLike, ArrayLike], float],
-) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    f_loss: Callable[[ArrayLike, ArrayLike], float],
+) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:  # noqa: D202
     r"""Wrap a regression loss function for use in Flax training.
 
     This function wraps a regression loss function so that it can be used in
@@ -259,19 +261,21 @@ def flax_training_loss_wrapper_regression(
     Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]
         A function that can be used in the training loop,
         taking the model state, parameters, and a batch of data as input and returning the loss.
-    """
+    """  # noqa: E501
+
     @jax.jit
     def sub_f(state, params, batch):
         x, y = batch
         preds = state.apply_fn(params, x)
         loss = f_loss(y, preds)
         return jnp.mean(loss)
+
     return sub_f
 
 
 def flax_training_loss_wrapper_classification(
-        f_loss: Callable[[ArrayLike, ArrayLike], float],
-) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:
+    f_loss: Callable[[ArrayLike, ArrayLike], float],
+) -> Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]:  # noqa: D202
     r"""Wrap a classification loss function for use in Flax training.
 
     This function wraps a classification loss function so that it can be used in
@@ -288,7 +292,8 @@ def flax_training_loss_wrapper_classification(
     Callable[[TrainState, dict, tuple[ArrayLike, ArrayLike]], float]
         A function that can be used in the training loop,
         taking the model state, parameters, and a batch of data as input and returning the loss.
-    """
+    """  # noqa: E501
+
     @jax.jit
     def sub_f(state, params, batch):
         x, y = batch
@@ -296,6 +301,7 @@ def flax_training_loss_wrapper_classification(
         preds = (preds > 0).astype(jnp.float32)
         loss = f_loss(y, preds)
         return jnp.mean(loss)
+
     return sub_f
 
 
