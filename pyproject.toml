@@ -107,7 +107,7 @@ flax = ">=0.8.3"
 [tool.pixi.feature.lint.dependencies]
 # The version below should be aligned with the one of `.pre-commit-config.yaml`
 black = ">=24.8"
-pre-commit = ">=4.6"
+pre-commit = ">=3.4"
 ruff = ">=0.6.4"
 isort = ">=5.13"
 flake8 = ">=7.1"
