@@ -234,3 +234,5 @@ ignore-decorators="property"
 ignore_missing_imports=true
 scripts_are_modules=true
 follow_imports="skip"
+no_incremental=true
+show_traceback=true
