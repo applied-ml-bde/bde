@@ -119,7 +119,8 @@ mypy = ">=1.11"
 black = { cmd = "black --check --diff bde" }
 #ruff = { cmd = "ruff check --output-format=full bde && ruff check --output-format=full examples" }
 ruff = { cmd = "ruff check --output-format=full bde" }
-isort = { cmd = "isort bde --diff --check-only --line-length=88 --multi-line=3 --ensure-newline-before-comments --fgw=3 --tc --up" }
+#isort = { cmd = "isort bde --diff --check-only --line-length=88 --multi-line=3 --ensure-newline-before-comments --fgw=3 --tc --up" }
+isort = { cmd = "isort bde --diff --check-only" }
 flake8 = { cmd = "flake8 bde" }
 pydocstyle = { cmd = "" }
 mypy = { cmd = "" }
@@ -213,6 +214,8 @@ exclude=[
     "bde/_version.py",
 ]
 max-complexity = 10
+max-line-length=88
+extend-ignore=["E203", "F722"]
 
 [tool.isort]
 profile = "black"
