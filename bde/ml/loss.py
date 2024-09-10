@@ -154,8 +154,8 @@ class LogLikelihoodLoss(Loss):
         Evaluates the reduced loss (inherited from base class).
     """  # noqa: E501
 
-    epsilon: float = (1e-6,)
-    mean_weight: float = (1.0,)
+    epsilon: float = 1e-6
+    mean_weight: float = 1.0
 
     @jax.jit
     def __call__(

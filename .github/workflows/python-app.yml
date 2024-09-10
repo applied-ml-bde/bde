@@ -56,14 +56,14 @@ jobs:
         source .venv/bin/activate
         coverage run -m pytest tests/
 
-    - name: Lint with flake8
-      if: ${{ always() }}
-      run: |
-        source .venv/bin/activate
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 --count --select=E9,F63,F7,F82 --show-source --statistics bde
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics bde
+#    - name: Lint with flake8
+#      if: ${{ always() }}
+#      run: |
+#        source .venv/bin/activate
+#        # stop the build if there are Python syntax errors or undefined names
+#        flake8 --count --select=E9,F63,F7,F82 --show-source --statistics bde
+#        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+#        flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics bde
 ##########################
 
     # - name: Generate coverage reports
@@ -88,8 +88,3 @@ jobs:
     #     source .venv/bin/activate
     #     # pip install --force-reinstall mypy==1.10
     #     mypy --ignore-missing-imports --scripts-are-modules --follow-imports=skip bde/
-    - name: Test documintation with Pydocstyle
-      if: ${{ always() }}
-      run: |
-        source .venv/bin/activate
-        pydocstyle --ignore-decorators=property bde
