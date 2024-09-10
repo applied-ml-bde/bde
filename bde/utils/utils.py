@@ -41,17 +41,28 @@ def apply_to_multilayer_data(
     r"""Apply a transformation over a multilayer collection of data.
 
     If a dict or a list is given, the function will be applied on the data recursively.
-    For other data types, the transformation is applied if data corresponds to `dtypes`.
+    For other data types, the transformation is applied if data corresponds
+    to `dtypes`.
 
-    :param data: The input data to be transformed.
-    If data is a dict or a list, the transformation will be applied to all its members recursively
-    until other datatypes are encountered.
-    :param f: The transformation to be applied.
-    :param dtypes: The datatypes to apply the transformation to.
-    If None is given, the transformation is applied on all data types.
-    If a tuple of datatypes is given, all datatypes in the tuple will be considered.
-    :return:
-    """  # noqa: E501
+    Parameters
+    ----------
+    data
+        The input data to be transformed.
+        If data is a dict or a list, the transformation will be applied to all its
+        members recursively until other datatypes are encountered.
+    f
+        The transformation to be applied.
+    dtypes
+        The datatypes to apply the transformation to.
+         - If None is given, the transformation is applied on all data types.
+         - If a tuple of datatypes is given,
+           all datatypes in the tuple will be considered.
+
+    Returns
+    -------
+    Union[Dict, List, Any]
+        Transformed `data` with the same structure as the input.
+    """
     if isinstance(data, List):
         for idx, d in enumerate(data):
             data[idx] = apply_to_multilayer_data(d, f, dtypes)
@@ -77,12 +88,20 @@ def check_fit_input(
 
     The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
 
-    :param x: The data used for fitting.
-    :param y: The labels used for fitting.
-    :raises ValueError: If:
-     - `x` or `y` are complex.
-     - `x` is empty.
-     - `x` or `y` contain Nans or infs.
+    Parameters
+    ----------
+    x
+        The data used for fitting.
+    y
+        The labels used for fitting.
+
+    Raises
+    ------
+    ValueError
+        If:
+         - `x` or `y` are complex.
+         - `x` is empty.
+         - `x` or `y` contain Nans or infs.
     """  # noqa: E501
     jax.lax.cond(
         jnp.iscomplexobj(x) or jnp.iscomplexobj(y),
@@ -108,12 +127,20 @@ def check_predict_input(
 ) -> None:
     r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
 
-    The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
+    The validation is implemented in a jit-compatible way and
+    in case of failure a corresponding error is raised.
 
-    :param x: The data used for the predictions.
-    :raises ValueError: If:
-     - the input has Nans/ infs.
-     - the input is empty.
+    Parameters
+    ----------
+    x
+        The data used for the predictions.
+
+    Raises
+    ------
+    ValueError
+        If:
+         - the input has Nans/ infs.
+         - the input is empty.
     """  # noqa: E501
     jax.lax.cond(
         jnp.all(jnp.isfinite(x)),
@@ -133,14 +160,23 @@ def check_fit_input_chex(
 ) -> None:
     r"""Validate the input of `fit` functions according to the SKlearn specifications for estimators.
 
-    The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
+    The validation is implemented in a jit-compatible way and
+    in case of failure a corresponding error is raised.
 
-    :param x: The data used for fitting.
-    :param y: The labels used for fitting.
-    :raises ValueError: If:
-     - `x` or `y` are complex.
-     - `x` is empty.
-     - `x` or `y` contain Nans or infs.
+    Parameters
+    ----------
+    x
+        The data used for fitting.
+    y
+        The labels used for fitting.
+
+    Raises
+    ------
+    ValueError:
+        If:
+         - `x` or `y` are complex.
+         - `x` is empty.
+         - `x` or `y` contain Nans or infs.
     """  # noqa: E501
     try:
         chex.assert_equal(
@@ -192,12 +228,20 @@ def check_predict_input_chex(
 ) -> None:
     r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
 
-    The validation is implemented in a jit-compatible way and in case of failure a corresponding error is raised.
+    The validation is implemented in a jit-compatible way and
+    in case of failure a corresponding error is raised.
 
-    :param x: The data used for the predictions.
-    :raises ValueError: If:
-     - the input has Nans/ infs.
-     - the input is empty.
+    Parameters
+    ----------
+    x
+        The data used for the predictions.
+
+    Raises
+    ------
+    ValueError
+        If:
+         - the input has Nans/ infs.
+         - the input is empty.
     """  # noqa: E501
     truth = jnp.array(True, dtype=bool)
     try:

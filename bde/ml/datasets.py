@@ -83,9 +83,12 @@ class BasicDataset(ABC):
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize the dataset into a JAX pytree.
 
-        :return: A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
-         - The `aux_data`, containing static and hashable data.
+        Returns
+        -------
+        Tuple[Sequence[ArrayLike], Any]
+            A tuple with 2 elements:
+             - The `children`, containing arrays & pytrees
+             - The `aux_data`, containing static and hashable data.
         """
         ...
 
@@ -272,9 +275,8 @@ class DatasetWrapper(BasicDataset):
         self.split_key = jax.random.key(seed=self._seed)
         self.rng_key = self.split_key
         self.was_shuffled_ = jnp.array(False)
-        self.assignment = jnp.arange(self.items_lim_).reshape(
-            self.size_, self._batch_size
-        )
+        self.assignment = jnp.arange(self.items_lim_, dtype=int)
+        self.assignment = self.assignment.reshape(self.size_, self._batch_size)
 
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize the dataset into a JAX pytree.
@@ -302,8 +304,8 @@ class DatasetWrapper(BasicDataset):
     @classmethod
     def tree_unflatten(
         cls,
-        aux_data: Tuple[Any, ...],
-        children: Tuple[ArrayLike, ArrayLike],
+        aux_data: Tuple[int, int],
+        children: Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike],
     ) -> "DatasetWrapper":
         r"""Specify how to construct a dataset from a JAX pytree.
 
@@ -336,7 +338,7 @@ class DatasetWrapper(BasicDataset):
         return res
 
     @jax.jit
-    def shuffle(self) -> "DatasetWrapper":
+    def shuffle(self) -> "BasicDataset":
         r"""Randomly reorganize the dataset.
 
         Perform a random shuffle on the dataset items based on the dataset's seed.
@@ -418,7 +420,14 @@ class DatasetWrapper(BasicDataset):
         """
         return self.x[self.assignment], self.y[self.assignment]
 
-    @BasicDataset.batch_size.setter
+    @property
+    @jax.jit
+    def batch_size(self) -> int:
+        r"""The number of items in each batch (leading axis)."""
+        # NOTE: Not required due to inheritance. Implemented here to satisfy mypy.
+        return self._batch_size
+
+    @batch_size.setter
     def batch_size(
         self,
         batch_size: int,
@@ -448,7 +457,14 @@ class DatasetWrapper(BasicDataset):
             self._batch_size,
         )
 
-    @BasicDataset.seed.setter
+    @property
+    @jax.jit
+    def seed(self) -> int:
+        r"""The number of items in each batch (leading axis)."""
+        # NOTE: Not required due to inheritance. Implemented here to satisfy mypy.
+        return self._seed
+
+    @seed.setter
     def seed(
         self,
         seed: int,
