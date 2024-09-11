@@ -35,8 +35,10 @@ from typing import (
     Union,
 )
 
+import blackjax
 import chex
 import jax
+import jax.scipy.stats as stats
 import optax
 import pytest
 from flax import linen as nn
@@ -95,8 +97,8 @@ class BasicModule(nn.Module, ABC):
              - The `children`, containing arrays & pytrees
              - The `aux_data`, containing static and hashable data.
         """
-        children = tuple()  # children must contain arrays & pytrees
-        aux_data = (
+        children: Tuple = tuple()  # children must contain arrays & pytrees
+        aux_data: Tuple = (
             self.n_output_params,
             self.n_input_params,
         )  # aux_data must contain static, hashable data.
@@ -106,7 +108,7 @@ class BasicModule(nn.Module, ABC):
     @abstractmethod
     def tree_unflatten(
         cls,
-        aux_data: Tuple[Any, Any],
+        aux_data: Optional[Tuple],
         children: Tuple,
     ) -> "FullyConnectedModule":
         r"""Specify how to build a module from a JAX pytree.
@@ -176,8 +178,8 @@ class FullyConnectedModule(BasicModule):
              - The `children`, containing arrays & pytrees (empty).
              - The `aux_data`, containing static and hashable data (4 items).
         """
-        children = tuple()  # children must contain arrays & pytrees
-        aux_data = (
+        children: Tuple = tuple()  # children must contain arrays & pytrees
+        aux_data: Tuple = (
             self.n_output_params,
             self.n_input_params,
             self.layer_sizes,
@@ -188,7 +190,7 @@ class FullyConnectedModule(BasicModule):
     @classmethod
     def tree_unflatten(
         cls,
-        aux_data: Tuple[Any, Any, Any, Any],
+        aux_data: Tuple[Any, Any, Any, Any],  # type: ignore
         children: Tuple,
     ) -> "FullyConnectedModule":
         r"""Specify how to build a module from a JAX pytree.
@@ -273,9 +275,8 @@ class FullyConnectedEstimator(BaseEstimator):
         batch_size: int = 1,
         epochs: int = 1,
         metrics: Optional[list] = None,
-        validation_size: Optional[
-            Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]
-        ] = None,
+        validation_size: Optional[Union[float]] = None,
+        # ADD above support to `Tuple[ArrayLike, ArrayLike], datasets.BasicDataset`
         seed: int = cnfg.General.SEED,
         **kwargs,
     ):
@@ -320,8 +321,8 @@ class FullyConnectedEstimator(BaseEstimator):
         self.seed = seed
 
         self.params_: Union[FrozenDict, Dict] = dict()
-        self.history_: Optional[Array] = None
-        self.model_: Optional[BasicModule] = None
+        self.history_: Array = None  # type: ignore
+        self.model_: BasicModule = None  # type: ignore
         self.is_fitted_: bool = False
         self.n_features_in_: Optional[int] = None
 
@@ -359,7 +360,7 @@ class FullyConnectedEstimator(BaseEstimator):
     @classmethod
     def tree_unflatten(
         cls,
-        aux_data: Tuple[Tuple, ...],
+        aux_data: Tuple,
         children: Tuple[Any, Any],
     ) -> "FullyConnectedEstimator":
         r"""Specify how to build an estimator from a JAX pytree.
@@ -524,7 +525,6 @@ class FullyConnectedEstimator(BaseEstimator):
             n_features=n_features,
         )
         model_state = train_state.TrainState.create(
-            # apply_fn=model.apply,
             apply_fn=self.model_.apply,
             params=params,
             tx=optimizer,
@@ -604,8 +604,8 @@ class FullyConnectedEstimator(BaseEstimator):
         }
         if self.validation_size:
             if self.validation_size > 0:
-                res.update({f"val_{k}": v + len(res) for k, v in res})
-        res: Dict[str, Array] = {k: self.history_[idx] for k, idx in res}
+                res.update({f"val_{k}": v + len(res) for k, v in res.items()})
+        res: Dict[str, Array] = {k: self.history_[idx] for k, idx in res.items()}
         return res
 
     @jax.jit
@@ -662,9 +662,8 @@ class BDEEstimator(FullyConnectedEstimator):
         batch_size: int = 1,
         epochs: int = 1,
         metrics: Optional[list] = None,
-        validation_size: Optional[
-            Union[float, Tuple[ArrayLike, ArrayLike], datasets.BasicDataset]
-        ] = None,
+        validation_size: Optional[Union[float]] = None,
+        # ADD above support to `Tuple[ArrayLike, ArrayLike], datasets.BasicDataset`
         seed: int = cnfg.General.SEED,
         **kwargs,
     ):
@@ -717,8 +716,8 @@ class BDEEstimator(FullyConnectedEstimator):
         self.warmup = warmup
 
         self.params_: List[Union[FrozenDict, Dict]] = [dict()]
-        self.history_: Optional[Array] = None
-        self.model_: Optional[BasicModule] = None
+        self.history_: Array = None  # type: ignore
+        self.model_: BasicModule = None  # type: ignore
         self.is_fitted_: bool = False
         self.n_features_in_: Optional[int] = None
 
@@ -760,8 +759,8 @@ class BDEEstimator(FullyConnectedEstimator):
     @classmethod
     def tree_unflatten(
         cls,
-        aux_data: Tuple[Tuple, ...],
-        children: Tuple[Any, Any],
+        aux_data: Tuple[Any, ...],
+        children: Tuple[ArrayLike, ArrayLike],
     ) -> "BDEEstimator":
         r"""Specify how to build an estimator from a JAX pytree.
 
@@ -835,8 +834,59 @@ class BDEEstimator(FullyConnectedEstimator):
         )
         return params, history
 
-    def mcmc_loop(self):
+    def mcmc_loop(
+        self,
+        rng_key,
+        train,
+        valid,
+        metrics,
+    ):
         r"""Perform MCMC sampling for BDE estimator."""
+        split_key, sample_key = jax.random.split(rng_key)
+        sample_keys = jax.random.split(sample_key, self.n_chains)  # noqa: F841
+
+        def logdensity_fn(loc, log_scale, observed):
+            """Univariate Normal."""
+            scale = jnp.exp(log_scale)
+            logpdf = stats.norm.logpdf(observed, loc, scale)
+            return jnp.sum(logpdf)
+
+        def logdensity(x):
+            return logdensity_fn(**x)
+
+        inv_mass_matrix = jnp.array([0.5, 0.01])
+        step_size = 1e-3
+
+        nuts = blackjax.nuts(logdensity, step_size, inv_mass_matrix)  # noqa: F841
+
+        # def inference_loop(rng_key, kernel, initial_state, num_samples):
+        #     @jax.jit
+        #     def one_step(state, rng_key):
+        #         state, _ = kernel(rng_key, state)
+        #         return state, state
+        #
+        #     keys = jax.random.split(rng_key, num_samples)
+        #     _, states = jax.lax.scan(one_step, initial_state, keys)
+        #
+        #     return states
+        #
+        # inference_loop_multiple_chains = jax.pmap(
+        #     inference_loop,
+        #     in_axes=(0, None, 0, None),
+        #     static_broadcasted_argnums=(1, 3),
+        # )
+        #
+        # pmap_states = inference_loop_multiple_chains(
+        #     sample_keys, nuts.step, initial_states, 2_000
+        # )
+
+    def mcmc_burn_in_loop(
+        self,
+        train,
+        valid,
+        metrics,
+    ):
+        r"""Perform MCMC-burn-in sampling."""
         ...
 
     def fit(
@@ -878,7 +928,22 @@ class BDEEstimator(FullyConnectedEstimator):
             valid,
             metrics,
         )
-        self.mcmc_loop()  # TODO: Implement MCMC sampling
+
+        split_key, rng_key = jax.random.split(split_key)
+        self.mcmc_burn_in_loop(
+            train,
+            valid,
+            metrics,
+            # rng_key,
+        )  # TODO: Implement MCMC burn-in
+
+        split_key, rng_key = jax.random.split(split_key)
+        self.mcmc_loop(
+            rng_key,
+            train,
+            valid,
+            metrics,
+        )  # TODO: Implement MCMC sampling
 
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
@@ -945,7 +1010,10 @@ def init_dense_model(
         seed = jax.random.key(seed=seed)
     inp_rng, init_rng = jax.random.split(seed, 2)
     if n_features is None:
-        n_features = model.n_input_params
+        if not isinstance(model.n_input_params, Sequence):
+            n_features = model.n_input_params
+        else:
+            raise NotImplementedError
     if model.n_input_params is None:
         if n_features is None:
             raise ValueError(
