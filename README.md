@@ -1,3 +1,6 @@
+[![Unit Tests](https://github.com/applied-ml-bde/bde/actions/workflows/python-app.yml/badge.svg)](https://github.com/applied-ml-bde/bde/actions/workflows/python-app.yml)
+[![Linter](https://github.com/applied-ml-bde/bde/actions/workflows/lint.yml/badge.svg)](https://github.com/applied-ml-bde/bde/actions/workflows/lint.yml)
+[![Documentation](https://github.com/applied-ml-bde/bde/actions/workflows/deploy-gh-pages.yml/badge.svg)](https://github.com/applied-ml-bde/bde/actions/workflows/deploy-gh-pages.yml)
 # bde
 
 ## Introduction
