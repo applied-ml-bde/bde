@@ -1,7 +1,18 @@
-from bde.utils import (
-    configs,
-)
+r"""Utility functions and configuration for the Bayesian Deep Ensembles (BDE) framework.
 
-__al__ = [
-    configs,
+This package includes various utility functions and configurations that support the
+operation of the BDE framework. It provides reusable components such as configuration
+management tools.
+
+Modules
+-------
+- `configs`: Contains configuration management utilities for the BDE framework.
+- `utils`: Contains general utility functions used by other modules.
+"""  # noqa: E501
+
+from bde.utils import configs, utils
+
+__all__ = [
+    "configs",
+    "utils",
 ]

@@ -13,7 +13,7 @@ from bde.ml.loss import LogLikelihoodLoss
 from bde.utils import configs as cnfg
 
 SEED = cnfg.General.SEED
-possible_reductions = [False]
+possible_reductions = [True, False]
 
 
 class TestHSplitPred:
@@ -89,7 +89,7 @@ class TestHSplitPred:
         assert jnp.allclose(mean, y_pred[..., :n_features])
 
 
-class TestLogLikelihoodLossCall:
+class TestLogLikelihoodLossCalculation:
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
     @pytest.mark.parametrize("reduction", possible_reductions)
@@ -98,17 +98,15 @@ class TestLogLikelihoodLossCall:
         key = jax.random.key(seed=SEED)
         key, subkey = jax.random.split(key)
         y_true = jax.random.normal(subkey, (n_batch, n_features))
+
+        f_loss = LogLikelihoodLoss(mean_weight=2)
+        f_loss = f_loss.apply_reduced if reduction else f_loss
+        expected_loss = jnp.zeros((1,)) if reduction else jnp.zeros((n_batch,))
         with jax.disable_jit(disable=not do_use_jit):
-            if reduction:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=2)(y_true, y_true),
-                    jnp.zeros((1,)),
-                )
-            else:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=2)(y_true, y_true),
-                    jnp.zeros((n_batch, )),
-                )
+            assert jnp.allclose(
+                f_loss(y_true, y_true),
+                expected_loss,
+            )
 
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
@@ -118,17 +116,15 @@ class TestLogLikelihoodLossCall:
         key = jax.random.key(seed=SEED)
         key, subkey = jax.random.split(key)
         y_true = jax.random.normal(subkey, (n_batch, n_features))
+
+        f_loss = LogLikelihoodLoss(mean_weight=2)
+        f_loss = f_loss.apply_reduced if reduction else f_loss
+        expected_loss = (y_true ** 2).mean() if reduction else y_true.reshape((-1)) ** 2
         with jax.disable_jit(disable=not do_use_jit):
-            if reduction:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=2)(y_true, jnp.zeros_like(y_true)),
-                    (y_true ** 2).mean(),
-                )
-            else:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=2)(y_true, jnp.zeros_like(y_true)),
-                    y_true.reshape((-1)) ** 2,
-                )
+            assert jnp.allclose(
+                f_loss(y_true, jnp.zeros_like(y_true)),
+                expected_loss,
+            )
 
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
@@ -140,17 +136,15 @@ class TestLogLikelihoodLossCall:
         y_true = jax.random.normal(subkey, (n_batch, n_features))
         key, subkey = jax.random.split(key)
         y_pred = jax.random.normal(subkey, (n_batch, n_features))
+
+        f_loss = LogLikelihoodLoss(mean_weight=0)
+        f_loss = f_loss.apply_reduced if reduction else f_loss
+        expected_loss = jnp.zeros((1,)) if reduction else jnp.zeros((n_batch,))
         with jax.disable_jit(disable=not do_use_jit):
-            if reduction:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=0)(y_true, y_pred),
-                    jnp.zeros((1,)),
-                )
-            else:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=0)(y_true, y_pred),
-                    jnp.zeros((n_batch,)),
-                )
+            assert jnp.allclose(
+                f_loss(y_true, y_pred),
+                expected_loss,
+            )
 
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
@@ -163,19 +157,15 @@ class TestLogLikelihoodLossCall:
 
         expected_values = jnp.arange(- 5, n_batch - 5)
         y_pred = jnp.stack([expected_values, jnp.e ** expected_values], axis=1)
+        f_loss = LogLikelihoodLoss(mean_weight=0)
+        f_loss = f_loss.apply_reduced if reduction else f_loss
+        expected_loss = expected_values.mean() if reduction else expected_values
         with jax.disable_jit(disable=not do_use_jit):
-            if reduction:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=0)(y_true, y_pred),
-                    expected_values.mean(),
-                    atol=1e-4,
-                )
-            else:
-                assert jnp.allclose(
-                    LogLikelihoodLoss(mean_weight=0)(y_true, y_pred),
-                    expected_values,
-                    atol=1e-4,
-                )
+            assert jnp.allclose(
+                f_loss(y_true, y_pred),
+                expected_loss,
+                atol=1e-4,
+            )
 
 
 if __name__ == '__main__':
