@@ -56,7 +56,7 @@ However, while potentially rewarding for its predictive capabilities and uncerta
 measurements, Bayesian optimization can be challenging and resource intensive due to 
 usually strongly multimodal posterior landscapes.
 ([Izmailov et al., 2021](https://proceedings.mlr.press/v139/izmailov21a.html))
- 
+   
 
 
 ## License
