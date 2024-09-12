@@ -563,7 +563,7 @@ class FullyConnectedEstimator(BaseEstimator):
             rng_key=rng_init,
         )
         if self.epochs > 0:
-            self.params_, self.history_ = training.jitted_training(
+            model_state, self.history_ = training.jitted_training(
                 model_state=model_state,
                 # model_class=self.model_class,
                 # model_kwargs=model_kwargs,
@@ -576,8 +576,7 @@ class FullyConnectedEstimator(BaseEstimator):
                 train=train,
                 valid=valid,
             )
-        else:
-            self.params_ = model_state.params
+        self.params_ = model_state.params
         # TODO: Transform `history_container` to `self.history`
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
@@ -835,6 +834,7 @@ class BDEEstimator(FullyConnectedEstimator):
 
     def mcmc_sampling(
         self,
+        model_states,
         rng_key,
         train,
         valid,
@@ -906,13 +906,14 @@ class BDEEstimator(FullyConnectedEstimator):
             self.warmup,  # num_steps
         )
 
+        @partial(jax.jit, static_argnames=["num_samples"])
         def inference_loop(
             rng_key,
             initial_state,
+            nuts_params,
             num_samples,
-            params,
         ):
-            kernel = blackjax.nuts(logdensity, **params).step
+            kernel = blackjax.nuts(logdensity, **nuts_params).step
 
             @jax.jit
             def one_step(state, rng_key):
@@ -931,13 +932,13 @@ class BDEEstimator(FullyConnectedEstimator):
         sample_keys = jax.random.split(split_key, self.n_chains)
         pmap_states = jax.pmap(
             inference_loop,
-            in_axes=(0, 0, None, 0),
-            static_broadcasted_argnums=(2,),
+            in_axes=(0, 0, 0, None),
+            static_broadcasted_argnums=(3,),
         )(
             sample_keys,
             init_state_sampling,
-            self.chain_len,
             nuts_params,
+            self.chain_len,
         )
         return pmap_states
 
@@ -974,15 +975,17 @@ class BDEEstimator(FullyConnectedEstimator):
             in_axes=(None, None, 0),
             static_broadcasted_argnums=[0, 1],
         )(X.shape[-1], optimizer, init_key_list)
-        self.params_, self.history_ = self._prior_fitting(
+        model_states, self.history_ = self._prior_fitting(
             model_states,
             train,
             valid,
             metrics,
         )
+        self.params_ = model_states.params
 
         split_key, rng_key = jax.random.split(split_key)
         self.mcmc_sampling(
+            model_states,
             rng_key,
             train,
             valid,

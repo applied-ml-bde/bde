@@ -12,13 +12,12 @@ Functions
 """
 
 import pathlib
-from typing import Any, Tuple
+from typing import Tuple
 
 import jax
 
 # import bde
 import pytest
-from flax.core import FrozenDict
 from flax.training.train_state import TrainState
 from jax import Array
 from jax import numpy as jnp
@@ -118,7 +117,7 @@ def jitted_training(
     metrics: Array,
     train: BasicDataset,
     valid: BasicDataset,
-) -> Tuple[FrozenDict[str, Any], Array]:
+) -> Tuple[TrainState, Array]:
     r"""Train a model on a single parameters set.
 
     A jitted training loop for a model using a single parameter set.
@@ -140,9 +139,9 @@ def jitted_training(
 
     Returns
     -------
-    Tuple[Dict, Array]
-        A dictionary representing the optimized model parameters
-        and an array describing the metrics over the training epochs.
+    Tuple[TrainState, Array]
+        Updated training state and an array describing the metrics over the
+        training epochs.
     """
     # model_state = train_state.TrainState.create(
     #     # apply_fn=model.apply,
@@ -161,7 +160,7 @@ def jitted_training(
         init=(model_state, train, valid),
         xs=epochs,
     )
-    return model_state.params, history.T
+    return model_state, history.T
 
 
 @jax.jit

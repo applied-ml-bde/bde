@@ -1,24 +1,17 @@
-import pytest
-import flax
-from flax import linen as nn
-from flax.struct import dataclass, field
-from flax.training import train_state
 import jax
+import pytest
 from jax import numpy as jnp
-import optax
-import pathlib
 
 import bde.ml
-from bde.utils import configs as cnfg
 
 
 class TestHistory:
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
     def test_history_is_2d(
-            do_use_jit,
-            gen_training_items,
-            generate_model_state,
+        do_use_jit,
+        gen_training_items,
+        generate_model_state,
     ):
         batch_size = 4
         f_loss, train, valid, metrics = gen_training_items(
@@ -40,16 +33,20 @@ class TestHistory:
 
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
-    @pytest.mark.parametrize("do_validation", [False])  # TODO: Implement `True` once feature is implemented
-    @pytest.mark.parametrize("do_metrics", [False])  # TODO: Implement `True` once feature is implemented
+    @pytest.mark.parametrize(
+        "do_validation", [False]
+    )  # TODO: Implement `True` once feature is implemented
+    @pytest.mark.parametrize(
+        "do_metrics", [False]
+    )  # TODO: Implement `True` once feature is implemented
     @pytest.mark.parametrize("num_train_batches", [1, 4])
     def test_1st_dim_size(
-            do_use_jit,
-            do_validation,
-            do_metrics,
-            num_train_batches,
-            gen_training_items,
-            generate_model_state,
+        do_use_jit,
+        do_validation,
+        do_metrics,
+        num_train_batches,
+        gen_training_items,
+        generate_model_state,
     ):
         train_size = 24
         batch_size = train_size // num_train_batches
@@ -74,10 +71,10 @@ class TestHistory:
     @pytest.mark.parametrize("do_use_jit", [True, False])
     @pytest.mark.parametrize("num_epochs", [1, 4])
     def test_2nd_dim_is_num_of_epochs(
-            do_use_jit,
-            num_epochs,
-            gen_training_items,
-            generate_model_state,
+        do_use_jit,
+        num_epochs,
+        gen_training_items,
+        generate_model_state,
     ):
         train_size = 24
         batch_size = train_size
@@ -103,11 +100,11 @@ class TestHistory:
 @pytest.mark.parametrize("do_validation", [False, True])
 @pytest.mark.parametrize("do_metrics", [False])  # TODO: Implement
 def test_1_epoch_with_batch_that_covers_whole_dataset_is_the_same_as_training_step(
-        do_use_jit,
-        do_validation,
-        do_metrics,
-        gen_training_items,
-        generate_model_state,
+    do_use_jit,
+    do_validation,
+    do_metrics,
+    gen_training_items,
+    generate_model_state,
 ):
     n_features, n_items = 1, 128
     batch_size = n_items
@@ -141,7 +138,7 @@ def test_1_epoch_with_batch_that_covers_whole_dataset_is_the_same_as_training_st
             metrics=metrics,
             epochs=jnp.arange(1),
         )
-        assert model_state_raw.params == tested_params
+        assert model_state_raw.params == tested_params.params
 
 
 if __name__ == '__main__':
