@@ -7,7 +7,7 @@ import chex
 import flax.linen as nn
 import jax.numpy as jnp
 import numpyro.distributions as dist # ! Rather use jax.scipy distributions to avoid extra dependencies
-
+#from jax.scipy import stats as dist
 
 def get_by_path(root: dict, items: list):
     """Access a nested object in root by item sequence."""
@@ -62,6 +62,14 @@ class ProbModelBuilder:
         if config['dist'] == 'Laplace':
             return dist.Laplace(scale=config['sd'])
         raise ValueError(f'Distribution {config["dist"]} not implemented')
+
+    # def map_distribution_jax(self, config: dict) -> Array:
+    #     """Map the distribution from string to callable."""
+    #     if config['dist'] == 'Normal':
+    #         return stats.norm.pdf(loc=0, scale=config['sd'])
+    #     if config['dist'] == 'Laplace':
+    #         return stats.laplace.pdf(loc=0, scale=config['sd'])
+    #     raise ValueError(f'Distribution {config["dist"]} not implemented')
 
     def set_constant_prior(
         self, params: dict, distr: dist.Distribution = dist.Normal()
