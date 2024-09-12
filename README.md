@@ -57,7 +57,7 @@ measurements, Bayesian optimization can be challenging and resource intensive du
 usually strongly multimodal posterior landscapes.
 ([Izmailov et al., 2021](https://proceedings.mlr.press/v139/izmailov21a.html))
    
-
+ 
 
 ## License
 
