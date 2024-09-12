@@ -835,7 +835,6 @@ class BDEEstimator(FullyConnectedEstimator):
 
     def mcmc_sampling(
         self,
-        model_states,
         rng_key,
         train,
         valid,
@@ -854,8 +853,7 @@ class BDEEstimator(FullyConnectedEstimator):
             return cc + res, None
 
         @jax.jit
-        def logdensity(x):
-            params, data = x
+        def logdensity_burn_in(params):
             res, _ = jax.lax.scan(
                 f=lambda cc, sx: logdensity_for_batch(
                     params=params,
@@ -863,36 +861,58 @@ class BDEEstimator(FullyConnectedEstimator):
                     sx=sx,
                 ),
                 init=0.0,
-                xs=data,
+                xs=train.get_scannable()[0],
+            )
+            return res
+
+        @jax.jit
+        def logdensity(params):
+            res, _ = jax.lax.scan(
+                f=lambda cc, sx: logdensity_for_batch(
+                    params=params,
+                    cc=cc,
+                    sx=sx,
+                ),
+                init=0.0,
+                xs=train.get_scannable()[0],
             )
             return res
 
         warmup = blackjax.window_adaptation(
             blackjax.nuts,
-            logdensity,
+            logdensity_burn_in,
             # progress_bar=True,
         )
+
+        @partial(jax.jit, static_argnums=3)
+        def burn_in_loop(
+            rng: PRNGKeyArray,
+            params: ArrayLike,
+            data: datasets.BasicDataset,
+            n_burns: int,
+        ):
+            # NOTE: We require the `data` variable despite not using it
+            #  to ake the jit tracing work properly.
+            return warmup.run(rng, params, n_burns)
+
         (init_state_sampling, nuts_params), warmup_info = jax.pmap(
-            fun=lambda rng, params, x, t: warmup.run(rng, (params, x), t),
+            fun=burn_in_loop,
             in_axes=(0, 0, None, None),
-            static_broadcasted_argnums=[
-                3
-            ],  # NOTE: Should the training data be static too?
+            static_broadcasted_argnums=(3,),
         )(
             sample_keys,
             self.params_,
-            train.get_scannable()[0],  # TODO: Improve handling
+            train,
             self.warmup,  # num_steps
         )
 
         def inference_loop(
             rng_key,
-            logprob,
             initial_state,
             num_samples,
             params,
         ):
-            kernel = blackjax.nuts(logprob, **params).step
+            kernel = blackjax.nuts(logdensity, **params).step
 
             @jax.jit
             def one_step(state, rng_key):
@@ -911,11 +931,10 @@ class BDEEstimator(FullyConnectedEstimator):
         sample_keys = jax.random.split(split_key, self.n_chains)
         pmap_states = jax.pmap(
             inference_loop,
-            in_axes=(0, None, 0, None, 0),
-            static_broadcasted_argnums=(1, 3),
+            in_axes=(0, 0, None, 0),
+            static_broadcasted_argnums=(2,),
         )(
             sample_keys,
-            logdensity,
             init_state_sampling,
             self.chain_len,
             nuts_params,
@@ -964,7 +983,6 @@ class BDEEstimator(FullyConnectedEstimator):
 
         split_key, rng_key = jax.random.split(split_key)
         self.mcmc_sampling(
-            model_states,
             rng_key,
             train,
             valid,
