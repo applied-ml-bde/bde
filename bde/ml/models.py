@@ -38,7 +38,6 @@ from typing import (
 import blackjax
 import chex
 import jax
-import jax.scipy.stats as stats
 import optax
 import pytest
 from flax import linen as nn
@@ -834,60 +833,94 @@ class BDEEstimator(FullyConnectedEstimator):
         )
         return params, history
 
-    def mcmc_loop(
+    def mcmc_sampling(
         self,
+        model_states,
         rng_key,
         train,
         valid,
         metrics,
-    ):
-        r"""Perform MCMC sampling for BDE estimator."""
-        split_key, sample_key = jax.random.split(rng_key)
-        sample_keys = jax.random.split(sample_key, self.n_chains)  # noqa: F841
-
-        def logdensity_fn(loc, log_scale, observed):
-            """Univariate Normal."""
-            scale = jnp.exp(log_scale)
-            logpdf = stats.norm.logpdf(observed, loc, scale)
-            return jnp.sum(logpdf)
-
-        def logdensity(x):
-            return logdensity_fn(**x)
-
-        inv_mass_matrix = jnp.array([0.5, 0.01])
-        step_size = 1e-3
-
-        nuts = blackjax.nuts(logdensity, step_size, inv_mass_matrix)  # noqa: F841
-
-        # def inference_loop(rng_key, kernel, initial_state, num_samples):
-        #     @jax.jit
-        #     def one_step(state, rng_key):
-        #         state, _ = kernel(rng_key, state)
-        #         return state, state
-        #
-        #     keys = jax.random.split(rng_key, num_samples)
-        #     _, states = jax.lax.scan(one_step, initial_state, keys)
-        #
-        #     return states
-        #
-        # inference_loop_multiple_chains = jax.pmap(
-        #     inference_loop,
-        #     in_axes=(0, None, 0, None),
-        #     static_broadcasted_argnums=(1, 3),
-        # )
-        #
-        # pmap_states = inference_loop_multiple_chains(
-        #     sample_keys, nuts.step, initial_states, 2_000
-        # )
-
-    def mcmc_burn_in_loop(
-        self,
-        train,
-        valid,
-        metrics,
+        n_std: int = 1,
     ):
         r"""Perform MCMC-burn-in sampling."""
-        ...
+        sample_keys = jax.random.split(rng_key, self.n_chains + 1)
+        split_key, sample_keys = sample_keys[0], sample_keys[1:]
+
+        @jax.jit
+        def logdensity_for_batch(params, cc, sx) -> Tuple[float, None]:
+            res = self.model_.apply(params, sx)
+            res = res[..., -n_std:]  # (\mu, \sigma) -> \sigma
+            res = jnp.log(res).sum()
+            return cc + res, None
+
+        @jax.jit
+        def logdensity(x):
+            params, data = x
+            res, _ = jax.lax.scan(
+                f=lambda cc, sx: logdensity_for_batch(
+                    params=params,
+                    cc=cc,
+                    sx=sx,
+                ),
+                init=0.0,
+                xs=data,
+            )
+            return res
+
+        warmup = blackjax.window_adaptation(
+            blackjax.nuts,
+            logdensity,
+            # progress_bar=True,
+        )
+        (init_state_sampling, nuts_params), warmup_info = jax.pmap(
+            fun=lambda rng, params, x, t: warmup.run(rng, (params, x), t),
+            in_axes=(0, 0, None, None),
+            static_broadcasted_argnums=[
+                3
+            ],  # NOTE: Should the training data be static too?
+        )(
+            sample_keys,
+            self.params_,
+            train.get_scannable()[0],  # TODO: Improve handling
+            self.warmup,  # num_steps
+        )
+
+        def inference_loop(
+            rng_key,
+            logprob,
+            initial_state,
+            num_samples,
+            params,
+        ):
+            kernel = blackjax.nuts(logprob, **params).step
+
+            @jax.jit
+            def one_step(state, rng_key):
+                state, _ = kernel(rng_key, state)
+                return state, state
+
+            keys = jax.random.split(rng_key, num_samples)
+            _, states = jax.lax.scan(
+                f=one_step,
+                init=initial_state,
+                xs=keys,
+            )
+
+            return states
+
+        sample_keys = jax.random.split(split_key, self.n_chains)
+        pmap_states = jax.pmap(
+            inference_loop,
+            in_axes=(0, None, 0, None, 0),
+            static_broadcasted_argnums=(1, 3),
+        )(
+            sample_keys,
+            logdensity,
+            init_state_sampling,
+            self.chain_len,
+            nuts_params,
+        )
+        return pmap_states
 
     def fit(
         self,
@@ -930,21 +963,14 @@ class BDEEstimator(FullyConnectedEstimator):
         )
 
         split_key, rng_key = jax.random.split(split_key)
-        self.mcmc_burn_in_loop(
-            train,
-            valid,
-            metrics,
-            # rng_key,
-        )  # TODO: Implement MCMC burn-in
-
-        split_key, rng_key = jax.random.split(split_key)
-        self.mcmc_loop(
+        self.mcmc_sampling(
+            model_states,
             rng_key,
             train,
             valid,
             metrics,
-        )  # TODO: Implement MCMC sampling
-
+            n_std=1,  # TODO: Make adjustable
+        )
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
