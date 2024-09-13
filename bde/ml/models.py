@@ -19,6 +19,7 @@ Functions
 """  # noqa: E501
 
 import multiprocessing
+import operator
 import os
 import pathlib
 from abc import ABC, abstractmethod
@@ -40,12 +41,14 @@ import chex
 import jax
 import optax
 import pytest
+from blackjax.base import SamplingAlgorithm
 from flax import linen as nn
 from flax.core import FrozenDict
 from flax.training import train_state
 from jax import Array
 from jax import numpy as jnp
 from jax._src.prng import PRNGKeyArray
+from jax.scipy import stats
 from jax.tree_util import register_pytree_node_class
 from jax.typing import ArrayLike
 from sklearn.base import BaseEstimator
@@ -714,6 +717,7 @@ class BDEEstimator(FullyConnectedEstimator):
         self.warmup = warmup
 
         self.params_: List[Union[FrozenDict, Dict]] = [dict()]
+        self.samples_: List[Union[FrozenDict, Dict]] = [dict()]
         self.history_: Array = None  # type: ignore
         self.model_: BasicModule = None  # type: ignore
         self.is_fitted_: bool = False
@@ -726,12 +730,13 @@ class BDEEstimator(FullyConnectedEstimator):
         -------
         Tuple[Sequence[ArrayLike], Any]
             A tuple with 2 elements:
-             - The `children`, containing arrays & pytrees (2 elements).
+             - The `children`, containing arrays & pytrees (3 elements).
              - The `aux_data`, containing static and hashable data (17 elements).
         """
         children = (
             self.model_,
             self.params_,
+            self.samples_,
         )  # children must contain arrays & pytrees
         aux_data = (
             self.model_class,
@@ -758,14 +763,14 @@ class BDEEstimator(FullyConnectedEstimator):
     def tree_unflatten(
         cls,
         aux_data: Tuple[Any, ...],
-        children: Tuple[ArrayLike, ArrayLike],
+        children: Tuple[ArrayLike, ArrayLike, ArrayLike],  # type: ignore
     ) -> "BDEEstimator":
         r"""Specify how to build an estimator from a JAX pytree.
 
         Parameters
         ----------
         aux_data
-            Contains static, hashable data (2 items).
+            Contains static, hashable data (3 items).
         children
             Contain arrays & pytrees (17 items).
 
@@ -777,6 +782,7 @@ class BDEEstimator(FullyConnectedEstimator):
         res = cls(*aux_data[:14])
         res.model_ = children[0]
         res.params_ = children[1]
+        res.samples_ = children[2]
         res.is_fitted_ = aux_data[14]
         res.n_features_in_ = aux_data[15]
         res.history_ = aux_data[16]
@@ -810,6 +816,20 @@ class BDEEstimator(FullyConnectedEstimator):
         }
 
     @jax.jit
+    def log_prior(self, params):
+        r"""Calculate the log of the prior probability for a set of params."""
+        # TODO: Make customizable at init time
+        res = jax.tree.map(
+            f=lambda x: stats.norm.logpdf(x).sum(),
+            tree=params,
+        )
+        res = jax.tree.reduce(
+            function=operator.add,
+            tree=res,
+        )
+        return res
+
+    @jax.jit
     def _prior_fitting(
         self,
         model_states,
@@ -834,53 +854,43 @@ class BDEEstimator(FullyConnectedEstimator):
 
     def mcmc_sampling(
         self,
-        model_states,
-        rng_key,
-        train,
-        valid,
-        metrics,
-        n_std: int = 1,
-    ):
-        r"""Perform MCMC-burn-in sampling."""
+        model_states: train_state.TrainState,
+        rng_key: PRNGKeyArray,
+        train: datasets.BasicDataset,
+    ) -> List[Dict]:
+        r"""Perform MCMC-burn-in and sampling."""
         sample_keys = jax.random.split(rng_key, self.n_chains + 1)
         split_key, sample_keys = sample_keys[0], sample_keys[1:]
 
         @jax.jit
-        def logdensity_for_batch(params, cc, sx) -> Tuple[float, None]:
-            res = self.model_.apply(params, sx)
-            res = res[..., -n_std:]  # (\mu, \sigma) -> \sigma
-            res = jnp.log(res).sum()
-            return cc + res, None
-
-        @jax.jit
-        def logdensity_burn_in(params):
-            res, _ = jax.lax.scan(
-                f=lambda cc, sx: logdensity_for_batch(
-                    params=params,
-                    cc=cc,
-                    sx=sx,
-                ),
-                init=0.0,
-                xs=train.get_scannable()[0],
-            )
-            return res
+        def logdensity_for_batch(
+            params,
+            carry: float,
+            batch: Tuple[ArrayLike, ArrayLike],
+        ) -> Tuple[float, None]:
+            x, y = batch
+            y_pred = self.model_.apply(params, x)
+            res_loss = self.loss(y, y_pred)
+            res_loss = jnp.sum(res_loss)
+            res_prior = self.log_prior(params)
+            return carry + res_loss + res_prior, None
 
         @jax.jit
         def logdensity(params):
             res, _ = jax.lax.scan(
-                f=lambda cc, sx: logdensity_for_batch(
+                f=lambda carry, batch: logdensity_for_batch(
                     params=params,
-                    cc=cc,
-                    sx=sx,
+                    carry=carry,
+                    batch=batch,
                 ),
                 init=0.0,
-                xs=train.get_scannable()[0],
+                xs=train.get_scannable(),
             )
             return res
 
         warmup = blackjax.window_adaptation(
             blackjax.nuts,
-            logdensity_burn_in,
+            logdensity,
             # progress_bar=True,
         )
 
@@ -901,7 +911,7 @@ class BDEEstimator(FullyConnectedEstimator):
             static_broadcasted_argnums=(3,),
         )(
             sample_keys,
-            self.params_,
+            model_states.params,
             train,
             self.warmup,  # num_steps
         )
@@ -912,7 +922,7 @@ class BDEEstimator(FullyConnectedEstimator):
             initial_state,
             nuts_params,
             num_samples,
-        ):
+        ) -> SamplingAlgorithm:
             kernel = blackjax.nuts(logdensity, **nuts_params).step
 
             @jax.jit
@@ -940,7 +950,7 @@ class BDEEstimator(FullyConnectedEstimator):
             nuts_params,
             self.chain_len,
         )
-        return pmap_states
+        return pmap_states.position
 
     def fit(
         self,
@@ -962,6 +972,7 @@ class BDEEstimator(FullyConnectedEstimator):
         BDEEstimator
             The fitted estimator.
         """
+        self.samples_ = [dict()]  # Reset before fitting
         split_key = jax.random.key(seed=self.seed)
         rng = jax.random.split(split_key, self.n_chains + 2)
         init_key_list, prep_key, split_key = rng[: self.n_chains], rng[-2], rng[-1]
@@ -984,13 +995,10 @@ class BDEEstimator(FullyConnectedEstimator):
         self.params_ = model_states.params
 
         split_key, rng_key = jax.random.split(split_key)
-        self.mcmc_sampling(
+        self.samples_ = self.mcmc_sampling(
             model_states,
             rng_key,
             train,
-            valid,
-            metrics,
-            n_std=1,  # TODO: Make adjustable
         )
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
@@ -1021,9 +1029,9 @@ class BDEEstimator(FullyConnectedEstimator):
         )(
             self.params_,
             X,
-        ).mean(axis=0)
-        # NOTE: Temporary implementation until proper BDE sampling and
-        #  inference are implemented.
+        ).mean(
+            axis=0
+        )  # TODO: Use samples instead
 
 
 def init_dense_model(
