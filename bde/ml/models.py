@@ -1046,11 +1046,38 @@ class BDEEstimator(FullyConnectedEstimator):
             fun=self.model_.apply,
             in_axes=(0, None),
         )(
+            self.samples_,
+            X,
+        ).mean(axis=0)
+
+    @jax.jit
+    def predict_as_de(
+        self,
+        X: ArrayLike,
+    ) -> Array:
+        r"""Predict with model as a deep ensemble.
+
+        This method ignores the samples data and uses the initialization params only.
+
+        Parameters
+        ----------
+        X
+            The input data.
+
+        Returns
+        -------
+        Array
+            Predicted labels.
+        """
+        bde.utils.utils.check_predict_input(X)
+        chex.assert_equal(self.is_fitted_, True)
+        return jax.pmap(
+            fun=self.model_.apply,
+            in_axes=(0, None),
+        )(
             self.params_,
             X,
-        ).mean(
-            axis=0
-        )  # TODO: Use samples instead
+        ).mean(axis=0)
 
 
 def init_dense_model(
