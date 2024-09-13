@@ -1024,6 +1024,42 @@ class BDEEstimator(FullyConnectedEstimator):
         return self
 
     @jax.jit
+    def predict_with_credibility(
+        self,
+        X: ArrayLike,
+        a: float = 0.95,
+    ) -> Tuple[Array, Array, Array]:
+        r"""Make prediction with a confidence interval.
+
+        Parameters
+        ----------
+        X
+            The input data.
+        a
+            Size of credibility interval (in probability: 0 - 1).
+        Returns
+        -------
+        3 arrays with:
+         - Predicted values.
+         - Lower value of confidence interval per prediction.
+         - Upper value of confidence interval per prediction.
+        """
+        bde.utils.utils.check_predict_input(X)
+        chex.assert_equal(self.is_fitted_, True)
+        res = jax.pmap(
+            fun=self.model_.apply,
+            in_axes=(0, None),
+        )(
+            self.samples_,
+            X,
+        )
+        raise NotImplementedError
+        pred = res.mean(axis=0)
+        i_low: Array = pred
+        i_high: Array = pred
+        return pred, i_low, i_high
+
+    @jax.jit
     def predict(
         self,
         X: ArrayLike,

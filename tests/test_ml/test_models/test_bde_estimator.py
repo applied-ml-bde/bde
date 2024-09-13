@@ -12,7 +12,7 @@ class TestInit:
     ...  # fmt: skip
 
 
-class TestPyTree:
+class TestReconstruct:
     @staticmethod
     @pytest.fixture(
         scope="class",
