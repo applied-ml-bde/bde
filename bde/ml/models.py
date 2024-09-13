@@ -22,6 +22,7 @@ import multiprocessing
 import operator
 import os
 import pathlib
+import pickle
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 from functools import partial
@@ -386,6 +387,24 @@ class FullyConnectedEstimator(BaseEstimator):
         res.n_features_in_ = aux_data[11]
         res.history_ = aux_data[12]
         return res
+
+    def save(self, path: Union[str, pathlib.Path]) -> None:
+        r"""Save estimator to file."""
+        # TODO: Use a more secure format
+        children, aux_data = self.tree_flatten()
+        with open(path, "wb") as file:
+            pickle.dump((aux_data, children), file)
+
+    @classmethod
+    def load(
+        cls,
+        path: Union[str, pathlib.Path],
+    ) -> "FullyConnectedEstimator":
+        r"""Load estimator from file."""
+        # TODO: Use a more secure format
+        with open(path, "rb") as file:
+            aux_data, children = pickle.load(file)
+        return cls.tree_unflatten(aux_data, children)
 
     def __sklearn_is_fitted__(self) -> bool:
         r"""Check if the estimator is fitted."""
