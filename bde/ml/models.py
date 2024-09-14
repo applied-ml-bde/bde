@@ -1119,7 +1119,7 @@ class BDEEstimator(FullyConnectedEstimator):
             f=lambda carry, params: (0.0, self.model_.apply(params, X)),
             init=0.0,
             xs=self.samples_,
-        )
+        )[1]
         return res.mean(axis=0)
 
     @jax.jit
