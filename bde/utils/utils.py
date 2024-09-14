@@ -124,6 +124,7 @@ def check_fit_input(
 @jax.jit
 def check_predict_input(
     x: ArrayLike,
+    is_fitted: bool = False,
 ) -> None:
     r"""Validate the input of `predict` functions according to the SKlearn specifications for estimators.
 
@@ -134,6 +135,8 @@ def check_predict_input(
     ----------
     x
         The data used for the predictions.
+    is_fitted
+        The `is_fitted_` flag of the estimator.
 
     Raises
     ------
@@ -141,6 +144,10 @@ def check_predict_input(
         If:
          - the input has Nans/ infs.
          - the input is empty.
+
+    AssertionError
+        If:
+         - The estimator is not fitted.
     """  # noqa: E501
     jax.lax.cond(
         jnp.all(jnp.isfinite(x)),
@@ -151,6 +158,11 @@ def check_predict_input(
         x.ndim > 1,
         JaxErrors.raise_no_error,
         lambda: jax.debug.callback(JaxErrors.raise_error_for_predict_on_too_low_dim),
+    )
+    jax.lax.cond(
+        is_fitted,
+        JaxErrors.raise_no_error,
+        lambda: jax.debug.callback(JaxErrors.raise_error_non_fitted),
     )
 
 
@@ -355,6 +367,12 @@ class JaxErrors:
     def raise_error_for_fit_on_nans_or_infs(*args):
         r"""Handle error in `fit`-methods Nans/ infs are encountered."""
         raise ValueError("While fitting. Nans/ inf not supported.")
+
+    @staticmethod
+    @jax.jit
+    def raise_error_non_fitted(*args):
+        r"""Handle errors raised by an un-fitted estimator."""
+        raise AssertionError("Estimator has not been fitted.")
 
 
 if __name__ == "__main__":

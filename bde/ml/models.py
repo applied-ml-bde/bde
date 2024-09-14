@@ -329,19 +329,28 @@ class FullyConnectedEstimator(BaseEstimator):
         self.is_fitted_: bool = False
         self.n_features_in_: Optional[int] = None
 
-    def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
+    def tree_flatten(self) -> Tuple[Sequence[Union[ArrayLike, Dict]], Any]:
         r"""Specify how to serialize estimator into a JAX pytree.
 
         Returns
         -------
         Tuple[Sequence[ArrayLike], Any]
             A tuple with 2 elements:
-             - The `children`, containing arrays & pytrees (2 elements).
-             - The `aux_data`, containing static and hashable data (13 elements).
+             - The `children`, containing arrays & pytrees.
+             - The `aux_data`, containing static and hashable data.
         """
+        atts = {
+            "batch_size": self.batch_size,
+            "validation_size": self.validation_size,
+            "seed": self.seed,
+            "is_fitted_": self.is_fitted_,
+            "n_features_in_": self.n_features_in_,
+        }
         children = (
             self.model_,
             self.params_,
+            self.history_,
+            atts,
         )  # children must contain arrays & pytrees
         aux_data = (
             self.model_class,
@@ -349,43 +358,49 @@ class FullyConnectedEstimator(BaseEstimator):
             self.optimizer_class,
             self.optimizer_kwargs,
             self.loss,
-            self.batch_size,
-            self.epochs,
             self.metrics,
-            self.validation_size,
-            self.seed,
-            self.is_fitted_,
-            self.n_features_in_,
-            self.history_,
+            self.epochs,
         )  # aux_data must contain static, hashable data.
         return children, aux_data
 
     @classmethod
     def tree_unflatten(
         cls,
-        aux_data: Tuple,
-        children: Tuple[Any, Any],
+        aux_data: Tuple[Any, ...],
+        children: Tuple[Union[ArrayLike, Dict], ...],
     ) -> "FullyConnectedEstimator":
         r"""Specify how to build an estimator from a JAX pytree.
 
         Parameters
         ----------
         aux_data
-            Contains static, hashable data (2 items).
+            Contains static, hashable data.
         children
-            Contain arrays & pytrees (13 items).
+            Contain arrays & pytrees.
 
         Returns
         -------
         FullyConnectedEstimator
             Reconstructed estimator.
         """
-        res = cls(*aux_data[:10])
-        res.model_ = children[0]
+        atts = children[-1]
+        res = cls(
+            model_class=aux_data[0],
+            model_kwargs=aux_data[1],
+            optimizer_class=aux_data[2],
+            optimizer_kwargs=aux_data[3],
+            loss=aux_data[4],
+            batch_size=atts["batch_size"],
+            epochs=aux_data[6],
+            metrics=aux_data[5],
+            validation_size=atts["validation_size"],
+            seed=atts["seed"],
+        )
+        res.model_ = children[0]  # type: ignore
         res.params_ = children[1]
-        res.is_fitted_ = aux_data[10]
-        res.n_features_in_ = aux_data[11]
-        res.history_ = aux_data[12]
+        res.is_fitted_ = atts["is_fitted_"]
+        res.n_features_in_ = atts["n_features_in_"]
+        res.history_ = children[2]
         return res
 
     def save(self, path: Union[str, pathlib.Path]) -> None:
@@ -645,8 +660,7 @@ class FullyConnectedEstimator(BaseEstimator):
         Array
             Predicted labels.
         """
-        bde.utils.utils.check_predict_input(X)
-        chex.assert_equal(self.is_fitted_, True)
+        bde.utils.utils.check_predict_input(X, self.is_fitted_)
         return self.model_.apply(self.params_, X)
 
 
@@ -742,39 +756,44 @@ class BDEEstimator(FullyConnectedEstimator):
         self.is_fitted_: bool = False
         self.n_features_in_: Optional[int] = None
 
-    def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
+    def tree_flatten(self) -> Tuple[Sequence[Union[ArrayLike, Dict]], Any]:
         r"""Specify how to serialize estimator into a JAX pytree.
 
         Returns
         -------
         Tuple[Sequence[ArrayLike], Any]
             A tuple with 2 elements:
-             - The `children`, containing arrays & pytrees (3 elements).
-             - The `aux_data`, containing static and hashable data (17 elements).
+             - The `children`, containing arrays & pytrees.
+             - The `aux_data`, containing static and hashable data.
         """
+        atts = {
+            "n_chains": self.n_chains,
+            # "n_init_runs": self.n_init_runs,
+            "chain_len": self.chain_len,
+            "warmup": self.warmup,
+            "batch_size": self.batch_size,
+            # "epochs": self.epochs,
+            "validation_size": self.validation_size,
+            "seed": self.seed,
+            "is_fitted_": self.is_fitted_,
+            "n_features_in_": self.n_features_in_,
+        }
         children = (
             self.model_,
             self.params_,
             self.samples_,
+            self.history_,
+            atts,
         )  # children must contain arrays & pytrees
         aux_data = (
             self.model_class,
             self.model_kwargs,
-            self.n_chains,
-            self.n_init_runs,
-            self.chain_len,
-            self.warmup,
             self.optimizer_class,
             self.optimizer_kwargs,
             self.loss,
-            self.batch_size,
-            self.epochs,
             self.metrics,
-            self.validation_size,
-            self.seed,
-            self.is_fitted_,
-            self.n_features_in_,
-            self.history_,
+            self.n_init_runs,
+            self.epochs,
         )  # aux_data must contain static, hashable data.
         return children, aux_data
 
@@ -782,29 +801,45 @@ class BDEEstimator(FullyConnectedEstimator):
     def tree_unflatten(
         cls,
         aux_data: Tuple[Any, ...],
-        children: Tuple[ArrayLike, ArrayLike, ArrayLike],  # type: ignore
+        children: Tuple[Union[ArrayLike, Dict], ...],  # type: ignore
     ) -> "BDEEstimator":
         r"""Specify how to build an estimator from a JAX pytree.
 
         Parameters
         ----------
         aux_data
-            Contains static, hashable data (3 items).
+            Contains static, hashable data.
         children
-            Contain arrays & pytrees (17 items).
+            Contain arrays & pytrees.
 
         Returns
         -------
         BDEEstimator
             Reconstructed estimator.
         """
-        res = cls(*aux_data[:14])
-        res.model_ = children[0]
-        res.params_ = children[1]
-        res.samples_ = children[2]
-        res.is_fitted_ = aux_data[14]
-        res.n_features_in_ = aux_data[15]
-        res.history_ = aux_data[16]
+        atts = children[-1]
+        res = cls(
+            model_class=aux_data[0],
+            model_kwargs=aux_data[1],
+            n_chains=atts["n_chains"],
+            n_init_runs=aux_data[6],
+            chain_len=atts["chain_len"],
+            warmup=atts["warmup"],
+            optimizer_class=aux_data[2],
+            optimizer_kwargs=aux_data[3],
+            loss=aux_data[4],
+            batch_size=atts["batch_size"],
+            epochs=aux_data[7],
+            metrics=aux_data[5],
+            validation_size=atts["validation_size"],
+            seed=atts["seed"],
+        )
+        res.model_ = children[0]  # type: ignore
+        res.params_ = children[1]  # type: ignore
+        res.samples_ = children[2]  # type: ignore
+        res.is_fitted_ = atts["is_fitted_"]
+        res.n_features_in_ = atts["n_features_in_"]
+        res.history_ = children[3]
         return res
 
     def _more_tags(self):
@@ -1019,6 +1054,10 @@ class BDEEstimator(FullyConnectedEstimator):
             rng_key,
             train,
         )
+        self.samples_ = jax.tree.map(
+            f=jnp.concatenate,
+            tree=self.samples_,
+        )
         self.is_fitted_ = True
         self.n_features_in_ = X.shape[-1]
         return self
@@ -1044,8 +1083,7 @@ class BDEEstimator(FullyConnectedEstimator):
          - Lower value of confidence interval per prediction.
          - Upper value of confidence interval per prediction.
         """
-        bde.utils.utils.check_predict_input(X)
-        chex.assert_equal(self.is_fitted_, True)
+        bde.utils.utils.check_predict_input(X, self.is_fitted_)
         res = jax.pmap(
             fun=self.model_.apply,
             in_axes=(0, None),
@@ -1076,15 +1114,13 @@ class BDEEstimator(FullyConnectedEstimator):
         Array
             Predicted labels.
         """
-        bde.utils.utils.check_predict_input(X)
-        chex.assert_equal(self.is_fitted_, True)
-        return jax.pmap(
-            fun=self.model_.apply,
-            in_axes=(0, None),
-        )(
-            self.samples_,
-            X,
-        ).mean(axis=0)
+        bde.utils.utils.check_predict_input(X, self.is_fitted_)
+        res = jax.lax.scan(
+            f=lambda carry, params: (0.0, self.model_.apply(params, X)),
+            init=0.0,
+            xs=self.samples_,
+        )
+        return res.mean(axis=0)
 
     @jax.jit
     def predict_as_de(
@@ -1105,15 +1141,15 @@ class BDEEstimator(FullyConnectedEstimator):
         Array
             Predicted labels.
         """
-        bde.utils.utils.check_predict_input(X)
-        chex.assert_equal(self.is_fitted_, True)
-        return jax.pmap(
+        bde.utils.utils.check_predict_input(X, self.is_fitted_)
+        res = jax.pmap(
             fun=self.model_.apply,
             in_axes=(0, None),
         )(
             self.params_,
             X,
-        ).mean(axis=0)
+        )
+        return res.mean(axis=0)
 
 
 def init_dense_model(
