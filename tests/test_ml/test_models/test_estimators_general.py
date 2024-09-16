@@ -16,7 +16,7 @@ from bde.ml.models import BDEEstimator, FullyConnectedEstimator
     ]
 )
 @pytest.mark.parametrize("do_use_jit", [False])
-@pytest.mark.timeout(180)
+@pytest.mark.timeout(300)
 # @pytest.mark.skip(
 #     reason=(
 #         "This causes the tests to freeze on github (not locally). "

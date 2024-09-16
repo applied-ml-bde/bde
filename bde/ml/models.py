@@ -512,8 +512,8 @@ class FullyConnectedEstimator(BaseEstimator):
         self.model_ = self.model_class(**model_kwargs)
         optimizer = self.optimizer_class(**optimizer_kwargs)
 
-        if y.ndim == x.ndim - 1 and self.model_.n_output_params == 1:
-            y = y.reshape(-1, 1)  # TODO: Good only for 2D data. Fix
+        if y.ndim == 1:
+            y = y.reshape(-1, 1)
 
         rng_key, train_key, valid_key = rng_key, rng_key, rng_key
         val_size = 0 if self.validation_size is None else self.validation_size
@@ -687,12 +687,11 @@ class BDEEstimator(FullyConnectedEstimator):
         model_class: Type[BasicModule] = FullyConnectedModule,
         model_kwargs: Optional[Dict[str, Any]] = None,
         n_chains: int = 1,
-        n_init_runs: int = 1,
         chain_len: int = 1,
         warmup: int = 1,
         optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
-        loss: loss.Loss = loss.LossMSE(),
+        loss: loss.Loss = loss.LogLikelihoodLoss(),
         batch_size: int = 1,
         epochs: int = 1,
         metrics: Optional[list] = None,
@@ -712,6 +711,10 @@ class BDEEstimator(FullyConnectedEstimator):
         n_chains
             Number chains used for sampling.
             This can't be greater than the number of computational devices.
+        chain_len
+            Number of sampling steps during the MCMC-Sampling stage (per chain).
+        warmup
+            Number of warmup (burn-in) steps before the MCMC-Sampling (per chain).
         optimizer_class
             The optimizer class used by the estimator for training.
         optimizer_kwargs
@@ -721,7 +724,7 @@ class BDEEstimator(FullyConnectedEstimator):
         batch_size
             The batch size for training, by default 1.
         epochs
-            Number of epochs for training, by default 1.
+            Number of epochs for the DE-Initialization stage (per chain).
         metrics
             A list of metrics to evaluate during training, by default None.
         validation_size
@@ -745,7 +748,6 @@ class BDEEstimator(FullyConnectedEstimator):
         self.seed = seed
 
         self.n_chains = n_chains
-        self.n_init_runs = n_init_runs
         self.chain_len = chain_len
         self.warmup = warmup
 
@@ -768,7 +770,6 @@ class BDEEstimator(FullyConnectedEstimator):
         """
         atts = {
             "n_chains": self.n_chains,
-            # "n_init_runs": self.n_init_runs,
             "chain_len": self.chain_len,
             "warmup": self.warmup,
             "batch_size": self.batch_size,
@@ -792,7 +793,6 @@ class BDEEstimator(FullyConnectedEstimator):
             self.optimizer_kwargs,
             self.loss,
             self.metrics,
-            self.n_init_runs,
             self.epochs,
         )  # aux_data must contain static, hashable data.
         return children, aux_data
@@ -822,14 +822,13 @@ class BDEEstimator(FullyConnectedEstimator):
             model_class=aux_data[0],
             model_kwargs=aux_data[1],
             n_chains=atts["n_chains"],
-            n_init_runs=aux_data[6],
             chain_len=atts["chain_len"],
             warmup=atts["warmup"],
             optimizer_class=aux_data[2],
             optimizer_kwargs=aux_data[3],
             loss=aux_data[4],
             batch_size=atts["batch_size"],
-            epochs=aux_data[7],
+            epochs=aux_data[6],
             metrics=aux_data[5],
             validation_size=atts["validation_size"],
             seed=atts["seed"],
@@ -898,7 +897,7 @@ class BDEEstimator(FullyConnectedEstimator):
             static_broadcasted_argnums=[2],
         )(
             model_states,
-            jnp.arange(self.n_init_runs),
+            jnp.arange(self.epochs),
             self.loss,
             jnp.array(metrics),
             train,
@@ -1005,6 +1004,30 @@ class BDEEstimator(FullyConnectedEstimator):
             self.chain_len,
         )
         return pmap_states.position
+
+    def _prep_fit_params(
+        self,
+        x: ArrayLike,
+        y: Optional[ArrayLike] = None,
+        seed: int = cnfg.General.SEED,
+    ) -> Tuple[
+        List,
+        optax._src.base.GradientTransformation,
+        datasets.BasicDataset,
+        datasets.BasicDataset,
+    ]:
+        r"""Handle model and parameter initialization before fitting."""
+        metrics, optimizer, train, valid = super()._prep_fit_params(
+            x=x,
+            y=y,
+            seed=seed,
+        )
+        if self.model_kwargs is None:
+            model_kwargs: Dict = {
+                "n_output_params": 2,
+            }
+            self.model_ = self.model_class(**model_kwargs)
+        return metrics, optimizer, train, valid
 
     def fit(
         self,
