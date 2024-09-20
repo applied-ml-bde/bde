@@ -10,12 +10,13 @@ and the [repo](https://github.com/EmanuelSommer/bnn_connecting_the_dots) corresp
 
 ## Development Setup
 
-- Install pre-commit hooks with `pre-commit install`
-- Run tests using `pytest`
+- Install [pixi](https://pixi.sh/latest/#installation) to manage development environments.
+- To install all environments, run `pixi install -a --frozen` in the project directory.
+- Install pre-commit hooks with `pre-commit install`.
+- Run tests using `pytest` or `pixi run -e test test` from the project directory.
+- For development, the interpreter in `bde/.pixi/envs/dev/` can be used.
 
 ## How to use
-
-
 
 ### Examples
 
