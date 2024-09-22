@@ -15,6 +15,25 @@ for parallelization, the package is implemented in
 - Install pre-commit hooks with `pre-commit install`
 - Run tests using `pytest`
 
+## Background
+Bayesian Neural Networks provide a principled approach to deep learning 
+which allows for uncertainty quantification. Compared to traditional
+statistical methods which treat model parameters as unknown, but fixed
+values, Bayesian methods treat model parameters as random
+variables. Hence, we have to specify a prior distribution over those
+parameters which can be interpreted as prior knowledge. Given data,
+we can update the beliefs about the parameters and calculate credible
+intervals for the parameters and predictions. A credible interval in 
+Bayesian statistics defines the range for which the parameter or prediction is 
+believed to fall into with a specified probability based on its posterior distribution. 
+
+However, while potentially rewarding for its predictive capabilities and uncertainty
+measurements, Bayesian optimization can be challenging and resource intensive due to 
+usually strongly multimodal posterior landscapes.
+([Izmailov et al., 2021](https://proceedings.mlr.press/v139/izmailov21a.html))
+To alleviate that issue, this package uses an ensemble of networks sampled from different Markov
+Chains to better capture the posterior density and Jax for computational parallelization.
+
 ## The Procedure
 Assumptions: assume an independent distribution of model parameters
 1. define a fully connected neural network structure with two outputs
@@ -39,26 +58,23 @@ $$
 \text{NLL}_{\text{Laplace}}(y, \mu, b) = \log(2b) + \frac{|y - \mu|}{b}
 .$$
 
+Given data $\mathcal{D}$, we can then calculate the posterior distribution of the 
+parameters $\theta$, our network weights, as 
+$p(\theta|\mathcal{D}) = \frac{p(\mathcal{D}|\theta)p(\theta)}{p(\mathcal{D})}$.
+Using that posterior, for a new data point (x*, y*), we can then define the posterior 
+predictive density (PPD) over the labels y as 
+$$
+p(y^* | x^*, \mathcal{D}) = \int_{\Theta} p(y^* | x^*, \theta) p(\theta | \mathcal{D}) \, d\theta.
+$$
+The PPD captures the uncertainty about the model, but usually has to be approximated as
+$$
+p(y^* | x^*, \mathcal{D}) \approx \frac{1}{S} \sum_{s=1}^{S} p(y^* | x^*, \theta^{(s)})
+$$
+through Monte Carlo sampling S samples from a Markov Chain that converged 
+to the posterior density $ p(\theta|\mathcal{D})$ such that
+$ \theta^{(s)} \sim p(\theta | \mathcal{D}) $. 
 
-## Background
-Bayesian Neural Networks provide a principled approach to deep learning 
-which allows for uncertainty quantification. Compared to traditional
-statistical methods which treat model parameters as unknown, but fixed
-values, Bayesian methods treat model parameters as random
-variables. Hence, we have to specify a prior distribution over those
-parameters which can be interpreted as prior knowledge. Given data,
-we can update the beliefs about the parameters and calculate credible
-intervals for the parameters and predictions. A credible interval in 
-Bayesian statistics defines the range for which the parameter or prediction is 
-believed to fall into with a specified probability based on its posterior distribution. 
-
-However, while potentially rewarding for its predictive capabilities and uncertainty
-measurements, Bayesian optimization can be challenging and resource intensive due to 
-usually strongly multimodal posterior landscapes.
-([Izmailov et al., 2021](https://proceedings.mlr.press/v139/izmailov21a.html))
-   
- 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the BSD 3-clause "New" or "Revised" license - see the [LICENSE](LICENSE) file for details.
