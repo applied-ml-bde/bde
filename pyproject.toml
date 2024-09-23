@@ -60,6 +60,7 @@ scipy = ">1.13"
 seaborn = ">0.12"
 array-api-compat = ">=1.8"
 pre-commit = ">=3.4"
+myst-parser = ">=3.0.1"
 
 [tool.poetry.group.dev.dependencies]
 sphinx-autodoc-typehints = "^2.0.0"
