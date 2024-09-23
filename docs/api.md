@@ -1,27 +1,18 @@
 # API reference
 
-## Data
+## ML Module
 
 ```{eval-rst}
-.. automodule:: src.data
+.. automodule:: bde.ml
     :members:
     :undoc-members:
     :show-inheritance:
 ```
 
-## Models
+## Test Module 
 
 ```{eval-rst}
-.. automodule:: src.model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-```
-
-## Config
-
-```{eval-rst}
-.. automodule:: src.config
+.. automodule:: bde.test
     :members:
     :undoc-members:
     :show-inheritance:
@@ -30,7 +21,7 @@
 ## Utils
 
 ```{eval-rst}
-.. automodule:: src.utils
+.. automodule:: bde.utils
     :members:
     :undoc-members:
     :show-inheritance:
