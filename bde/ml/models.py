@@ -1199,18 +1199,18 @@ class BDEEstimator(FullyConnectedEstimator):
          - Upper value of confidence interval per prediction.
         """
         bde.utils.utils.check_predict_input(X, self.is_fitted_)
-        res = jax.pmap(
-            fun=self.model_.apply,
-            in_axes=(0, None),
-        )(
-            self.samples_,
-            X,
-        )
+        # res = jax.pmap(
+        #     fun=self.model_.apply,
+        #     in_axes=(0, None),
+        # )(
+        #     self.samples_,
+        #     X,
+        # )
         raise NotImplementedError
-        pred = res.mean(axis=0)
-        i_low: Array = pred
-        i_high: Array = pred
-        return pred, i_low, i_high
+        # pred = res.mean(axis=0)
+        # i_low: Array = pred
+        # i_high: Array = pred
+        # return pred, i_low, i_high
 
     @jax.jit
     def predict(
@@ -1229,18 +1229,14 @@ class BDEEstimator(FullyConnectedEstimator):
         Array
             Predicted labels.
         """
-        bde.utils.utils.check_predict_input(X, self.is_fitted_)
-        res = jax.lax.scan(
-            f=lambda carry, params: (0.0, self.model_.apply(params, X)),
-            init=0.0,
-            xs=self.samples_,
-        )[1]
-        return res.mean(axis=0)
+        # TODO: Differentiate from `predict_as_de`
+        return self.predict_as_de(X)
 
     @jax.jit
     def predict_as_de(
         self,
         X: ArrayLike,
+        n_devices: int = -1,
     ) -> Array:
         r"""Predict with model as a deep ensemble.
 
@@ -1250,6 +1246,11 @@ class BDEEstimator(FullyConnectedEstimator):
         ----------
         X
             The input data.
+        n_devices
+            Number of devices to use for parallelization.
+            `-1` means using all available devices.
+            If a number greater than all available devices is given,
+            the max number of devices is used.
 
         Returns
         -------
@@ -1257,13 +1258,19 @@ class BDEEstimator(FullyConnectedEstimator):
             Predicted labels.
         """
         bde.utils.utils.check_predict_input(X, self.is_fitted_)
-        res = jax.pmap(
-            fun=self.model_.apply,
-            in_axes=(0, None),
-        )(
-            self.params_,
-            X,
-        )
+        # res = jax.pmap(
+        #     fun=self.model_.apply,
+        #     in_axes=(0, None),
+        # )(
+        #     self.params_,
+        #     X,
+        # )
+        # TODO: Parallelize
+        res = jax.lax.scan(
+            f=lambda carry, params: (0.0, self.model_.apply(params, X)),
+            init=0.0,
+            xs=self.samples_,
+        )[1]
         return res.mean(axis=0)
 
 
