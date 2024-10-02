@@ -123,32 +123,22 @@ def prep_for_pmap(
     return pytree
 
 
-@jax.jit
-def filter_pytree(pytree, mask):
-    r"""Apply a mask to a PyTree."""
-
-    @jax.jit
-    def filter_fn(leaf):
-        # Select rows where the mask is True
-        return leaf[mask]
-
-    # Apply the filtering function to each leaf in the PyTree
-    return jax.tree.map(filter_fn, pytree)
-
-
-@partial(jax.jit, static_argnums=[1, 2, 3])
+# @partial(jax.jit, static_argnums=0)
 def post_pmap(
     mask,
     *pytree,
 ):
     r"""Undo changes made to PyTree for parallelization."""
+    pytree, mask = jax.tree.map(
+        f=jnp.concatenate,
+        tree=[pytree, mask],
+    )
 
-    @jax.jit
-    def reduce_ax(x: ArrayLike):
-        return x.reshape((-1,) + x.shape[2:])
+    # @jax.jit
+    def filter_fn(leaf):
+        return leaf[mask.astype(bool)]
 
-    pytree, mask = jax.tree.map(reduce_ax, [pytree, mask])
-    pytree = filter_pytree(pytree, mask)
+    pytree = jax.tree.map(filter_fn, pytree)
     return pytree
 
 

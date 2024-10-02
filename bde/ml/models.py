@@ -61,6 +61,12 @@ from bde.ml import (
     training,
 )
 from bde.utils import configs as cnfg
+from bde.utils.utils import (
+    get_n_devices,
+    post_pmap,
+    prep_for_pmap,
+    pv_map,
+)
 
 os.environ["XLA_FLAGS"] = "--xla_force_host_platform_device_count={}".format(
     multiprocessing.cpu_count()
@@ -554,6 +560,7 @@ class FullyConnectedEstimator(BaseEstimator):
         train_state.TrainState
             Initialized training state.
         """
+        rng_key = jnp.array(rng_key).reshape()
         params, _ = init_dense_model_jitted(
             model=self.model_,
             rng_key=rng_key,
@@ -597,16 +604,11 @@ class FullyConnectedEstimator(BaseEstimator):
         model_state = self.init_inner_params(
             n_features=X.shape[-1],
             optimizer=optimizer,
-            rng_key=rng_init,
+            rng_key=jnp.array([rng_init]),
         )
         if self.epochs > 0:
             model_state, self.history_ = training.jitted_training(
                 model_state=model_state,
-                # model_class=self.model_class,
-                # model_kwargs=model_kwargs,
-                # params=self.params_,
-                # optimizer_class=self.optimizer_class,
-                # optimizer_kwargs=optimizer_kwargs,
                 epochs=jnp.arange(self.epochs),
                 f_loss=self.loss,
                 metrics=jnp.array(metrics),
@@ -890,9 +892,28 @@ class BDEEstimator(FullyConnectedEstimator):
         valid,
         metrics,
     ) -> Tuple[Any, Array]:
-        r"""Perform non-Bayesian parallelized training to initialize parameters before sampling."""  # noqa: E501
-        params, history = jax.pmap(
-            fun=training.jitted_training,
+        r"""Init BDE using non-Bayesian parallelized training before sampling.
+
+        Initialize BDE by performing regular neural network optimization
+        prior to sampling.
+        """
+
+        @jax.jit  # noqa: D202
+        def fun1(xx, *args):
+            r"""Perform parallel training."""
+
+            def sub_fun(_, xxx):
+                r"""Wrap training loop."""
+                return None, training.jitted_training(xxx, *args)
+
+            return jax.lax.scan(
+                f=sub_fun,
+                init=None,
+                xs=xx,
+            )
+
+        _, (params, history) = jax.pmap(
+            fun=fun1,
             in_axes=(0, None, None, None, None, None),
             static_broadcasted_argnums=[2],
         )(
@@ -910,10 +931,12 @@ class BDEEstimator(FullyConnectedEstimator):
         model_states: train_state.TrainState,
         rng_key: PRNGKeyArray,
         train: datasets.BasicDataset,
+        n_devices: int,
+        batch_size: int,
     ) -> List[Dict]:
         r"""Perform MCMC-burn-in and sampling."""
-        sample_keys = jax.random.split(rng_key, self.n_chains + 1)
-        split_key, sample_keys = sample_keys[0], sample_keys[1:]
+        sample_keys = jax.random.split(rng_key, (batch_size * n_devices) + 1)
+        split_key, sample_keys = sample_keys[0], sample_keys[1:].reshape(n_devices, -1)
 
         @jax.jit
         def logdensity_for_batch(
@@ -958,8 +981,27 @@ class BDEEstimator(FullyConnectedEstimator):
             #  to ake the jit tracing work properly.
             return warmup.run(rng, params, n_burns)
 
-        (init_state_sampling, nuts_params), warmup_info = jax.pmap(
-            fun=burn_in_loop,
+        @partial(jax.jit, static_argnums=3)
+        def burn_in_loop_wrapper(
+            rng: PRNGKeyArray,
+            params: ArrayLike,
+            data: datasets.BasicDataset,
+            n_burns: int,
+        ):
+            @jax.jit
+            def sub_fun(_, xxx):
+                x1, x2 = xxx
+                res = burn_in_loop(x1, x2, data, n_burns)
+                return None, res
+
+            return jax.lax.scan(
+                f=sub_fun,
+                init=None,
+                xs=[rng, params],
+            )
+
+        _, ((init_state_sampling, nuts_params), warmup_info) = jax.pmap(
+            fun=burn_in_loop_wrapper,
             in_axes=(0, 0, None, None),
             static_broadcasted_argnums=(3,),
         )(
@@ -992,9 +1034,32 @@ class BDEEstimator(FullyConnectedEstimator):
 
             return states
 
-        sample_keys = jax.random.split(split_key, self.n_chains)
-        pmap_states = jax.pmap(
-            inference_loop,
+        sample_keys = jax.random.split(
+            split_key,
+            (batch_size * n_devices),
+        ).reshape(n_devices, -1)
+
+        @partial(jax.jit, static_argnums=3)
+        def inference_loop_wrapper(
+            rng_key,
+            initial_state,
+            nuts_params,
+            num_samples,
+        ):
+            @jax.jit
+            def sub_fun(_, xxx):
+                x1, x2, x3 = xxx
+                res = inference_loop(x1, x2, x3, num_samples)
+                return None, res
+
+            return jax.lax.scan(
+                f=sub_fun,
+                init=None,
+                xs=[rng_key, initial_state, nuts_params],
+            )
+
+        _, pmap_states = jax.pmap(
+            fun=inference_loop_wrapper,
             in_axes=(0, 0, 0, None),
             static_broadcasted_argnums=(3,),
         )(
@@ -1033,6 +1098,7 @@ class BDEEstimator(FullyConnectedEstimator):
         self,
         X: ArrayLike,
         y: Optional[ArrayLike] = None,
+        n_devices: int = -1,
     ) -> "BDEEstimator":
         r"""Fit the function to the given data.
 
@@ -1043,6 +1109,11 @@ class BDEEstimator(FullyConnectedEstimator):
         y
             The labels.
             If y is None, X is assumed to include the labels as well.
+        n_devices
+            Number of devices to use for parallelization.
+            `-1` means using all available devices.
+            If a number greater than all available devices is given,
+            the max number of devices is used.
 
         Returns
         -------
@@ -1050,15 +1121,29 @@ class BDEEstimator(FullyConnectedEstimator):
             The fitted estimator.
         """
         self.samples_ = [dict()]  # Reset before fitting
+        n_models = int(self.n_chains)
+        n_devices = n_devices if n_devices > 0 else int(get_n_devices())
+        n_devices = int(jnp.min(jnp.array([n_devices, n_models])))
+        batch_size = int(jnp.ceil(n_models / n_devices).astype(int))
+        pad_size = (batch_size * n_devices) - n_models
+        pmask = jnp.ones([n_models])
+        pmask = prep_for_pmap(
+            pytree=pmask,
+            pad_size=pad_size,
+            batch_size=batch_size,
+            n_devices=n_devices,
+        )
+
         split_key = jax.random.key(seed=self.seed)
-        rng = jax.random.split(split_key, self.n_chains + 2)
-        init_key_list, prep_key, split_key = rng[: self.n_chains], rng[-2], rng[-1]
+        rng = jax.random.split(split_key, (batch_size * n_devices) + 2)
+        init_key_list, prep_key, split_key = rng[:-2], rng[-2], rng[-1]
+        init_key_list = init_key_list.reshape(n_devices, -1)
         metrics, optimizer, train, valid = self._prep_fit_params(
             x=X,
             y=y,
             seed=int(jax.random.randint(prep_key, (), 0, jnp.iinfo(jnp.int32).max)),
         )
-        model_states = jax.pmap(
+        model_states = pv_map(
             fun=self.init_inner_params,
             in_axes=(None, None, 0),
             static_broadcasted_argnums=[0, 1],
@@ -1076,6 +1161,13 @@ class BDEEstimator(FullyConnectedEstimator):
             model_states,
             rng_key,
             train,
+            n_devices,
+            batch_size,
+        )
+        self.samples_, self.params_ = post_pmap(
+            pmask,
+            self.samples_,
+            self.params_,
         )
         self.samples_ = jax.tree.map(
             f=jnp.concatenate,
