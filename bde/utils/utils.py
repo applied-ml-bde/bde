@@ -16,6 +16,7 @@ according to the SKlearn specifications for estimators.
 
 """  # noqa: E501
 
+from functools import partial
 from typing import (
     Any,
     Callable,
@@ -77,6 +78,122 @@ def apply_to_multilayer_data(
     if isinstance(data, dtypes):
         return f(data)
     return data
+
+
+@jax.jit  # TODO: Test
+def get_n_devices() -> int:
+    r"""Get the max number of computational devices available to jax."""
+    return len(jax.devices())
+
+
+@partial(jax.jit, static_argnums=1)
+def pad_first_axis(
+    pytree,
+    pad_width,
+):
+    r"""Pad the leading axis of an array by a specified amount."""
+
+    @jax.jit
+    def f_pad(x):
+        pad_size = [(0, pad_width)] + [(0, 0)] * (x.ndim - 1)
+        return jnp.pad(x, pad_size)
+
+    return jax.tree.map(f_pad, pytree)
+
+
+@partial(jax.jit, static_argnums=[1, 2, 3])
+def prep_for_pmap(
+    pytree,
+    pad_size,
+    batch_size,
+    n_devices,
+):
+    r"""Prepare pytree data for parallelization.
+
+    Pads data and reshapes to prepare for parallelization.
+    """
+    pytree = pad_first_axis(pytree, pad_size)
+
+    @jax.jit
+    def reshape_fn(x):
+        new_shape = (n_devices, batch_size) + x.shape[1:]
+        return x.reshape(new_shape)
+
+    pytree = jax.tree.map(reshape_fn, pytree)
+    return pytree
+
+
+@jax.jit
+def filter_pytree(pytree, mask):
+    r"""Apply a mask to a PyTree."""
+
+    @jax.jit
+    def filter_fn(leaf):
+        # Select rows where the mask is True
+        return leaf[mask]
+
+    # Apply the filtering function to each leaf in the PyTree
+    return jax.tree.map(filter_fn, pytree)
+
+
+@partial(jax.jit, static_argnums=[1, 2, 3])
+def post_pmap(
+    mask,
+    *pytree,
+):
+    r"""Undo changes made to PyTree for parallelization."""
+
+    @jax.jit
+    def reduce_ax(x: ArrayLike):
+        return x.reshape((-1,) + x.shape[2:])
+
+    pytree, mask = jax.tree.map(reduce_ax, [pytree, mask])
+    pytree = filter_pytree(pytree, mask)
+    return pytree
+
+
+@jax.jit
+def cond_with_const(
+    cond,
+    f_true,
+    false_like: ArrayLike,
+    *args,
+):
+    r"""Jit compatible conditioning.
+
+    A wrapper for `jax.lax.cond`.
+    Execute a function only if the condition is true.
+    If false, a const zero-valued tree is returned.
+    """
+
+    @jax.jit
+    def f_false(*_):
+        return jax.tree.map(jnp.zeros_like, false_like)
+
+    return jax.lax.cond(cond, f_true, f_false, *args)
+
+
+def pv_map(
+    fun,
+    in_axes,
+    static_broadcasted_argnums,
+):
+    r"""Parallelizes data which is larger than the number of available devices.
+
+    The data must be prepared in such a way that
+    the leading axis is split among the available devices
+    and the 2nd axis is vectorized.
+    """
+    fun = jax.vmap(
+        fun=fun,
+        in_axes=in_axes,
+    )
+    fun = jax.pmap(
+        fun=fun,
+        in_axes=in_axes,
+        static_broadcasted_argnums=static_broadcasted_argnums,
+    )
+    return fun
 
 
 # @jax.jit
