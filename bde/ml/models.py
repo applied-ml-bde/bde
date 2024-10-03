@@ -901,25 +901,64 @@ class BDEEstimator(FullyConnectedEstimator):
         """
 
         @jax.jit  # noqa: D202
-        def fun1(xx, *args):
+        def fun1(
+            mod_states,
+            masks,
+            epochs: Array,
+            f_loss: loss.Loss,
+            metrics: Array,
+            train: datasets.BasicDataset,
+            valid: datasets.BasicDataset,
+        ):
             r"""Perform parallel training."""
 
             def sub_fun(_, xxx):
                 r"""Wrap training loop."""
-                return None, training.jitted_training(xxx, *args)
+                mod_state, cond = xxx
+
+                # TODO: The following commented out code is a more efficient
+                #  implementation since it skips masked init steps,
+                #  but it doesn't work due to a missmatch between the signatures of the
+                #  true and false functions in `cond_with_const_f`.
+                #  Once the source of the missmatch is found/ fixed, replace the
+                #  evaluation of `res` with this one.
+
+                # res = cond_with_const_f(
+                #     cond.astype(bool),
+                #     partial(
+                #         training.jitted_training,
+                #         f_loss=f_loss,
+                #         epochs=epochs,
+                #         metrics=metrics,
+                #         train=train,
+                #         valid=valid,
+                #     ),
+                #     mod_state,
+                #     mod_state,
+                # )
+                res = training.jitted_training(
+                    mod_state,
+                    epochs=epochs,
+                    f_loss=f_loss,
+                    metrics=metrics,
+                    train=train,
+                    valid=valid,
+                )
+                return None, res
 
             return jax.lax.scan(
                 f=sub_fun,
                 init=None,
-                xs=xx,
+                xs=[mod_states, masks],
             )
 
         _, (params, history) = jax.pmap(
-            fun=fun1,  # TODO: Integrate `cond_with_const_f`
-            in_axes=(0, None, None, None, None, None),
-            static_broadcasted_argnums=[2],
+            fun=fun1,
+            in_axes=(0, 0, None, None, None, None, None),
+            static_broadcasted_argnums=[3],
         )(
             model_states,
+            mask,
             jnp.arange(self.epochs),
             self.loss,
             jnp.array(metrics),
@@ -1005,7 +1044,7 @@ class BDEEstimator(FullyConnectedEstimator):
                 # TODO: The following commented out code is a more efficient
                 #  implementation since it skips masked warmup steps,
                 #  but it doesn't work due to a missmatch between the signatures of the
-                #  true and false functions in`jax.lax.cond`.
+                #  true and false functions in `jax.lax.cond`.
                 #  Once the source of the missmatch is found/ fixed, the line above can
                 #  be replaced by this code for slightly more efficiency.
 
@@ -1054,7 +1093,7 @@ class BDEEstimator(FullyConnectedEstimator):
             )
 
         _, ((init_state_sampling, nuts_params), warmup_info) = jax.pmap(
-            fun=burn_in_loop_wrapper,  # TODO: Integrate `cond_with_const_f`
+            fun=burn_in_loop_wrapper,
             in_axes=(0, 0, None, None, 0),
             static_broadcasted_argnums=(3,),
         )(
