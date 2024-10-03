@@ -62,6 +62,7 @@ from bde.ml import (
 )
 from bde.utils import configs as cnfg
 from bde.utils.utils import (
+    cond_with_const_f,
     get_n_devices,
     post_pmap,
     prep_for_pmap,
@@ -891,6 +892,7 @@ class BDEEstimator(FullyConnectedEstimator):
         train,
         valid,
         metrics,
+        mask: Array,
     ) -> Tuple[Any, Array]:
         r"""Init BDE using non-Bayesian parallelized training before sampling.
 
@@ -913,7 +915,7 @@ class BDEEstimator(FullyConnectedEstimator):
             )
 
         _, (params, history) = jax.pmap(
-            fun=fun1,
+            fun=fun1,  # TODO: Integrate `cond_with_const_f`
             in_axes=(0, None, None, None, None, None),
             static_broadcasted_argnums=[2],
         )(
@@ -933,6 +935,7 @@ class BDEEstimator(FullyConnectedEstimator):
         train: datasets.BasicDataset,
         n_devices: int,
         batch_size: int,
+        mask: Array,
     ) -> List[Dict]:
         r"""Perform MCMC-burn-in and sampling."""
         sample_keys = jax.random.split(rng_key, (batch_size * n_devices) + 1)
@@ -970,7 +973,7 @@ class BDEEstimator(FullyConnectedEstimator):
             # progress_bar=True,
         )
 
-        @partial(jax.jit, static_argnums=3)
+        @partial(jax.jit, static_argnames=["n_burns"])
         def burn_in_loop(
             rng: PRNGKeyArray,
             params: ArrayLike,
@@ -979,7 +982,7 @@ class BDEEstimator(FullyConnectedEstimator):
         ):
             # NOTE: We require the `data` variable despite not using it
             #  to ake the jit tracing work properly.
-            return warmup.run(rng, params, n_burns)
+            return warmup.run(jnp.array(rng).reshape(), params, n_burns)
 
         @partial(jax.jit, static_argnums=3)
         def burn_in_loop_wrapper(
@@ -987,28 +990,70 @@ class BDEEstimator(FullyConnectedEstimator):
             params: ArrayLike,
             data: datasets.BasicDataset,
             n_burns: int,
+            pmask,
         ):
             @jax.jit
             def sub_fun(_, xxx):
-                x1, x2 = xxx
-                res = burn_in_loop(x1, x2, data, n_burns)
+                key, prm, cond = xxx
+                res = burn_in_loop(key, prm, data, n_burns)
+                # # res = cond_with_const_f(
+                # #     cond.astype(bool),
+                # #     partial(burn_in_loop, n_burns=n_burns),
+                # #     prm,  # Provides structure for false output
+                # #     key,
+                # #     prm,
+                # #     data,
+                # # )
+
+                # @partial(jax.jit, static_argnums=3)
+                # def bruh(
+                #     rng: PRNGKeyArray,
+                #     params: ArrayLike,
+                #     data: datasets.BasicDataset,
+                #     n_burns: int,
+                # ):
+                #     (init_state_sampling, nuts_params), warmup_info = burn_in_loop(
+                #         rng=rng,
+                #         params=params,
+                #         data=data,
+                #         n_burns=1,
+                #     )
+                #
+                #     @jax.jit
+                #     def broadcaster(x):
+                #         new_shape = (n_burns,) + x.shape
+                #         return jnp.broadcast_to(x[None], new_shape)
+                #
+                #     nuts_params = jax.tree.map(broadcaster, nuts_params),
+                #     warmup_info = jax.tree.map(broadcaster, warmup_info),
+                #     return (init_state_sampling, nuts_params), warmup_info
+                #
+                # res = jax.lax.cond(
+                #     cond.astype(bool),
+                #     partial(burn_in_loop, n_burns=n_burns),
+                #     partial(burn_in_loop, n_burns=1),
+                #     key,
+                #     prm,
+                #     data,
+                # )
                 return None, res
 
             return jax.lax.scan(
                 f=sub_fun,
                 init=None,
-                xs=[rng, params],
+                xs=[rng, params, pmask],
             )
 
         _, ((init_state_sampling, nuts_params), warmup_info) = jax.pmap(
-            fun=burn_in_loop_wrapper,
-            in_axes=(0, 0, None, None),
+            fun=burn_in_loop_wrapper,  # TODO: Integrate `cond_with_const_f`
+            in_axes=(0, 0, None, None, 0),
             static_broadcasted_argnums=(3,),
         )(
             sample_keys,
             model_states.params,
             train,
             self.warmup,  # num_steps
+            mask,
         )
 
         @partial(jax.jit, static_argnames=["num_samples"])
@@ -1045,29 +1090,37 @@ class BDEEstimator(FullyConnectedEstimator):
             initial_state,
             nuts_params,
             num_samples,
+            pmask,
         ):
             @jax.jit
+            def broadcaster(x):
+                new_shape = (self.chain_len,) + x.shape
+                return jnp.broadcast_to(x[None], new_shape)
+
+            @jax.jit
             def sub_fun(_, xxx):
-                x1, x2, x3 = xxx
-                res = inference_loop(x1, x2, x3, num_samples)
+                key, init_state, n_params, cond = xxx
+                res = cond_with_const_f(
+                    cond.astype(bool),
+                    partial(inference_loop, num_samples=num_samples),
+                    jax.tree.map(broadcaster, init_state),
+                    key,
+                    init_state,
+                    n_params,
+                )
                 return None, res
 
             return jax.lax.scan(
                 f=sub_fun,
                 init=None,
-                xs=[rng_key, initial_state, nuts_params],
+                xs=[rng_key, initial_state, nuts_params, pmask],
             )
 
         _, pmap_states = jax.pmap(
             fun=inference_loop_wrapper,
-            in_axes=(0, 0, 0, None),
+            in_axes=(0, 0, 0, None, 0),
             static_broadcasted_argnums=(3,),
-        )(
-            sample_keys,
-            init_state_sampling,
-            nuts_params,
-            self.chain_len,
-        )
+        )(sample_keys, init_state_sampling, nuts_params, self.chain_len, mask)
         return pmap_states.position
 
     def _prep_fit_params(
@@ -1153,6 +1206,7 @@ class BDEEstimator(FullyConnectedEstimator):
             train,
             valid,
             metrics,
+            pmask,
         )
         self.params_ = model_states.params
 
@@ -1163,6 +1217,7 @@ class BDEEstimator(FullyConnectedEstimator):
             train,
             n_devices,
             batch_size,
+            pmask,
         )
         self.samples_, self.params_ = post_pmap(
             pmask,

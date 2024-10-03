@@ -142,10 +142,10 @@ def post_pmap(
     return pytree
 
 
-@jax.jit
-def cond_with_const(
-    cond,
-    f_true,
+@partial(jax.jit, static_argnums=[1])
+def cond_with_const_f(
+    cond: bool,
+    f_true: Callable,
     false_like: ArrayLike,
     *args,
 ):
