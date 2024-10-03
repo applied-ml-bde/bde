@@ -946,15 +946,15 @@ class BDEEstimator(FullyConnectedEstimator):
     @staticmethod
     @partial(jax.jit, static_argnames=["warmup", "n_burns"])
     def burn_in_loop(
-        warmup,
         rng: PRNGKeyArray,
         params: ArrayLike,
         data: datasets.BasicDataset,
         n_burns: int,
+        warmup,
     ):
         r"""Perform burn-in for sampler."""
         # NOTE: We require the `data` variable despite not using it
-        #  to ake the jit tracing work properly.
+        #  to make the jit tracing work properly.
         return warmup.run(jnp.array(rng).reshape(), params, n_burns)
 
     def mcmc_sampling(
@@ -1000,16 +1000,17 @@ class BDEEstimator(FullyConnectedEstimator):
             @jax.jit
             def sub_fun(_, xxx):
                 key, prm, cond = xxx
-                res = self.burn_in_loop(warmup, key, prm, data, n_burns)
+                res = self.burn_in_loop(key, prm, data, n_burns, warmup)
+
                 # # res = cond_with_const_f(
                 # #     cond.astype(bool),
-                # #     partial(burn_in_loop, n_burns=n_burns),
+                # #     partial(burn_in_loop, warmup=warmup, n_burns=n_burns),
                 # #     prm,  # Provides structure for false output
                 # #     key,
                 # #     prm,
                 # #     data,
                 # # )
-
+                #
                 # @partial(jax.jit, static_argnums=3)
                 # def bruh(
                 #     rng: PRNGKeyArray,
@@ -1017,11 +1018,12 @@ class BDEEstimator(FullyConnectedEstimator):
                 #     data: datasets.BasicDataset,
                 #     n_burns: int,
                 # ):
-                #     (init_state_sampling, nuts_params), warmup_info = burn_in_loop(
+                #     (init_state_sampling, nuts_params), warmup_info = self.burn_in_loop(  # noqa: E501
                 #         rng=rng,
                 #         params=params,
                 #         data=data,
                 #         n_burns=1,
+                #         warmup=warmup,
                 #     )
                 #
                 #     @jax.jit
@@ -1035,8 +1037,8 @@ class BDEEstimator(FullyConnectedEstimator):
                 #
                 # res = jax.lax.cond(
                 #     cond.astype(bool),
-                #     partial(burn_in_loop, n_burns=n_burns),
-                #     partial(burn_in_loop, n_burns=1),
+                #     partial(self.burn_in_loop, warmup=warmup, n_burns=n_burns),
+                #     partial(self.burn_in_loop, warmup=warmup, n_burns=1),
                 #     key,
                 #     prm,
                 #     data,
