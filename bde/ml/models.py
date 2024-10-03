@@ -928,6 +928,35 @@ class BDEEstimator(FullyConnectedEstimator):
         )
         return params, history
 
+    @jax.jit
+    def logdensity_for_batch(
+        self,
+        params,
+        carry: float,
+        batch: Tuple[ArrayLike, ArrayLike],
+    ) -> Tuple[float, None]:
+        r"""Evaluate log-density for a batch of data."""
+        x, y = batch
+        y_pred = self.model_.apply(params, x)
+        res_loss = self.loss(y, y_pred)
+        res_loss = jnp.sum(res_loss)
+        res_prior = self.log_prior(params)
+        return carry + res_loss + res_prior, None
+
+    @staticmethod
+    @partial(jax.jit, static_argnames=["warmup", "n_burns"])
+    def burn_in_loop(
+        warmup,
+        rng: PRNGKeyArray,
+        params: ArrayLike,
+        data: datasets.BasicDataset,
+        n_burns: int,
+    ):
+        r"""Perform burn-in for sampler."""
+        # NOTE: We require the `data` variable despite not using it
+        #  to ake the jit tracing work properly.
+        return warmup.run(jnp.array(rng).reshape(), params, n_burns)
+
     def mcmc_sampling(
         self,
         model_states: train_state.TrainState,
@@ -942,22 +971,9 @@ class BDEEstimator(FullyConnectedEstimator):
         split_key, sample_keys = sample_keys[0], sample_keys[1:].reshape(n_devices, -1)
 
         @jax.jit
-        def logdensity_for_batch(
-            params,
-            carry: float,
-            batch: Tuple[ArrayLike, ArrayLike],
-        ) -> Tuple[float, None]:
-            x, y = batch
-            y_pred = self.model_.apply(params, x)
-            res_loss = self.loss(y, y_pred)
-            res_loss = jnp.sum(res_loss)
-            res_prior = self.log_prior(params)
-            return carry + res_loss + res_prior, None
-
-        @jax.jit
         def logdensity(params):
             res, _ = jax.lax.scan(
-                f=lambda carry, batch: logdensity_for_batch(
+                f=lambda carry, batch: self.logdensity_for_batch(
                     params=params,
                     carry=carry,
                     batch=batch,
@@ -973,17 +989,6 @@ class BDEEstimator(FullyConnectedEstimator):
             # progress_bar=True,
         )
 
-        @partial(jax.jit, static_argnames=["n_burns"])
-        def burn_in_loop(
-            rng: PRNGKeyArray,
-            params: ArrayLike,
-            data: datasets.BasicDataset,
-            n_burns: int,
-        ):
-            # NOTE: We require the `data` variable despite not using it
-            #  to ake the jit tracing work properly.
-            return warmup.run(jnp.array(rng).reshape(), params, n_burns)
-
         @partial(jax.jit, static_argnums=3)
         def burn_in_loop_wrapper(
             rng: PRNGKeyArray,
@@ -995,7 +1000,7 @@ class BDEEstimator(FullyConnectedEstimator):
             @jax.jit
             def sub_fun(_, xxx):
                 key, prm, cond = xxx
-                res = burn_in_loop(key, prm, data, n_burns)
+                res = self.burn_in_loop(warmup, key, prm, data, n_burns)
                 # # res = cond_with_const_f(
                 # #     cond.astype(bool),
                 # #     partial(burn_in_loop, n_burns=n_burns),
