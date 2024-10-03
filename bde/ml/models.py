@@ -1002,21 +1002,20 @@ class BDEEstimator(FullyConnectedEstimator):
                 key, prm, cond = xxx
                 res = self.burn_in_loop(key, prm, data, n_burns, warmup)
 
-                # # res = cond_with_const_f(
-                # #     cond.astype(bool),
-                # #     partial(burn_in_loop, warmup=warmup, n_burns=n_burns),
-                # #     prm,  # Provides structure for false output
-                # #     key,
-                # #     prm,
-                # #     data,
-                # # )
-                #
-                # @partial(jax.jit, static_argnums=3)
+                # TODO: The following commented out code is a more efficient
+                #  implementation since it skips masked warmup steps,
+                #  but it doesn't work due to a missmatch between the signatures of the
+                #  true and false functions in`jax.lax.cond`.
+                #  Once the source of the missmatch is found/ fixed, the line above can
+                #  be replaced by this code for slightly more efficiency.
+
+                # @partial(jax.jit, static_argnums=[3, 4])
                 # def bruh(
                 #     rng: PRNGKeyArray,
                 #     params: ArrayLike,
                 #     data: datasets.BasicDataset,
                 #     n_burns: int,
+                #     warmup,
                 # ):
                 #     (init_state_sampling, nuts_params), warmup_info = self.burn_in_loop(  # noqa: E501
                 #         rng=rng,
@@ -1031,14 +1030,17 @@ class BDEEstimator(FullyConnectedEstimator):
                 #         new_shape = (n_burns,) + x.shape
                 #         return jnp.broadcast_to(x[None], new_shape)
                 #
-                #     nuts_params = jax.tree.map(broadcaster, nuts_params),
+                #     init_state_sampling = jax.tree.map(
+                #         broadcaster,
+                #         init_state_sampling,
+                #     ),
                 #     warmup_info = jax.tree.map(broadcaster, warmup_info),
                 #     return (init_state_sampling, nuts_params), warmup_info
                 #
                 # res = jax.lax.cond(
                 #     cond.astype(bool),
                 #     partial(self.burn_in_loop, warmup=warmup, n_burns=n_burns),
-                #     partial(self.burn_in_loop, warmup=warmup, n_burns=1),
+                #     partial(bruh, warmup=warmup, n_burns=n_burns),
                 #     key,
                 #     prm,
                 #     data,
