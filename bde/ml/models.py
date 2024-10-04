@@ -1002,11 +1002,38 @@ class BDEEstimator(FullyConnectedEstimator):
         rng_key: PRNGKeyArray,
         train: datasets.BasicDataset,
         n_devices: int,
-        batch_size: int,
+        parallel_batch_size: int,
         mask: Array,
     ) -> List[Dict]:
-        r"""Perform MCMC-burn-in and sampling."""
-        sample_keys = jax.random.split(rng_key, (batch_size * n_devices) + 1)
+        r"""Perform MCMC-burn-in and sampling.
+
+        Parameters
+        ----------
+        model_states
+            Initial model states for sampler.
+        rng_key
+            A key used to initialize the random processes.
+        train
+            Training dataset. The dataset must include only 1 batch (full-batch).
+        n_devices
+            Exact number of computational devices used for parallelization.
+        parallel_batch_size
+            The number of chains to compute on each device when running parallel
+            computations.
+        mask
+            A 2D-array indicating which chains are used for padding during
+            parallelization (shape = (`n_devices`, `batch_size`)).
+            - Chains corresponding to the value `one` in the mask will be evaluated
+              and sampled from.
+            - Chains corresponding to the value `zero` in the mask will be ignored
+              when possible and return pseudo-samples which can be discarded.
+
+        Returns
+        -------
+        List[Dict]
+            Samples from all mcmc-chains.
+        """
+        sample_keys = jax.random.split(rng_key, (parallel_batch_size * n_devices) + 1)
         split_key, sample_keys = sample_keys[0], sample_keys[1:].reshape(n_devices, -1)
 
         @jax.jit
@@ -1129,7 +1156,7 @@ class BDEEstimator(FullyConnectedEstimator):
 
         sample_keys = jax.random.split(
             split_key,
-            (batch_size * n_devices),
+            (parallel_batch_size * n_devices),
         ).reshape(n_devices, -1)
 
         @partial(jax.jit, static_argnums=3)
@@ -1222,21 +1249,22 @@ class BDEEstimator(FullyConnectedEstimator):
             The fitted estimator.
         """
         self.samples_ = [dict()]  # Reset before fitting
+        self.batch_mcmc_ = X.shape[0]
         n_models = int(self.n_chains)
         n_devices = n_devices if n_devices > 0 else int(get_n_devices())
         n_devices = int(jnp.min(jnp.array([n_devices, n_models])))
-        batch_size = int(jnp.ceil(n_models / n_devices).astype(int))
-        pad_size = (batch_size * n_devices) - n_models
+        parallel_batch_size = int(jnp.ceil(n_models / n_devices).astype(int))
+        pad_size = (parallel_batch_size * n_devices) - n_models
         pmask = jnp.ones([n_models])
         pmask = prep_for_pmap(
             pytree=pmask,
             pad_size=pad_size,
-            batch_size=batch_size,
+            batch_size=parallel_batch_size,
             n_devices=n_devices,
         )
 
         split_key = jax.random.key(seed=self.seed)
-        rng = jax.random.split(split_key, (batch_size * n_devices) + 2)
+        rng = jax.random.split(split_key, (parallel_batch_size * n_devices) + 2)
         init_key_list, prep_key, split_key = rng[:-2], rng[-2], rng[-1]
         init_key_list = init_key_list.reshape(n_devices, -1)
         metrics, optimizer, train, valid = self._prep_fit_params(
@@ -1259,12 +1287,13 @@ class BDEEstimator(FullyConnectedEstimator):
         self.params_ = model_states.params
 
         split_key, rng_key = jax.random.split(split_key)
+        train.batch_size = self.batch_mcmc_
         self.samples_ = self.mcmc_sampling(
             model_states,
             rng_key,
             train,
             n_devices,
-            batch_size,
+            parallel_batch_size,
             pmask,
         )
         self.samples_, self.params_ = post_pmap(
