@@ -978,9 +978,7 @@ class BDEEstimator(FullyConnectedEstimator):
         x, y = batch
         y_pred = self.model_.apply(params, x)
         res_loss = self.loss(y, y_pred)
-        res_loss = jnp.sum(res_loss)
-        res_prior = self.log_prior(params)
-        return carry + res_loss + res_prior, None
+        return carry + jnp.sum(res_loss), None
 
     @staticmethod
     @partial(jax.jit, static_argnames=["warmup", "n_burns"])
@@ -1044,7 +1042,7 @@ class BDEEstimator(FullyConnectedEstimator):
                     carry=carry,
                     batch=batch,
                 ),
-                init=0.0,
+                init=self.log_prior(params),
                 xs=train.get_scannable(),
             )
             return res
