@@ -82,6 +82,7 @@ class TestReconstruct:
             "n_init_runs",
             "chain_len",
             "warmup",
+            "n_samples",
             "params_",
             "samples_",
             "model_",

@@ -691,6 +691,7 @@ class BDEEstimator(FullyConnectedEstimator):
         n_chains: int = 1,
         chain_len: int = 1,
         warmup: int = 1,
+        n_samples: int = 1,
         optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
         loss: loss.Loss = loss.LogLikelihoodLoss(),
@@ -717,6 +718,9 @@ class BDEEstimator(FullyConnectedEstimator):
             Number of sampling steps during the MCMC-Sampling stage (per chain).
         warmup
             Number of warmup (burn-in) steps before the MCMC-Sampling (per chain).
+        n_samples
+            Number of samples to take from each Gaussian-distribution during
+            prediction.
         optimizer_class
             The optimizer class used by the estimator for training.
         optimizer_kwargs
@@ -752,6 +756,7 @@ class BDEEstimator(FullyConnectedEstimator):
         self.n_chains = n_chains
         self.chain_len = chain_len
         self.warmup = warmup
+        self.n_samples = n_samples
 
         self.params_: List[Union[FrozenDict, Dict]] = [dict()]
         self.samples_: List[Union[FrozenDict, Dict]] = [dict()]
@@ -774,6 +779,7 @@ class BDEEstimator(FullyConnectedEstimator):
             "n_chains": self.n_chains,
             "chain_len": self.chain_len,
             "warmup": self.warmup,
+            "n_samples": self.n_samples,
             "batch_size": self.batch_size,
             # "epochs": self.epochs,
             "validation_size": self.validation_size,
@@ -826,6 +832,7 @@ class BDEEstimator(FullyConnectedEstimator):
             n_chains=atts["n_chains"],
             chain_len=atts["chain_len"],
             warmup=atts["warmup"],
+            n_samples=atts["n_samples"],
             optimizer_class=aux_data[2],
             optimizer_kwargs=aux_data[3],
             loss=aux_data[4],
@@ -1298,13 +1305,94 @@ class BDEEstimator(FullyConnectedEstimator):
         self.n_features_in_ = X.shape[-1]
         return self
 
+    @staticmethod
     @jax.jit
-    def predict_with_credibility(
+    def _sample_from_samples_general(
+        x: ArrayLike,
+        samples,
+        model: BasicModule,
+        seed: int = cnfg.General.SEED,
+        n_samples: int = 1,
+        n_mcmc_samples: int = 1,
+        n_devices: int = 1,
+        batch_size: int = -1,
+    ) -> Array:
+        r"""Take samples from sampled Gaussian distributions.
+
+        The mean and std predicted by the sampled models define Gaussian
+        distributions. Take samples from these distributions.
+        """
+        # TODO: Parallelize
+        split_key = jax.random.key(seed=seed)
+        split_key = jax.random.split(split_key, n_mcmc_samples + 1)
+        split_key, rng = split_key[0], split_key[1:]
+
+        @jax.jit
+        def define_dist(_, xx):
+            params, key = xx
+            pred = model.apply(params, x)
+            m, s = jnp.split(pred, 2, axis=-1)
+            samp_shape = (n_samples,) + ((1,) * (m.ndim - 1)) + m.shape[-1:]
+            g_samples = jax.random.normal(key, samp_shape)
+            g_samples = (g_samples * s) + m
+            g_samples = jnp.moveaxis(g_samples, 0, -1)
+            return None, g_samples
+
+        _, res = jax.lax.scan(
+            f=define_dist,
+            init=None,
+            xs=[samples, rng],
+        )
+        res = jnp.concatenate(res, axis=-1)
+        return res
+
+    @jax.jit
+    def sample_from_samples(
+        self,
+        x: ArrayLike,
+        n_devices: int = 1,
+        batch_size: int = -1,
+    ) -> Array:
+        r"""Take samples from sampled Gaussian distributions based on model params.
+
+        The mean and std predicted by the sampled models define Gaussian
+        distributions. Take samples from these distributions.
+
+        Parameters
+        ----------
+        X
+            The input data.
+        n_devices
+            ...
+        batch_size
+            ...
+
+        Returns
+        -------
+        Array
+            The last dim of the array is a list of samples taken from each predicted
+            distribution in each batch.
+            The shape is:
+            `(b_1, b_2, ..., b_2, output_size / 2, self.n_samples * self.n_chains)`
+        """
+        return self._sample_from_samples_general(
+            x=x,
+            samples=self.samples_,
+            model=self.model_,
+            seed=self.seed,
+            n_samples=self.n_samples,
+            n_mcmc_samples=self.n_chains * self.chain_len,
+            n_devices=n_devices,
+            batch_size=batch_size,
+        )
+
+    @jax.jit
+    def predict_with_credibility_eti(
         self,
         X: ArrayLike,
         a: float = 0.95,
     ) -> Tuple[Array, Array, Array]:
-        r"""Make prediction with a confidence interval.
+        r"""Make prediction with a credible interval.
 
         Parameters
         ----------
@@ -1315,23 +1403,21 @@ class BDEEstimator(FullyConnectedEstimator):
         Returns
         -------
         3 arrays with:
-         - Predicted values.
-         - Lower value of confidence interval per prediction.
-         - Upper value of confidence interval per prediction.
+        - Predicted values (median of samples).
+        - Lower value of confidence interval per prediction.
+        - Upper value of confidence interval per prediction.
         """
         bde.utils.utils.check_predict_input(X, self.is_fitted_)
-        # res = jax.pmap(
-        #     fun=self.model_.apply,
-        #     in_axes=(0, None),
-        # )(
-        #     self.samples_,
-        #     X,
-        # )
-        raise NotImplementedError
-        # pred = res.mean(axis=0)
-        # i_low: Array = pred
-        # i_high: Array = pred
-        # return pred, i_low, i_high
+        samples = self.sample_from_samples(
+            x=X,
+            # n_devices=1,
+            # batch_size=-1,
+        )
+        pred = samples.median(axis=-1)
+        tail_size = 100 * (1 - a) / 2
+        i_low = jnp.percentile(pred, tail_size, axis=-1)
+        i_high = jnp.percentile(pred, 100 - tail_size, axis=-1)
+        return pred, i_low, i_high
 
     @jax.jit
     def predict(
@@ -1348,10 +1434,15 @@ class BDEEstimator(FullyConnectedEstimator):
         Returns
         -------
         Array
-            Predicted labels.
+            Predicted values (mean of samples).
         """
-        # TODO: Differentiate from `predict_as_de`
-        return self.predict_as_de(X)
+        bde.utils.utils.check_predict_input(X, self.is_fitted_)
+        samples = self.sample_from_samples(
+            x=X,
+            # n_devices=1,
+            # batch_size=-1,
+        )
+        return jnp.mean(samples, axis=-1)
 
     @jax.jit
     def predict_as_de(
@@ -1376,7 +1467,7 @@ class BDEEstimator(FullyConnectedEstimator):
         Returns
         -------
         Array
-            Predicted labels.
+            Predicted values (mean_of_predictions).
         """
         bde.utils.utils.check_predict_input(X, self.is_fitted_)
         # res = jax.pmap(
@@ -1387,10 +1478,15 @@ class BDEEstimator(FullyConnectedEstimator):
         #     X,
         # )
         # TODO: Parallelize
+
+        @jax.jit
+        def sub_f(_, params):
+            return 0.0, self.model_.apply(params, X)
+
         res = jax.lax.scan(
-            f=lambda carry, params: (0.0, self.model_.apply(params, X)),
+            f=sub_f,
             init=0.0,
-            xs=self.samples_,
+            xs=self.params_,
         )[1]
         return res.mean(axis=0)
 
