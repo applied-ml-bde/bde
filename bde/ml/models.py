@@ -63,9 +63,8 @@ from bde.ml import (
 from bde.utils import configs as cnfg
 from bde.utils.utils import (
     cond_with_const_f,
-    get_n_devices,
+    eval_parallelization_params,
     post_pmap,
-    prep_for_pmap,
     pv_map,
 )
 
@@ -1248,16 +1247,8 @@ class BDEEstimator(FullyConnectedEstimator):
         """
         self.samples_ = [dict()]  # Reset before fitting
         self.batch_mcmc_ = X.shape[0]
-        n_models = int(self.n_chains)
-        n_devices = n_devices if n_devices > 0 else int(get_n_devices())
-        n_devices = int(jnp.min(jnp.array([n_devices, n_models])))
-        parallel_batch_size = int(jnp.ceil(n_models / n_devices).astype(int))
-        pad_size = (parallel_batch_size * n_devices) - n_models
-        pmask = jnp.ones([n_models])
-        pmask = prep_for_pmap(
-            pytree=pmask,
-            pad_size=pad_size,
-            batch_size=parallel_batch_size,
+        n_devices, parallel_batch_size, pad_size, pmask = eval_parallelization_params(
+            n_items=self.n_chains,
             n_devices=n_devices,
         )
 

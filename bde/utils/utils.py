@@ -31,6 +31,7 @@ import chex
 import jax
 import jax.numpy as jnp
 import pytest
+from jax import Array
 from jax.typing import ArrayLike
 
 
@@ -184,6 +185,79 @@ def pv_map(
         static_broadcasted_argnums=static_broadcasted_argnums,
     )
     return fun
+
+
+@jax.jit
+def eval_parallelization_params_jitted(
+    n_items: int,
+    n_devices: int,
+) -> Tuple[Array, Array, Array]:
+    r"""Calculate size parameters for parallelization over arrays.
+
+    Calculate the jittable parameters for parallelization.
+
+    Parameters
+    ----------
+    n_items
+        Number of items needed to be evaluated in parallel.
+    n_devices
+        Number of device available for parallel evaluation.
+        If `-1`, all possible devices will be used.
+        If the value is greater than the number of available devices, the number of
+        available devices will be used.
+
+    Returns
+    -------
+    Tuple[int, int, int]
+        A tuple with:
+        - The number of devices (adjusted based on availability and selection).
+        - Number of items evaluated on each device.
+        - The number of items needed to be padded.
+    """
+    n_devices = jax.lax.select(
+        n_devices > 0,
+        n_devices,
+        get_n_devices(),
+    )
+    n_devices = jnp.min(jnp.array([n_devices, n_items])).astype(int)
+    pad_size = (n_devices - (n_items % n_devices)) % n_devices
+    parallel_batch_size = (n_items + pad_size) // n_devices
+    return n_devices, parallel_batch_size, pad_size
+
+
+def eval_parallelization_params(
+    n_items: int,
+    n_devices: int,
+) -> Tuple[int, int, int, Array]:
+    r"""Calculate size parameters for parallelization over arrays.
+
+    Parameters
+    ----------
+    n_items
+        Number of items needed to be evaluated in parallel.
+    n_devices
+        Number of device available for parallel evaluation.
+        If `-1`, all possible devices will be used.
+        If the value is greater than the number of available devices, the number of
+        available devices will be used.
+
+    Returns
+    -------
+    Tuple[int, int, int, Array]
+        A tuple with:
+        - The number of devices (adjusted based on availability and selection).
+        - Number of items evaluated on each device.
+        - The number of items needed to be padded.
+        - A 2D mask indicating which items are used for padding.
+    """
+    n_devices, parallel_batch_size, pad_size = eval_parallelization_params_jitted(
+        n_items,
+        n_devices,
+    )
+    pmask = jnp.ones([n_items])
+    pmask = jnp.pad(pmask, [(0, pad_size)])
+    pmask = pmask.reshape(n_devices, -1)
+    return n_devices, parallel_batch_size, pad_size, pmask
 
 
 # @jax.jit
