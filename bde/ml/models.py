@@ -881,8 +881,13 @@ class BDEEstimator(FullyConnectedEstimator):
     def log_prior(self, params):
         r"""Calculate the log of the prior probability for a set of params."""
         # TODO: Make customizable at init time
+
+        @jax.jit
+        def sub_f(x):
+            return stats.norm.logpdf(x).sum()
+
         res = jax.tree.map(
-            f=lambda x: stats.norm.logpdf(x).sum(),
+            f=sub_f,
             tree=params,
         )
         res = jax.tree.reduce(
@@ -1179,9 +1184,10 @@ class BDEEstimator(FullyConnectedEstimator):
             @jax.jit
             def sub_fun(_, xxx):
                 key, init_state, n_params, cond = xxx
+                f_true = partial(inference_loop, num_samples=num_samples)
                 res = cond_with_const_f(
                     cond.astype(bool),
-                    partial(inference_loop, num_samples=num_samples),
+                    f_true,
                     jax.tree.map(broadcaster, init_state),
                     key,
                     init_state,

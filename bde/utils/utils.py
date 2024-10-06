@@ -214,10 +214,15 @@ def eval_parallelization_params_jitted(
         - Number of items evaluated on each device.
         - The number of items needed to be padded.
     """
-    n_devices = jax.lax.select(
+
+    @jax.jit
+    def f_true():
+        return n_devices
+
+    n_devices = jax.lax.cond(
         n_devices > 0,
-        n_devices,
-        get_n_devices(),
+        f_true,
+        get_n_devices,
     )
     n_devices = jnp.min(jnp.array([n_devices, n_items])).astype(int)
     pad_size = (n_devices - (n_items % n_devices)) % n_devices

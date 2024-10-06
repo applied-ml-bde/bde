@@ -149,14 +149,19 @@ def jitted_training(
     #     params=params,
     #     tx=optimizer_class(**optimizer_kwargs),
     # )
-    (model_state, train, valid), history = jax.lax.scan(
-        f=lambda ms_train_val, sx: jitted_training_epoch(
+
+    @jax.jit
+    def sub_f(ms_train_val, _):
+        return jitted_training_epoch(
             model_state=ms_train_val[0],
             train=ms_train_val[1],
             valid=ms_train_val[2],
             f_loss=f_loss,
             metrics=metrics,
-        ),
+        )
+
+    (model_state, train, valid), history = jax.lax.scan(
+        f=sub_f,
         init=(model_state, train, valid),
         xs=epochs,
     )
@@ -197,19 +202,24 @@ def jitted_training_epoch(
             - Updated model state.
             - Updated training dataset (updates shuffling).
             - Updated validation dataset (updates shuffling).
-        - The 2nd item is a 1D-array describing the evaluation of all metrics over this epoch.
-    """  # noqa: E501
+        - The 2nd item is a 1D-array describing the evaluation of all metrics over
+          this epoch.
+    """
     history = jnp.array(
         [], dtype=jnp.float32
     )  # An empty 1D-array to store the history for current epoch.
 
-    train = train.shuffle()
-    model_state, loss = jax.lax.scan(
-        f=lambda cc, sx: train_step(
+    @jax.jit
+    def sub_f(cc, sx):
+        return train_step(
             cc,
             batch=sx,
             f_loss=f_loss,
-        ),
+        )
+
+    train = train.shuffle()
+    model_state, loss = jax.lax.scan(
+        f=sub_f,
         init=model_state,
         xs=train.get_scannable(),
     )
