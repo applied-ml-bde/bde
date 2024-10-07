@@ -36,7 +36,8 @@ Chains to better capture the posterior density and [Jax](https://jax.readthedocs
 
 ## The Procedure
 Assumptions: assume an independent distribution of model parameters
-1. define a fully connected neural network structure with two outputs
+1. Define a fully connected neural network structure where each output value corresponds to a parametrization of a distribution. 
+   In the case of a Gaussian distribution (currently the only supported option), each output value corresponds to 2 predictions: mean $\mu$ and standard deviation $\sigma$, and the output layer for a network with N predicted values should look as follows: $(\mu_1, \mu_2, ..., \mu_N, \sigma_1, \sigma_2, ..., \sigma_N)$.
 2. train n neural networks in parallel using a
 negative log-likelihood loss function to obtain $\mu$
 and $log(\sigma)$ or $log(b)$ for Laplace, respectively. 
