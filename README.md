@@ -6,9 +6,9 @@ This repo was created as a course project at the University of Munich
 (LMU). It implements a bayesian deep ensemble of fully connected 
 networks for use with tabular data.
 The following links contain the [background paper](https://arxiv.org/abs/2402.01484 )
-and the [repo](https://github.com/EmanuelSommer/bnn_connecting_the_dots) corresponding to the background paper. To allow 
-for parallelization, the package is implemented in 
-[Jax](https://jax.readthedocs.io/en/latest/quickstart.html).
+and the [repo](https://github.com/EmanuelSommer/bnn_connecting_the_dots) corresponding to the background paper. 
+The package is compatible with [Jax](https://jax.readthedocs.io/en/latest/quickstart.html) and [sklearn](https://scikit-learn.org/stable/index.html).
+
 
 ## Development Setup
 
