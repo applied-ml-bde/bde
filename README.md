@@ -75,6 +75,13 @@ through Monte Carlo sampling S samples from a Markov Chain that converged
 to the posterior density $ p(\theta|\mathcal{D})$ such that
 $ \theta^{(s)} \sim p(\theta | \mathcal{D}) $. 
 
+Eq Test
+1. The posterior predictive distribution (PPD):
+   p(y* | x*, D) = ∫ p(y* | x*, θ) p(θ | D) dθ
+
+2. Approximation of the PPD:
+   p(y* | x*, D) ≈ (1/S) ∑[s=1 to S] p(y* | x*, θ^(s))
+
 
 ## License
 
