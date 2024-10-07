@@ -32,7 +32,7 @@ measurements, Bayesian optimization can be challenging and resource intensive du
 usually strongly multimodal posterior landscapes.
 ([Izmailov et al., 2021](https://proceedings.mlr.press/v139/izmailov21a.html))
 To alleviate that issue, this package uses an ensemble of networks sampled from different Markov
-Chains to better capture the posterior density and Jax for computational parallelization.
+Chains to better capture the posterior density and [Jax](https://jax.readthedocs.io/en/latest/quickstart.html) for better computational efficiency.
 
 ## The Procedure
 Assumptions: assume an independent distribution of model parameters
