@@ -82,6 +82,11 @@ Eq Test
 2. Approximation of the PPD:
    p(y* | x*, D) ≈ (1/S) ∑[s=1 to S] p(y* | x*, θ^(s))
 
+3. NLL_Gaussian(y, μ, log σ) = log(σ) + (y - μ)^2 / (2σ^2) + 1/2 log(2π)
+
+4. NLL_Laplace(y, μ, b) = log(2b) + |y - μ| / b
+
+
 
 ## License
 
