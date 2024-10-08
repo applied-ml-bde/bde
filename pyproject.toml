@@ -146,6 +146,7 @@ sphinx-gallery = "*"
 sphinx-prompt = "*"
 myst-parser = "*"
 sphinx-autodoc-typehints = "*"
+sphinx-rtd-theme = "*"
 
 [tool.pixi.feature.doc.tasks]
 build-doc = { cmd = "make html", cwd = "docs" }
