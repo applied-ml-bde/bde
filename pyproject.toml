@@ -146,8 +146,8 @@ sphinx-gallery = "*"
 sphinx-prompt = "*"
 
 [tool.pixi.feature.doc.tasks]
-build-doc = { cmd = "make html", cwd = "doc" }
-clean-doc = { cmd = "rm -rf _build", cwd = "doc" }
+build-doc = { cmd = "make html", cwd = "docs" }
+clean-doc = { cmd = "rm -rf _build", cwd = "docs" }
 
 [tool.pixi.environments]
 doc = ["doc"]
