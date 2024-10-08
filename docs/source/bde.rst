@@ -8,7 +8,6 @@ Subpackages
    :maxdepth: 4
 
    bde.ml
-   bde.test
    bde.utils
 
 Submodules
