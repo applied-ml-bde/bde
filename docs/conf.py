@@ -8,7 +8,7 @@ from importlib.metadata import version as get_version
 project = 'BDE'
 copyright = '2024, Konstantin and Steffen'
 author = 'Konstantin and Steffen'
-release = get_version('skltemplate')
+release = get_version('bde')
 version = ".".join(release.split(".")[:3])
 
 sys.path.insert(0, os.path.abspath('..'))
