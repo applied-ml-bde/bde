@@ -9,15 +9,6 @@
     :show-inheritance:
 ```
 
-## Test Module 
-
-```{eval-rst}
-.. automodule:: bde.test
-    :members:
-    :undoc-members:
-    :show-inheritance:
-```
-
 ## Utils
 
 ```{eval-rst}
