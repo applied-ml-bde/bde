@@ -24,7 +24,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv', '.github']
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-html_logo = '_static/logo.png'
+html_logo = '_static/logo.png'        # if we want, we can set a logo or remove this eventually. that is just the oasis test logo
 html_theme_options = {
     'logo_only': False,
     'display_version': False,
