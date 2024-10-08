@@ -86,6 +86,10 @@ Eq Test
 
 4. NLL_Laplace(y, μ, b) = log(2b) + |y - μ| / b
 
+5. $$p(y^* | x^*, \mathcal{D}) = \int_{\Theta} p(y^* | x^*, \theta) p(\theta | \mathcal{D}) \, d\theta.$$
+
+6. text $' p(y^* | x^*, \mathcal{D}) = \int_{\Theta} p(y^* | x^*, \theta) p(\theta | \mathcal{D}) \, d\theta.'$
+
 
 
 ## License
