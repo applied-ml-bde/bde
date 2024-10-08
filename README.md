@@ -64,9 +64,9 @@ parameters $\theta$, our network weights, as
 $p(\theta|\mathcal{D}) = \frac{p(\mathcal{D}|\theta)p(\theta)}{p(\mathcal{D})}$.
 Using that posterior, for a new data point (x*, y*), we can then define the posterior 
 predictive density (PPD) over the labels y as 
-$$
+```math
 p(y^* | x^*, \mathcal{D}) = \int_{\Theta} p(y^* | x^*, \theta) p(\theta | \mathcal{D}) \, d\theta.
-$$
+```
 The PPD captures the uncertainty about the model, but usually has to be approximated as
 $$
 p(y^* | x^*, \mathcal{D}) \approx \frac{1}{S} \sum_{s=1}^{S} p(y^* | x^*, \theta^{(s)})
