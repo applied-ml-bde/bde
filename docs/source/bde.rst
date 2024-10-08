@@ -13,14 +13,6 @@ Subpackages
 Submodules
 ----------
 
-bde.flax2bnn module
--------------------
-
-.. automodule:: bde.flax2bnn
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
