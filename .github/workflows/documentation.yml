@@ -1,48 +1,48 @@
-name: documentation
+# name: documentation
 
-on: [push, pull_request, workflow_dispatch]
+# on: [push, pull_request, workflow_dispatch]
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-jobs:
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install
-      - name: Install pandoc
-        run: |
-          sudo apt-get install pandoc
-      - name: Convert README.md to README.rst
-        run: |
-          pandoc README.md -o README.rst
-      - name: Update index.rst
-        run: |
-          echo "" >> docs/index.rst
-          cat README.rst >> docs/index.rst
-      - name: Sphinx build
-        run: |
-          poetry run sphinx-apidoc -o docs/source bde                  
-          cd docs
-          poetry run make html
-      - name: Commit and push changes
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git add docs/source/*
-          git commit -m "Update Sphinx documentation" || echo "No changes to commit"
-          git push origin ${GITHUB_REF} || echo "No changes to push"
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        with:
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/_build/html
-          force_orphan: true
-          keep_files: true
+# jobs:
+#   docs:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#       - uses: actions/setup-python@v3
+#       - name: Install dependencies
+#         run: |
+#           pip install poetry
+#           poetry install
+#       - name: Install pandoc
+#         run: |
+#           sudo apt-get install pandoc
+#       - name: Convert README.md to README.rst
+#         run: |
+#           pandoc README.md -o README.rst
+#       - name: Update index.rst
+#         run: |
+#           echo "" >> docs/index.rst
+#           cat README.rst >> docs/index.rst
+#       - name: Sphinx build
+#         run: |
+#           poetry run sphinx-apidoc -o docs/source bde                  
+#           cd docs
+#           poetry run make html
+#       - name: Commit and push changes
+#         run: |
+#           git config --global user.name 'GitHub Actions'
+#           git config --global user.email 'actions@github.com'
+#           git add docs/source/*
+#           git commit -m "Update Sphinx documentation" || echo "No changes to commit"
+#           git push origin ${GITHUB_REF} || echo "No changes to push"
+#       - name: Deploy to GitHub Pages
+#         uses: peaceiris/actions-gh-pages@v3
+#         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+#         with:
+#           publish_branch: gh-pages
+#           github_token: ${{ secrets.GITHUB_TOKEN }}
+#           publish_dir: ./docs/_build/html
+#           force_orphan: true
+#           keep_files: true
