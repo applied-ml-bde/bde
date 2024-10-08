@@ -72,8 +72,8 @@ $$
 p(y^* | x^*, \mathcal{D}) \approx \frac{1}{S} \sum_{s=1}^{S} p(y^* | x^*, \theta^{(s)})
 $$
 through Monte Carlo sampling S samples from a Markov Chain that converged 
-to the posterior density $ p(\theta|\mathcal{D})$ such that
-$ \theta^{(s)} \sim p(\theta | \mathcal{D}) $. 
+to the posterior density $p(\theta|\mathcal{D})$ such that
+$\theta^{(s)} \sim p(\theta | \mathcal{D})$. 
 
 Eq Test
 1. The posterior predictive distribution (PPD):
