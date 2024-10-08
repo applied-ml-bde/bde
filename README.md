@@ -51,13 +51,14 @@ and credible intervals
 
 The fully connected Bayesian networks are individually trained using 
 Negative Losslikelihood Loss (NLL) with either Gaussian or Laplace Priors, i.e.
-$$ 
+```math
 \text{NLL}_{\text{Gaussian}}(y, \mu, \log \sigma) = \log( \sigma ) + \frac{(y - \mu)^2}{2 \sigma^2} + \frac{1}{2} \log(2 \pi)
-$$
+```
 or
-$$
+```math
 \text{NLL}_{\text{Laplace}}(y, \mu, b) = \log(2b) + \frac{|y - \mu|}{b}
-.$$
+.
+```
 
 Given data $\mathcal{D}$, we can then calculate the posterior distribution of the 
 parameters $\theta$, our network weights, as 
