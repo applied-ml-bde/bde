@@ -62,7 +62,7 @@ or
 
 Given data $\mathcal{D}$, we can then calculate the posterior distribution of the 
 parameters $\theta$, our network weights, as 
-$`p(\theta|\mathcal{D}) = \frac{p(\mathcal{D}|\theta)p(\theta)}{p(\mathcal{D})}`$.
+$p(\theta|\mathcal{D}) = \frac{p(\mathcal{D}|\theta)p(\theta)}{p(\mathcal{D})}$.
 Using that posterior, for a new data point (x*, y*), we can then define the posterior 
 predictive density (PPD) over the labels y as 
 ```math
