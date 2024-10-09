@@ -35,4 +35,6 @@ Example:
 
 from bde import ml, utils
 
-__all__ = ["ml", "utils"]
+from ._version import __version__
+
+__all__ = ["ml", "utils", "__version__"]

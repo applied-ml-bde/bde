@@ -1,10 +1,15 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "bde"
+dynamic = ["version"]
 description = "A package implementing BDE models."
-version = "0.1.0"
-requires-python = ">= 3.11"
+requires-python = ">= 3.9"
 authors = [
-    {name = "Kostya", email = "65129914+cklyne@users.noreply.github.com"},
+    {name = "Konstantin", email = "65129914+cklyne@users.noreply.github.com"},
+    {name = "Steffen Jauchwalser", email = "_@uni-muenchen.de"},
 ]
 dependencies = []
 readme = "README.md"
@@ -24,81 +29,39 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/applied-ml-bde/bde"
 Issues = "https://github.com/applied-ml-bde/bde/issues"
+Documentation = "https://applied-ml-bde.github.io/bde/source/bde.html"
 
 [tool.setuptools_scm]
 version_file = "bde/_version.py"
 
-[tool.poetry]
-name = "bde"
-version = "0.1.0"
-description = "A package implementing BDE models."
-authors = [
-    "Kostya <65129914+cklyne@users.noreply.github.com>",
-    "Steffen Jauchwalser <@uni-muenchen.de>",
-]
-license = "MIT"
-readme = "README.md"
-
-[tool.poetry.dependencies]
-chex = ">0.1.8"
-python = ">3.10, <3.12"
-flax = ">0.8.3"
-ipython = ">8.22"
-jax = ">0.4.26"
-jupyter = "^1.0.0"
-jupyterlab = ">4.1"
-matplotlib = ">3.8.3"
-notebook = ">7.1"
-numpy = ">1.26"
-optax = ">0.2"
-pandas = ">2.2"
-pip = ">24.0"
-pytest = ">7.4"
-pytest-timeout = ">2.2"
-scikit-learn = ">1.4"
-scipy = ">1.13"
-seaborn = ">0.12"
-array-api-compat = ">=1.8"
-pre-commit = ">=3.4"
-
-[tool.poetry.group.dev.dependencies]
-sphinx-autodoc-typehints = "^2.0.0"
-sphinx-rtd-theme = "^2.0.0"
-coverage = "^7.5.0"
-
-[build-system]
-# requires = ["poetry-core"]
-# build-backend = "poetry.core.masonry.api"
-build-backend = "hatchling.build"
-requires = ["hatchling"]
-
 [tool.pixi.project]
-name = "bde"
 channels = ["conda-forge", "nvidia", "pytorch"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 python = ">=3.9"
-ipython = ">=8.22"
-jupyter = "~=1.0.0"
-jupyterlab = ">=4.1"
-matplotlib = ">=3.8.3"
-notebook = ">=7.1"
+#ipython = ">=8.22"
+#jupyter = "~=1.0.0"
+#jupyterlab = ">=4.1"
+#matplotlib = ">=3.8.3"
+#notebook = ">=7.1"
 numpy = ">=1.26"
 pandas = ">=2.2"
 pip = ">=24.0"
 pytest = ">=7.4"
 scikit-learn = ">=1.4"
-scipy = ">=1.13"
-seaborn = ">=0.12"
-array-api-compat = ">=1.8"
+#scipy = ">=1.13"
+#seaborn = ">=0.12"
 pre-commit = ">=3.4"
+pixi-pycharm = ">=0.0.6,<0.0.7"
 
 [tool.pixi.pypi-dependencies]
-#bde = { path = ".", editable = true }
+bde = { path = ".", editable = true }
 jax = ">=0.4.26"
 optax = ">=0.2"
 flax = ">=0.8.3"
+chex = ">=0.1.8"
+blackjax = ">=1.2.3,<2"
 
 [tool.pixi.tasks]
 
@@ -107,7 +70,7 @@ flax = ">=0.8.3"
 [tool.pixi.feature.lint.dependencies]
 # The version below should be aligned with the one of `.pre-commit-config.yaml`
 black = ">=24.8"
-pre-commit = ">=3.4"
+#pre-commit = ">=3.4"
 ruff = ">=0.6.4"
 isort = ">=5.13"
 flake8 = ">=7.1"
@@ -128,7 +91,9 @@ lint = { depends_on = ["black", "ruff", "isort", "flake8", "pydocstyle", "mypy"]
 
 [tool.pixi.feature.test.dependencies]
 pytest = ">=7.4"
+pytest-timeout = ">=2.2"
 pytest-cov = "*"
+array-api-compat = ">=1.8"
 
 [tool.pixi.feature.test.tasks]
 test = { cmd = "python -m pytest -vsl --cov=bde --cov-report=xml tests/" }
@@ -143,6 +108,9 @@ sphinx = "*"
 sphinx-design = "*"
 sphinx-gallery = "*"
 sphinx-prompt = "*"
+myst-parser = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-rtd-theme = "*"
 
 [tool.pixi.feature.doc.tasks]
 build-doc = { cmd = "make html", cwd = "doc" }
@@ -165,7 +133,7 @@ exclude = '''
   | \.vscode
 )/
 '''
-force-exclude = "bde/_version.py"
+force-exclude = ["bde/_version.py", "bde/doc/_static/img"]
 
 [tool.ruff]
 # max line length for black
@@ -179,6 +147,7 @@ exclude=[
     "doc/auto_examples",
     "build",
     "bde/_version.py",
+    "bde/doc/_static/img",
 ]
 
 [tool.ruff.lint]
@@ -219,6 +188,7 @@ exclude=[
     "doc/auto_examples",
     "build",
     "bde/_version.py",
+    "bde/doc/_static/img",
 ]
 max-complexity = 10
 max-line-length=88
@@ -245,3 +215,4 @@ scripts_are_modules=true
 follow_imports="skip"
 no_incremental=true
 show_traceback=true
+allow_redefinition=true
