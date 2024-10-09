@@ -2858,10 +2858,10 @@ packages:
   timestamp: 1702422720584
 - kind: pypi
   name: bde
-  version: 0.1.dev291+gc8e68d7.d20241009
+  version: 0.1.dev294+g9ac991a.d20241009
   path: .
-  sha256: fad2baad0c484826868f6ff5cd001017e491a11d62ab29cac0cb16044bca1299
-  requires_python: '>=3.11'
+  sha256: 7f37d4cc25d3c9487c1c669bd0ed3f12fffeaf0b69fffb9339c8c751c99ce9a8
+  requires_python: '>=3.9'
   editable: true
 - kind: conda
   name: beautifulsoup4
