@@ -1,15 +1,8 @@
-import pytest
-from abc import ABC, abstractmethod
-from typing import Any, Union, Optional
-from collections.abc import Iterable
-
 import jax
+import pytest
 from jax import numpy as jnp
-from jax import Array
-from jax.typing import ArrayLike
-import pathlib
 
-from bde.ml.loss import LogLikelihoodLoss
+from bde.ml.loss import GaussianNLLLoss
 from bde.utils import configs as cnfg
 
 SEED = cnfg.General.SEED
@@ -22,9 +15,11 @@ class TestHSplitPred:
     @pytest.mark.parametrize("n_dim", [1, 2, 4])
     def test_shapes_match(do_use_jit, n_dim):
         y_true = jnp.array([1]).reshape(tuple([1 for _ in range(n_dim - 1)] + [-1]))
-        y_pred = jnp.array([1, 2, 3]).reshape(tuple([1 for _ in range(n_dim - 1)] + [-1]))
+        y_pred = jnp.array([1, 2, 3]).reshape(
+            tuple([1 for _ in range(n_dim - 1)] + [-1])
+        )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = LogLikelihoodLoss()._split_pred(y_true, y_pred)
+            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
         assert mean.shape == sigma.shape and mean.shape == y_true.shape
 
     @staticmethod
@@ -32,9 +27,11 @@ class TestHSplitPred:
     def test_shapes_small_std(do_use_jit):
         b_batch, n_features, n_std_features = 2, 3, 1
         y_true = jnp.arange(b_batch * n_features).reshape((b_batch, -1))
-        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape((b_batch, -1))
+        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape(
+            (b_batch, -1)
+        )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = LogLikelihoodLoss()._split_pred(y_true, y_pred)
+            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
         assert mean.shape == sigma.shape
 
     @staticmethod
@@ -42,9 +39,11 @@ class TestHSplitPred:
     def test_shapes_std_equals_mean(do_use_jit):
         b_batch, n_features, n_std_features = 2, 3, 3
         y_true = jnp.arange(b_batch * n_features).reshape((b_batch, -1))
-        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape((b_batch, -1))
+        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape(
+            (b_batch, -1)
+        )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = LogLikelihoodLoss()._split_pred(y_true, y_pred)
+            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
         assert mean.shape == sigma.shape
 
     @staticmethod
@@ -52,9 +51,11 @@ class TestHSplitPred:
     def test_shapes_std_too_large(do_use_jit):
         b_batch, n_features, n_std_features = 2, 3, 6
         y_true = jnp.arange(b_batch * n_features).reshape((b_batch, -1))
-        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape((b_batch, -1))
+        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape(
+            (b_batch, -1)
+        )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = LogLikelihoodLoss()._split_pred(y_true, y_pred)
+            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
         assert mean.shape == sigma.shape
 
     @staticmethod
@@ -63,19 +64,25 @@ class TestHSplitPred:
     def test_std_padded_values(do_use_jit, n_std_features):
         b_batch, n_features = 2, 3
         y_true = jnp.arange(b_batch * n_features).reshape((b_batch, -1))
-        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape((b_batch, -1))
+        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape(
+            (b_batch, -1)
+        )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = LogLikelihoodLoss()._split_pred(y_true, y_pred)
-        assert jnp.allclose(sigma[..., n_std_features:], jnp.ones_like(sigma[..., n_std_features:]))
+            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+        assert jnp.allclose(
+            sigma[..., n_std_features:], jnp.ones_like(sigma[..., n_std_features:])
+        )
 
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])
     def test_std_matches_pred(do_use_jit):
         b_batch, n_features, n_std_features = 2, 3, 1
         y_true = jnp.arange(b_batch * n_features).reshape((b_batch, -1))
-        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape((b_batch, -1))
+        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape(
+            (b_batch, -1)
+        )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = LogLikelihoodLoss()._split_pred(y_true, y_pred)
+            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
         assert jnp.allclose(sigma[..., :n_std_features], y_pred[..., n_features:])
 
     @staticmethod
@@ -83,9 +90,11 @@ class TestHSplitPred:
     def test_mean_matches_pred(do_use_jit):
         b_batch, n_features, n_std_features = 2, 3, 1
         y_true = jnp.arange(b_batch * n_features).reshape((b_batch, -1))
-        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape((b_batch, -1))
+        y_pred = jnp.arange(b_batch * (n_features + n_std_features)).reshape(
+            (b_batch, -1)
+        )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = LogLikelihoodLoss()._split_pred(y_true, y_pred)
+            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
         assert jnp.allclose(mean, y_pred[..., :n_features])
 
 
@@ -99,7 +108,7 @@ class TestLogLikelihoodLossCalculation:
         key, subkey = jax.random.split(key)
         y_true = jax.random.normal(subkey, (n_batch, n_features))
 
-        f_loss = LogLikelihoodLoss(mean_weight=2)
+        f_loss = GaussianNLLLoss(mean_weight=2)
         f_loss = f_loss.apply_reduced if reduction else f_loss
         expected_loss = jnp.zeros((1,)) if reduction else jnp.zeros((n_batch,))
         with jax.disable_jit(disable=not do_use_jit):
@@ -117,9 +126,9 @@ class TestLogLikelihoodLossCalculation:
         key, subkey = jax.random.split(key)
         y_true = jax.random.normal(subkey, (n_batch, n_features))
 
-        f_loss = LogLikelihoodLoss(mean_weight=2)
+        f_loss = GaussianNLLLoss(mean_weight=2)
         f_loss = f_loss.apply_reduced if reduction else f_loss
-        expected_loss = (y_true ** 2).mean() if reduction else y_true.reshape((-1)) ** 2
+        expected_loss = (y_true**2).mean() if reduction else y_true.reshape((-1)) ** 2
         with jax.disable_jit(disable=not do_use_jit):
             assert jnp.allclose(
                 f_loss(y_true, jnp.zeros_like(y_true)),
@@ -137,7 +146,7 @@ class TestLogLikelihoodLossCalculation:
         key, subkey = jax.random.split(key)
         y_pred = jax.random.normal(subkey, (n_batch, n_features))
 
-        f_loss = LogLikelihoodLoss(mean_weight=0)
+        f_loss = GaussianNLLLoss(mean_weight=0)
         f_loss = f_loss.apply_reduced if reduction else f_loss
         expected_loss = jnp.zeros((1,)) if reduction else jnp.zeros((n_batch,))
         with jax.disable_jit(disable=not do_use_jit):
@@ -155,9 +164,9 @@ class TestLogLikelihoodLossCalculation:
         key, subkey = jax.random.split(key)
         y_true = jax.random.normal(subkey, (n_batch, n_features))
 
-        expected_values = jnp.arange(- 5, n_batch - 5)
-        y_pred = jnp.stack([expected_values, jnp.e ** expected_values], axis=1)
-        f_loss = LogLikelihoodLoss(mean_weight=0)
+        expected_values = jnp.arange(-5, n_batch - 5)
+        y_pred = jnp.stack([expected_values, jnp.e**expected_values], axis=1)
+        f_loss = GaussianNLLLoss(mean_weight=0)
         f_loss = f_loss.apply_reduced if reduction else f_loss
         expected_loss = expected_values.mean() if reduction else expected_values
         with jax.disable_jit(disable=not do_use_jit):

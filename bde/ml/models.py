@@ -356,6 +356,7 @@ class FullyConnectedEstimator(BaseEstimator):
             self.model_,
             self.params_,
             self.history_,
+            self.loss,
             atts,
         )  # children must contain arrays & pytrees
         aux_data = (
@@ -363,7 +364,6 @@ class FullyConnectedEstimator(BaseEstimator):
             self.model_kwargs,
             self.optimizer_class,
             self.optimizer_kwargs,
-            self.loss,
             self.metrics,
             self.epochs,
         )  # aux_data must contain static, hashable data.
@@ -395,10 +395,10 @@ class FullyConnectedEstimator(BaseEstimator):
             model_kwargs=aux_data[1],
             optimizer_class=aux_data[2],
             optimizer_kwargs=aux_data[3],
-            loss=aux_data[4],
+            loss=children[3],  # type: ignore
             batch_size=atts["batch_size"],
-            epochs=aux_data[6],
-            metrics=aux_data[5],
+            epochs=aux_data[5],
+            metrics=aux_data[4],
             validation_size=atts["validation_size"],
             seed=atts["seed"],
         )
@@ -694,7 +694,7 @@ class BDEEstimator(FullyConnectedEstimator):
         n_samples: int = 1,
         optimizer_class: Type[optax._src.base.GradientTransformation] = optax.adam,
         optimizer_kwargs: Optional[Dict[str, Any]] = None,
-        loss: loss.Loss = loss.LogLikelihoodLoss(),
+        loss: loss.NLLLoss = loss.GaussianNLLLoss(),
         batch_size: int = 1,
         epochs: int = 1,
         metrics: Optional[list] = None,
@@ -792,6 +792,7 @@ class BDEEstimator(FullyConnectedEstimator):
             self.params_,
             self.samples_,
             self.history_,
+            self.loss,
             atts,
         )  # children must contain arrays & pytrees
         aux_data = (
@@ -799,7 +800,6 @@ class BDEEstimator(FullyConnectedEstimator):
             self.model_kwargs,
             self.optimizer_class,
             self.optimizer_kwargs,
-            self.loss,
             self.metrics,
             self.epochs,
         )  # aux_data must contain static, hashable data.
@@ -835,10 +835,10 @@ class BDEEstimator(FullyConnectedEstimator):
             n_samples=atts["n_samples"],
             optimizer_class=aux_data[2],
             optimizer_kwargs=aux_data[3],
-            loss=aux_data[4],
+            loss=children[4],  # type: ignore
             batch_size=atts["batch_size"],
-            epochs=aux_data[6],
-            metrics=aux_data[5],
+            epochs=aux_data[5],
+            metrics=aux_data[4],
             validation_size=atts["validation_size"],
             seed=atts["seed"],
         )
@@ -916,7 +916,7 @@ class BDEEstimator(FullyConnectedEstimator):
             mod_states,
             masks,
             epochs: Array,
-            f_loss: loss.Loss,
+            f_loss: loss.NLLLoss,
             metrics: Array,
             train: datasets.BasicDataset,
             valid: datasets.BasicDataset,
@@ -966,7 +966,7 @@ class BDEEstimator(FullyConnectedEstimator):
         _, (params, history) = jax.pmap(
             fun=fun1,
             in_axes=(0, 0, None, None, None, None, None),
-            static_broadcasted_argnums=[3],
+            # static_broadcasted_argnums=[],
         )(
             model_states,
             mask,

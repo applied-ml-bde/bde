@@ -119,7 +119,7 @@ class TestReconstruct:
                     getattr(model_original, att), getattr(model_recreated, att)
                 )
                 return
-            if att in ["params_", "samples_"]:
+            if att in ["params_", "samples_", "loss"]:
                 tree_of_original = jax.tree.leaves(getattr(model_original, att))
                 tree_of_recreated = jax.tree.leaves(getattr(model_recreated, att))
                 leaf_comparisons = [

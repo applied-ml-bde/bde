@@ -39,7 +39,7 @@ In production environment most estimator parameters should be adjusted:
 
 ```python
 from bde.ml.models import BDEEstimator, FullyConnectedModule
-from bde.ml.loss import LogLikelihoodLoss
+from bde.ml.loss import GaussianNLLLoss
 from optax import adam
 from jax import numpy as jnp
 
@@ -57,7 +57,7 @@ est = BDEEstimator(
     optimizer_kwargs={
         "learning_rate": 1e-3,
     },
-    loss=LogLikelihoodLoss(),
+    loss=GaussianNLLLoss(),
     batch_size=2,  # 1 by default
     epochs=5,  # 1 by default
     metrics=None,
