@@ -1,8 +1,4 @@
 [build-system]
-# requires = ["poetry-core"]
-# build-backend = "poetry.core.masonry.api"
-# build-backend = "hatchling.build"
-# requires = ["hatchling"]
 requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
 build-backend = "setuptools.build_meta"
 
@@ -10,15 +6,13 @@ build-backend = "setuptools.build_meta"
 name = "bde"
 dynamic = ["version"]
 description = "A package implementing BDE models."
-# version = "0.1.0"
-requires-python = ">= 3.11"
+requires-python = ">= 3.9"
 authors = [
-    {name = "Kostya", email = "65129914+cklyne@users.noreply.github.com"},
-    {name = "Steffen Jauchwalser", email = "@uni-muenchen.de"},
+    {name = "Konstantin", email = "65129914+cklyne@users.noreply.github.com"},
+    {name = "Steffen Jauchwalser", email = "_@uni-muenchen.de"},
 ]
 dependencies = []
 readme = "README.md"
-license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -39,45 +33,6 @@ Documentation = "https://applied-ml-bde.github.io/bde/source/bde.html"
 
 [tool.setuptools_scm]
 version_file = "bde/_version.py"
-
-# [tool.poetry]
-# name = "bde"
-# version = "0.1.0"
-# description = "A package implementing BDE models."
-# authors = [
-#     "Kostya <65129914+cklyne@users.noreply.github.com>",
-#     "Steffen Jauchwalser <@uni-muenchen.de>",
-# ]
-# license = "MIT"
-# readme = "README.md"
-
-# [tool.poetry.dependencies]
-# chex = ">0.1.8"
-# python = ">3.10, <3.12"
-# flax = ">0.8.3"
-# ipython = ">8.22"
-# jax = ">0.4.26"
-# jupyter = "^1.0.0"
-# jupyterlab = ">4.1"
-# matplotlib = ">3.8.3"
-# notebook = ">7.1"
-# numpy = ">1.26"
-# optax = ">0.2"
-# pandas = ">2.2"
-# pip = ">24.0"
-# pytest = ">7.4"
-# pytest-timeout = ">2.2"
-# scikit-learn = ">1.4"
-# scipy = ">1.13"
-# seaborn = ">0.12"
-# array-api-compat = ">=1.8"
-# pre-commit = ">=3.4"
-# myst-parser = ">=3.0.1"
-
-# [tool.poetry.group.dev.dependencies]
-# sphinx-autodoc-typehints = "^2.0.0"
-# sphinx-rtd-theme = "^2.0.0"
-# coverage = "^7.5.0"
 
 [tool.pixi.project]
 channels = ["conda-forge", "nvidia", "pytorch"]
