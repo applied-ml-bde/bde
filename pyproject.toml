@@ -1,7 +1,16 @@
+[build-system]
+# requires = ["poetry-core"]
+# build-backend = "poetry.core.masonry.api"
+# build-backend = "hatchling.build"
+# requires = ["hatchling"]
+requires = ["setuptools>=64", "setuptools_scm[toml]>=8"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "bde"
+dynamic = ["version"]
 description = "A package implementing BDE models."
-version = "0.1.0"
+# version = "0.1.0"
 requires-python = ">= 3.11"
 authors = [
     {name = "Kostya", email = "65129914+cklyne@users.noreply.github.com"},
@@ -26,6 +35,7 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/applied-ml-bde/bde"
 Issues = "https://github.com/applied-ml-bde/bde/issues"
+Documentation = "https://applied-ml-bde.github.io/bde/source/bde.html"
 
 [tool.setuptools_scm]
 version_file = "bde/_version.py"
@@ -69,14 +79,7 @@ version_file = "bde/_version.py"
 # sphinx-rtd-theme = "^2.0.0"
 # coverage = "^7.5.0"
 
-[build-system]
-# requires = ["poetry-core"]
-# build-backend = "poetry.core.masonry.api"
-build-backend = "hatchling.build"
-requires = ["hatchling"]
-
 [tool.pixi.project]
-name = "bde"
 channels = ["conda-forge", "nvidia", "pytorch"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 
@@ -98,7 +101,7 @@ pre-commit = ">=3.4"
 pixi-pycharm = ">=0.0.6,<0.0.7"
 
 [tool.pixi.pypi-dependencies]
-#bde = { path = ".", editable = true }
+bde = { path = ".", editable = true }
 jax = ">=0.4.26"
 optax = ">=0.2"
 flax = ">=0.8.3"
