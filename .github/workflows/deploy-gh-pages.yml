@@ -33,6 +33,6 @@ jobs:
       if: ${{ github.event_name == 'push' && ( github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' ) }}
       uses: peaceiris/actions-gh-pages@v4.0.0
       with:
-       github_token: ${{ secrets.GITHUB_TOKEN }}
+       github_token: ${{ secrets.PAGES_TOKEN }}
        publish_dir: ./doc/_build/html
        commit_message: "[ci skip] ${{ github.event.head_commit.message }}"
