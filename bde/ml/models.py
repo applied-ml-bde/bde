@@ -701,7 +701,7 @@ class BDEEstimator(FullyConnectedEstimator):
         validation_size: Optional[Union[float]] = None,
         # ADD above support to `Tuple[ArrayLike, ArrayLike], datasets.BasicDataset`
         seed: int = cnfg.General.SEED,
-        **kwargs,
+        # **kwargs,
     ):
         r"""Initialize the estimator architecture and training parameters.
 
@@ -741,7 +741,7 @@ class BDEEstimator(FullyConnectedEstimator):
         **kwargs
             Additional keyword arguments.
         """
-        super().__init__(**kwargs)
+        # super().__init__(**kwargs)
         self.model_class = model_class
         self.model_kwargs = model_kwargs
         self.optimizer_class = optimizer_class
@@ -896,7 +896,7 @@ class BDEEstimator(FullyConnectedEstimator):
         )
         return res
 
-    @jax.jit
+    # @jax.jit
     def _prior_fitting(
         self,
         model_states,
@@ -923,6 +923,7 @@ class BDEEstimator(FullyConnectedEstimator):
         ):
             r"""Perform parallel training."""
 
+            @jax.jit
             def sub_fun(_, xxx):
                 r"""Wrap training loop."""
                 mod_state, cond = xxx
@@ -1328,7 +1329,7 @@ class BDEEstimator(FullyConnectedEstimator):
         return self
 
     @staticmethod
-    @jax.jit
+    # @jax.jit
     def _sample_from_samples_general(
         x: ArrayLike,
         samples,
@@ -1368,7 +1369,7 @@ class BDEEstimator(FullyConnectedEstimator):
         res = jnp.concatenate(res, axis=-1)
         return res
 
-    @jax.jit
+    # @jax.jit
     def sample_from_samples(
         self,
         x: ArrayLike,
@@ -1441,7 +1442,7 @@ class BDEEstimator(FullyConnectedEstimator):
         i_high = jnp.percentile(pred, 100 - tail_size, axis=-1)
         return pred, i_low, i_high
 
-    @jax.jit
+    # @jax.jit
     def predict(
         self,
         X: ArrayLike,
