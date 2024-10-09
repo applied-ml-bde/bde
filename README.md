@@ -50,6 +50,7 @@ i.e. sets of weights, in parallel from the posterior distribution
 7. From the posterior predictive distribution, obtain mean estimates
 and credible intervals 
 
+ <!--
 The fully connected Bayesian networks are individually trained using 
 Negative Losslikelihood Loss (NLL) with either Gaussian or Laplace Priors, i.e.
 ```math
@@ -59,6 +60,12 @@ or
 ```math
 \text{NLL}_{\text{Laplace}}(y, \mu, b) = \log(2b) + \frac{|y - \mu|}{b}
 .
+```
+-->
+The fully connected Bayesian networks are individually trained using 
+Negative Losslikelihood Loss (NLL) with Gaussian Priors, i.e.
+```math
+\text{NLL}_{\text{Gaussian}}(y, \mu, \log \sigma) = \log( \sigma ) + \frac{(y - \mu)^2}{2 \sigma^2} + \frac{1}{2} \log(2 \pi).
 ```
 
 Given data $\mathcal{D}$, we can then calculate the posterior distribution of the 
