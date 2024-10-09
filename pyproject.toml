@@ -60,6 +60,7 @@ scipy = ">1.13"
 seaborn = ">0.12"
 array-api-compat = ">=1.8"
 pre-commit = ">=3.4"
+myst-parser = ">=3.0.1"
 
 [tool.poetry.group.dev.dependencies]
 sphinx-autodoc-typehints = "^2.0.0"
@@ -143,6 +144,9 @@ sphinx = "*"
 sphinx-design = "*"
 sphinx-gallery = "*"
 sphinx-prompt = "*"
+myst-parser = "*"
+sphinx-autodoc-typehints = "*"
+sphinx-rtd-theme = "*"
 
 [tool.pixi.feature.doc.tasks]
 build-doc = { cmd = "make html", cwd = "doc" }
@@ -165,7 +169,7 @@ exclude = '''
   | \.vscode
 )/
 '''
-force-exclude = "bde/_version.py"
+force-exclude = ["bde/_version.py", "bde/doc/_static/img"]
 
 [tool.ruff]
 # max line length for black
@@ -179,6 +183,7 @@ exclude=[
     "doc/auto_examples",
     "build",
     "bde/_version.py",
+    "bde/doc/_static/img",
 ]
 
 [tool.ruff.lint]
@@ -219,6 +224,7 @@ exclude=[
     "doc/auto_examples",
     "build",
     "bde/_version.py",
+    "bde/doc/_static/img",
 ]
 max-complexity = 10
 max-line-length=88

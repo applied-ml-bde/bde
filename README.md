@@ -1,6 +1,7 @@
-# Bayesian Deep Ensembles (BDE)
+# bde
 
 ## Introduction
+
 
 This repo was created as a course project at the University of Munich
 (LMU). It implements a bayesian deep ensemble of fully connected 
