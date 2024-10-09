@@ -63,7 +63,7 @@ or
 ```
 -->
 The fully connected Bayesian networks are individually trained using 
-Negative Losslikelihood Loss (NLL) with either Gaussian Priors, i.e.
+Negative Losslikelihood Loss (NLL) with Gaussian Priors, i.e.
 ```math
 \text{NLL}_{\text{Gaussian}}(y, \mu, \log \sigma) = \log( \sigma ) + \frac{(y - \mu)^2}{2 \sigma^2} + \frac{1}{2} \log(2 \pi).
 ```
