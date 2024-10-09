@@ -109,15 +109,15 @@ Assumptions: assume an independent distribution of model parameters
 1. Define a fully connected neural network structure where each output value corresponds to a parametrization of a distribution. 
    In the case of a Gaussian distribution (currently the only supported option), each output value corresponds to 2 predictions:
    mean $\mu$ and the standard deviation $\sigma$. Hence, the output layer for a network with N predicted values should look as follows: $(\mu_1, \mu_2, ..., \mu_N, \\sigma_1, \sigma_2, ..., \sigma_N$.
-3. Train n neural networks in parallel using a
-negative log-likelihood loss function to obtain $\mu$
-and $\sigma$.
-4. Specify a prior distribution over the model weights.
-5. Calculate the posterior probability of the weights.
-6. Use a sampler with burn-in period to sample new trained networks, 
-i.e. sets of weights, in parallel from the posterior distribution.
-7. Use the obtained networks to predict the data.
-8. From the posterior predictive distribution, obtain mean estimates
+2. Train n neural networks in parallel using a
+   negative log-likelihood loss function to obtain $\mu$
+   and $\sigma$.
+3. Specify a prior distribution over the model weights.
+4. Calculate the posterior probability of the weights.
+5. Use a sampler with burn-in period to sample new trained networks, 
+   i.e. sets of weights, in parallel from the posterior distribution.
+6. Use the obtained networks to predict the data.
+7. From the posterior predictive distribution, obtain mean estimates
 and credible intervals.
 
  <!--
