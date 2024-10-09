@@ -149,8 +149,8 @@ sphinx-autodoc-typehints = "*"
 sphinx-rtd-theme = "*"
 
 [tool.pixi.feature.doc.tasks]
-build-doc = { cmd = "make html", cwd = "docs" }
-clean-doc = { cmd = "rm -rf _build", cwd = "docs" }
+build-doc = { cmd = "make html", cwd = "doc" }
+clean-doc = { cmd = "rm -rf _build", cwd = "doc" }
 
 [tool.pixi.environments]
 doc = ["doc"]

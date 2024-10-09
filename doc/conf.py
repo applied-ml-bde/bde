@@ -3,8 +3,6 @@
 import os
 import sys
 
-from importlib.metadata import version as get_version
-
 project = 'BDE'
 copyright = '2024, Konstantin and Steffen'
 author = 'Konstantin and Steffen'
@@ -27,7 +25,14 @@ extensions = [
 ]
 
 templates_path = ['_templates']
-exclude_patterns = ['_build', "_templates", 'Thumbs.db', '.DS_Store', '.venv', '.github']
+exclude_patterns = [
+    '_build',
+    "_templates",
+    'Thumbs.db',
+    '.DS_Store',
+    '.venv',
+    '.github',
+]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -46,7 +51,7 @@ html_logo = "_static/img/logo.png"
 html_css_files = [
     "css/project-template.css",
 ]
-html_sidebars = {
+html_sidebars: dict = {
     "quick_start": [],
     "user_guide": [],
     "auto_examples/index": [],
@@ -67,7 +72,7 @@ html_context = {
     "github_user": "applied-ml-bde",
     "github_repo": "bde",
     "github_version": "main",
-    "doc_path": "docs",
+    "doc_path": "doc",
 }
 
 # -- Options for autodoc ------------------------------------------------------
@@ -111,4 +116,3 @@ sphinx_gallery_conf = {
     "gallery_dirs": "auto_examples",
     "reference_url": {"bde": None},
 }
-
