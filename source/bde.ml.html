@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>bde.ml package &#8212; BDE 0.1.dev302+gb938164.d20241009 documentation</title>
+    <title>bde.ml package &#8212; BDE 0.1.dev306+gd7c490a documentation</title>
   
   
   
@@ -42,7 +42,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=a84ef196"></script>
+    <script src="../_static/documentation_options.js?v=80231772"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
@@ -131,8 +131,8 @@
       
     
     
-    <img src="../_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.dev302+gb938164.d20241009 documentation - Home"/>
-    <script>document.write(`<img src="../_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.dev302+gb938164.d20241009 documentation - Home"/>`);</script>
+    <img src="../_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.dev306+gd7c490a documentation - Home"/>
+    <script>document.write(`<img src="../_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.dev306+gd7c490a documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -979,7 +979,7 @@ that adhere to the scikit-learn API.</p>
 </section>
 <dl class="py class">
 <dt class="sig sig-object py" id="bde.ml.models.BDEEstimator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bde.ml.models.</span></span><span class="sig-name descname"><span class="pre">BDEEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_class=&lt;class</span> <span class="pre">'bde.ml.models.FullyConnectedModule'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_chains=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_len=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmup=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_class=&lt;function</span> <span class="pre">adam&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss=&lt;bde.ml.loss.GaussianNLLLoss</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_size=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed=42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bde.ml.models.BDEEstimator" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bde.ml.models.</span></span><span class="sig-name descname"><span class="pre">BDEEstimator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_class=&lt;class</span> <span class="pre">'bde.ml.models.FullyConnectedModule'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_chains=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chain_len=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">warmup=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_samples=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_class=&lt;function</span> <span class="pre">adam&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer_kwargs=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss=&lt;bde.ml.loss.GaussianNLLLoss</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs=1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metrics=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_size=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed=42</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bde.ml.models.BDEEstimator" title="Link to this definition">#</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#bde.ml.models.FullyConnectedEstimator" title="bde.ml.models.FullyConnectedEstimator"><code class="xref py py-class docutils literal notranslate"><span class="pre">FullyConnectedEstimator</span></code></a></p>
 <p>SKlearn-compatible implementation of a BDE estimator.</p>
 <p># TODO: Describe BDE estimator.</p>

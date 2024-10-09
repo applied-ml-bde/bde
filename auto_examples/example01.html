@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>bde.utils package &#8212; BDE 0.1.dev306+gd7c490a documentation</title>
+    <title>Plotting Template Estimator &#8212; BDE 0.1.dev306+gd7c490a documentation</title>
   
   
   
@@ -46,10 +46,9 @@
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'source/bde.utils';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'auto_examples/example01';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="prev" title="bde.ml package" href="bde.ml.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -145,22 +144,22 @@
 <nav>
   <ul class="bd-navbar-elements navbar-nav">
     
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="bde.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../source/bde.html">
     bde package
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="bde.ml.html">
+  <a class="nav-link nav-internal" href="../source/bde.ml.html">
     bde.ml package
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="#">
+  <a class="nav-link nav-internal" href="../source/bde.utils.html">
     bde.utils package
   </a>
 </li>
@@ -265,22 +264,22 @@ document.write(`
 <nav>
   <ul class="bd-navbar-elements navbar-nav">
     
-<li class="nav-item current active">
-  <a class="nav-link nav-internal" href="bde.html">
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../source/bde.html">
     bde package
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="bde.ml.html">
+  <a class="nav-link nav-internal" href="../source/bde.ml.html">
     bde.ml package
   </a>
 </li>
 
 
 <li class="nav-item ">
-  <a class="nav-link nav-internal" href="#">
+  <a class="nav-link nav-internal" href="../source/bde.utils.html">
     bde.utils package
   </a>
 </li>
@@ -332,11 +331,7 @@ document.write(`
 <nav class="bd-docs-nav bd-links"
      aria-label="Section Navigation">
   <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
-  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="bde.ml.html">bde.ml package</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">bde.utils package</a></li>
-</ul>
-</div>
+  <div class="bd-toc-item navbar-nav"></div>
 </nav></div>
     </div>
   
@@ -372,10 +367,7 @@ document.write(`
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    
-    <li class="breadcrumb-item"><a href="bde.html" class="nav-link">bde package</a></li>
-    
-    <li class="breadcrumb-item active" aria-current="page">bde.utils package</li>
+    <li class="breadcrumb-item active" aria-current="page">Plotting...</li>
   </ul>
 </nav>
 </div>
@@ -392,49 +384,70 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="bde-utils-package">
-<h1>bde.utils package<a class="headerlink" href="#bde-utils-package" title="Link to this heading">#</a></h1>
-<section id="submodules">
-<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading">#</a></h2>
-</section>
-<section id="module-bde.utils.configs">
-<span id="bde-utils-configs-module"></span><h2>bde.utils.configs module<a class="headerlink" href="#module-bde.utils.configs" title="Link to this heading">#</a></h2>
-<p>Configuration settings for the Bayesian Deep Ensembles (BDE) framework.</p>
-<p>This module contains configuration settings that are used throughout the BDE framework.
-Currently.</p>
-<section id="classes">
-<h3>Classes<a class="headerlink" href="#classes" title="Link to this heading">#</a></h3>
-<ul class="simple">
-<li><p>General: Holds general constants for the framework.</p></li>
-</ul>
-</section>
-<dl class="py class">
-<dt class="sig sig-object py" id="bde.utils.configs.General">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bde.utils.configs.</span></span><span class="sig-name descname"><span class="pre">General</span></span><a class="headerlink" href="#bde.utils.configs.General" title="Link to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A class to hold general configuration settings for the BDE framework.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="bde.utils.configs.General.SEED">
-<span class="sig-name descname"><span class="pre">SEED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">42</span></em><a class="headerlink" href="#bde.utils.configs.General.SEED" title="Link to this definition">#</a></dt>
-<dd></dd></dl>
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-auto-examples-example01-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<p class="sphx-glr-example-title" id="sphx-glr-auto-examples-example01-py">Plot Template Estimator.</p>
+<section id="plotting-template-estimator">
+<h1>Plotting Template Estimator<a class="headerlink" href="#plotting-template-estimator" title="Link to this heading">#</a></h1>
+<p>An example plot for using BDE estimator.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">optax</span> <span class="kn">import</span> <span class="n">adam</span>
 
-</dd></dl>
+<span class="kn">from</span> <span class="nn">bde.ml.loss</span> <span class="kn">import</span> <a href="../source/bde.ml.html#bde.ml.loss.GaussianNLLLoss" title="bde.ml.loss.GaussianNLLLoss" class="sphx-glr-backref-module-bde-ml-loss sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">GaussianNLLLoss</span></a>
+<span class="kn">from</span> <span class="nn">bde.ml.models</span> <span class="kn">import</span> <a href="../source/bde.ml.html#bde.ml.models.BDEEstimator" title="bde.ml.models.BDEEstimator" class="sphx-glr-backref-module-bde-ml-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BDEEstimator</span></a><span class="p">,</span> <a href="../source/bde.ml.html#bde.ml.models.FullyConnectedModule" title="bde.ml.models.FullyConnectedModule" class="sphx-glr-backref-module-bde-ml-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">FullyConnectedModule</span></a>
 
-</section>
-<section id="module-bde.utils">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-bde.utils" title="Link to this heading">#</a></h2>
-<p>Utility functions and configuration for the Bayesian Deep Ensembles (BDE) framework.</p>
-<p>This package includes various utility functions and configurations that support the
-operation of the BDE framework. It provides reusable components such as configuration
-management tools.</p>
-<section id="modules">
-<h3>Modules<a class="headerlink" href="#modules" title="Link to this heading">#</a></h3>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">configs</span></code>: Contains configuration management utilities for the BDE framework.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">utils</span></code>: Contains general utility functions used by other modules.</p></li>
-</ul>
-</section>
-</section>
+<span class="n">est</span> <span class="o">=</span> <a href="../source/bde.ml.html#bde.ml.models.BDEEstimator" title="bde.ml.models.BDEEstimator" class="sphx-glr-backref-module-bde-ml-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">BDEEstimator</span></a><span class="p">(</span>
+    <span class="n">model_class</span><span class="o">=</span><a href="../source/bde.ml.html#bde.ml.models.FullyConnectedModule" title="bde.ml.models.FullyConnectedModule" class="sphx-glr-backref-module-bde-ml-models sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">FullyConnectedModule</span></a><span class="p">,</span>
+    <span class="n">model_kwargs</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;n_output_params&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="s2">&quot;layer_sizes&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">],</span>
+    <span class="p">},</span>  <span class="c1"># No hidden layers by default</span>
+    <span class="n">n_chains</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>  <span class="c1"># 1 by default</span>
+    <span class="n">n_samples</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>  <span class="c1"># 1 by default</span>
+    <span class="n">chain_len</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>  <span class="c1"># 1 by default</span>
+    <span class="n">warmup</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>  <span class="c1"># 1 by default</span>
+    <span class="n">optimizer_class</span><span class="o">=</span><span class="n">adam</span><span class="p">,</span>
+    <span class="n">optimizer_kwargs</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">&quot;learning_rate&quot;</span><span class="p">:</span> <span class="mf">1e-3</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="n">loss</span><span class="o">=</span><a href="../source/bde.ml.html#bde.ml.loss.GaussianNLLLoss" title="bde.ml.loss.GaussianNLLLoss" class="sphx-glr-backref-module-bde-ml-loss sphx-glr-backref-type-py-class sphx-glr-backref-instance"><span class="n">GaussianNLLLoss</span></a><span class="p">(),</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>  <span class="c1"># 1 by default</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span>  <span class="c1"># 1 by default</span>
+    <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">validation_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">x</span> <span class="o">=</span> <a href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.rand.html#numpy.random.rand" title="numpy.random.rand" class="sphx-glr-backref-module-numpy-random sphx-glr-backref-type-py-function"><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span></a><span class="p">(</span><span class="mi">256</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><a href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.float32" title="numpy.float32" class="sphx-glr-backref-module-numpy sphx-glr-backref-type-py-attribute"><span class="n">np</span><span class="o">.</span><span class="n">float32</span></a><span class="p">)</span>
+<span class="n">x</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="mf">0.2</span>
+<span class="n">est</span> <span class="o">=</span> <span class="n">est</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="n">y_pred</span> <span class="o">=</span> <span class="n">est</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html#matplotlib.pyplot.plot" title="matplotlib.pyplot.plot" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">plot</span></a><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.4</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;True&quot;</span><span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.scatter.html#matplotlib.pyplot.scatter" title="matplotlib.pyplot.scatter" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">scatter</span></a><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="s2">&quot;crimson&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Prediction&quot;</span><span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.legend.html#matplotlib.pyplot.legend" title="matplotlib.pyplot.legend" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">legend</span></a><span class="p">()</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.xlabel.html#matplotlib.pyplot.xlabel" title="matplotlib.pyplot.xlabel" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span></a><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.ylabel.html#matplotlib.pyplot.ylabel" title="matplotlib.pyplot.ylabel" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span></a><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">)</span>
+<a href="https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.show.html#matplotlib.pyplot.show" title="matplotlib.pyplot.show" class="sphx-glr-backref-module-matplotlib-pyplot sphx-glr-backref-type-py-function"><span class="n">plt</span><span class="o">.</span><span class="n">show</span></a><span class="p">()</span>
+</pre></div>
+</div>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-auto-examples-example01-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/ce7a3ad9ec8b6ab67e79dffc2fca92e2/example01.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">example01.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/a02cf3e62c2a493a35c8ba71b427a2c0/example01.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">example01.py</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-zip docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/f282e073b56b68970b3503aad916c694/example01.zip"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">zipped:</span> <span class="pre">example01.zip</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
 </section>
 
 
@@ -447,15 +460,6 @@ management tools.</p>
                 <footer class="prev-next-footer d-print-none">
                   
 <div class="prev-next-area">
-    <a class="left-prev"
-       href="bde.ml.html"
-       title="previous page">
-      <i class="fa-solid fa-angle-left"></i>
-      <div class="prev-next-info">
-        <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">bde.ml package</p>
-      </div>
-    </a>
 </div>
                 </footer>
               
@@ -467,34 +471,10 @@ management tools.</p>
 
 
   <div class="sidebar-secondary-item">
-<div
-    id="pst-page-navigation-heading-2"
-    class="page-toc tocsection onthispage">
-    <i class="fa-solid fa-list"></i> On this page
-  </div>
-  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
-    <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-bde.utils.configs">bde.utils.configs module</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#classes">Classes</a></li>
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#bde.utils.configs.General"><code class="docutils literal notranslate"><span class="pre">General</span></code></a><ul class="nav section-nav flex-column">
-<li class="toc-h4 nav-item toc-entry"><a class="reference internal nav-link" href="#bde.utils.configs.General.SEED"><code class="docutils literal notranslate"><span class="pre">General.SEED</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-bde.utils">Module contents</a><ul class="nav section-nav flex-column">
-<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#modules">Modules</a></li>
-</ul>
-</li>
-</ul>
-  </nav></div>
-
-  <div class="sidebar-secondary-item">
 
   
   <div class="tocsection editthispage">
-    <a href="https://github.com/applied-ml-bde/bde/edit/main/doc/source/bde.utils.rst">
+    <a href="https://github.com/applied-ml-bde/bde/edit/main/doc/auto_examples/example01.rst">
       <i class="fa-solid fa-pencil"></i>
       
       
@@ -509,7 +489,7 @@ management tools.</p>
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="../_sources/source/bde.utils.rst.txt">
+    <a href="../_sources/auto_examples/example01.rst.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>

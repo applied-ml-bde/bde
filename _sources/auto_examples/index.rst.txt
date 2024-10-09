@@ -15,11 +15,34 @@ Examples and user guides.
 
 .. thumbnail-parent-div-open
 
+.. raw:: html
+
+    <div class="sphx-glr-thumbcontainer" tooltip="=========================== Plotting Template Estimator ===========================">
+
+.. only:: html
+
+  .. image:: /auto_examples/images/thumb/sphx_glr_example01_thumb.png
+    :alt:
+
+  :ref:`sphx_glr_auto_examples_example01.py`
+
+.. raw:: html
+
+      <div class="sphx-glr-thumbnail-title">Plot Template Estimator.</div>
+    </div>
+
+
 .. thumbnail-parent-div-close
 
 .. raw:: html
 
     </div>
+
+
+.. toctree::
+   :hidden:
+
+   /auto_examples/example01
 
 
 .. only:: html
@@ -29,6 +52,10 @@ Examples and user guides.
     .. container:: sphx-glr-download sphx-glr-download-python
 
       :download:`Download all examples in Python source code: auto_examples_python.zip </auto_examples/auto_examples_python.zip>`
+
+    .. container:: sphx-glr-download sphx-glr-download-jupyter
+
+      :download:`Download all examples in Jupyter notebooks: auto_examples_jupyter.zip </auto_examples/auto_examples_jupyter.zip>`
 
 
 .. only:: html
