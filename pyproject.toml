@@ -5,9 +5,11 @@ version = "0.1.0"
 requires-python = ">= 3.11"
 authors = [
     {name = "Kostya", email = "65129914+cklyne@users.noreply.github.com"},
+    {name = "Steffen Jauchwalser", email = "@uni-muenchen.de"},
 ]
 dependencies = []
 readme = "README.md"
+license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -28,44 +30,44 @@ Issues = "https://github.com/applied-ml-bde/bde/issues"
 [tool.setuptools_scm]
 version_file = "bde/_version.py"
 
-[tool.poetry]
-name = "bde"
-version = "0.1.0"
-description = "A package implementing BDE models."
-authors = [
-    "Kostya <65129914+cklyne@users.noreply.github.com>",
-    "Steffen Jauchwalser <@uni-muenchen.de>",
-]
-license = "MIT"
-readme = "README.md"
+# [tool.poetry]
+# name = "bde"
+# version = "0.1.0"
+# description = "A package implementing BDE models."
+# authors = [
+#     "Kostya <65129914+cklyne@users.noreply.github.com>",
+#     "Steffen Jauchwalser <@uni-muenchen.de>",
+# ]
+# license = "MIT"
+# readme = "README.md"
 
-[tool.poetry.dependencies]
-chex = ">0.1.8"
-python = ">3.10, <3.12"
-flax = ">0.8.3"
-ipython = ">8.22"
-jax = ">0.4.26"
-jupyter = "^1.0.0"
-jupyterlab = ">4.1"
-matplotlib = ">3.8.3"
-notebook = ">7.1"
-numpy = ">1.26"
-optax = ">0.2"
-pandas = ">2.2"
-pip = ">24.0"
-pytest = ">7.4"
-pytest-timeout = ">2.2"
-scikit-learn = ">1.4"
-scipy = ">1.13"
-seaborn = ">0.12"
-array-api-compat = ">=1.8"
-pre-commit = ">=3.4"
-myst-parser = ">=3.0.1"
+# [tool.poetry.dependencies]
+# chex = ">0.1.8"
+# python = ">3.10, <3.12"
+# flax = ">0.8.3"
+# ipython = ">8.22"
+# jax = ">0.4.26"
+# jupyter = "^1.0.0"
+# jupyterlab = ">4.1"
+# matplotlib = ">3.8.3"
+# notebook = ">7.1"
+# numpy = ">1.26"
+# optax = ">0.2"
+# pandas = ">2.2"
+# pip = ">24.0"
+# pytest = ">7.4"
+# pytest-timeout = ">2.2"
+# scikit-learn = ">1.4"
+# scipy = ">1.13"
+# seaborn = ">0.12"
+# array-api-compat = ">=1.8"
+# pre-commit = ">=3.4"
+# myst-parser = ">=3.0.1"
 
-[tool.poetry.group.dev.dependencies]
-sphinx-autodoc-typehints = "^2.0.0"
-sphinx-rtd-theme = "^2.0.0"
-coverage = "^7.5.0"
+# [tool.poetry.group.dev.dependencies]
+# sphinx-autodoc-typehints = "^2.0.0"
+# sphinx-rtd-theme = "^2.0.0"
+# coverage = "^7.5.0"
 
 [build-system]
 # requires = ["poetry-core"]
@@ -80,26 +82,28 @@ platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 
 [tool.pixi.dependencies]
 python = ">=3.9"
-ipython = ">=8.22"
-jupyter = "~=1.0.0"
-jupyterlab = ">=4.1"
-matplotlib = ">=3.8.3"
-notebook = ">=7.1"
+#ipython = ">=8.22"
+#jupyter = "~=1.0.0"
+#jupyterlab = ">=4.1"
+#matplotlib = ">=3.8.3"
+#notebook = ">=7.1"
 numpy = ">=1.26"
 pandas = ">=2.2"
 pip = ">=24.0"
 pytest = ">=7.4"
 scikit-learn = ">=1.4"
-scipy = ">=1.13"
-seaborn = ">=0.12"
-array-api-compat = ">=1.8"
+#scipy = ">=1.13"
+#seaborn = ">=0.12"
 pre-commit = ">=3.4"
+pixi-pycharm = ">=0.0.6,<0.0.7"
 
 [tool.pixi.pypi-dependencies]
 #bde = { path = ".", editable = true }
 jax = ">=0.4.26"
 optax = ">=0.2"
 flax = ">=0.8.3"
+chex = ">=0.1.8"
+blackjax = ">=1.2.3,<2"
 
 [tool.pixi.tasks]
 
@@ -108,7 +112,7 @@ flax = ">=0.8.3"
 [tool.pixi.feature.lint.dependencies]
 # The version below should be aligned with the one of `.pre-commit-config.yaml`
 black = ">=24.8"
-pre-commit = ">=3.4"
+#pre-commit = ">=3.4"
 ruff = ">=0.6.4"
 isort = ">=5.13"
 flake8 = ">=7.1"
@@ -129,7 +133,9 @@ lint = { depends_on = ["black", "ruff", "isort", "flake8", "pydocstyle", "mypy"]
 
 [tool.pixi.feature.test.dependencies]
 pytest = ">=7.4"
+pytest-timeout = ">=2.2"
 pytest-cov = "*"
+array-api-compat = ">=1.8"
 
 [tool.pixi.feature.test.tasks]
 test = { cmd = "python -m pytest -vsl --cov=bde --cov-report=xml tests/" }
@@ -251,3 +257,4 @@ scripts_are_modules=true
 follow_imports="skip"
 no_incremental=true
 show_traceback=true
+allow_redefinition=true

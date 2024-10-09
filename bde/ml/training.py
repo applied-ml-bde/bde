@@ -12,13 +12,12 @@ Functions
 """
 
 import pathlib
-from typing import Any, Tuple
+from typing import Tuple
 
 import jax
 
 # import bde
 import pytest
-from flax.core import FrozenDict
 from flax.training.train_state import TrainState
 from jax import Array
 from jax import numpy as jnp
@@ -118,7 +117,7 @@ def jitted_training(
     metrics: Array,
     train: BasicDataset,
     valid: BasicDataset,
-) -> Tuple[FrozenDict[str, Any], Array]:
+) -> Tuple[TrainState, Array]:
     r"""Train a model on a single parameters set.
 
     A jitted training loop for a model using a single parameter set.
@@ -140,9 +139,9 @@ def jitted_training(
 
     Returns
     -------
-    Tuple[Dict, Array]
-        A dictionary representing the optimized model parameters
-        and an array describing the metrics over the training epochs.
+    Tuple[TrainState, Array]
+        Updated training state and an array describing the metrics over the
+        training epochs.
     """
     # model_state = train_state.TrainState.create(
     #     # apply_fn=model.apply,
@@ -150,18 +149,23 @@ def jitted_training(
     #     params=params,
     #     tx=optimizer_class(**optimizer_kwargs),
     # )
-    (model_state, train, valid), history = jax.lax.scan(
-        f=lambda ms_train_val, sx: jitted_training_epoch(
+
+    @jax.jit
+    def sub_f(ms_train_val, _):
+        return jitted_training_epoch(
             model_state=ms_train_val[0],
             train=ms_train_val[1],
             valid=ms_train_val[2],
             f_loss=f_loss,
             metrics=metrics,
-        ),
+        )
+
+    (model_state, train, valid), history = jax.lax.scan(
+        f=sub_f,
         init=(model_state, train, valid),
         xs=epochs,
     )
-    return model_state.params, history.T
+    return model_state, history.T
 
 
 @jax.jit
@@ -198,19 +202,24 @@ def jitted_training_epoch(
             - Updated model state.
             - Updated training dataset (updates shuffling).
             - Updated validation dataset (updates shuffling).
-        - The 2nd item is a 1D-array describing the evaluation of all metrics over this epoch.
-    """  # noqa: E501
+        - The 2nd item is a 1D-array describing the evaluation of all metrics over
+          this epoch.
+    """
     history = jnp.array(
         [], dtype=jnp.float32
     )  # An empty 1D-array to store the history for current epoch.
 
-    train = train.shuffle()
-    model_state, loss = jax.lax.scan(
-        f=lambda cc, sx: train_step(
+    @jax.jit
+    def sub_f(cc, sx):
+        return train_step(
             cc,
             batch=sx,
             f_loss=f_loss,
-        ),
+        )
+
+    train = train.shuffle()
+    model_state, loss = jax.lax.scan(
+        f=sub_f,
         init=model_state,
         xs=train.get_scannable(),
     )

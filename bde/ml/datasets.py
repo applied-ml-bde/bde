@@ -263,8 +263,8 @@ class DatasetWrapper(BasicDataset):
         # TODO: Complete
         """
         chex.assert_equal(x.shape[0], y.shape[0])
-        self.x = x
-        self.y = y
+        self.x = x.astype(float)  # TODO: Needs better handling
+        self.y = y.astype(float)
         self._batch_size = batch_size
         self._seed = seed
 
@@ -324,16 +324,25 @@ class DatasetWrapper(BasicDataset):
         res = cls(*children[:2], *aux_data[:2])
         res.rng_key, res.split_key = children[2:4]
         res.was_shuffled_ = children[4]
-        res.assignment = jax.lax.cond(
-            res.was_shuffled_,
-            lambda: jax.random.permutation(
+
+        @jax.jit
+        def f_true():
+            return jax.random.permutation(
                 res.rng_key,
                 res.n_items_,
             )[: (res.size_ * aux_data[0])].reshape(
                 res.size_,
                 aux_data[0],
-            ),
-            lambda: res.assignment,
+            )
+
+        @jax.jit
+        def f_false():
+            return res.assignment
+
+        res.assignment = jax.lax.cond(
+            res.was_shuffled_,
+            f_true,
+            f_false,
         )
         return res
 
