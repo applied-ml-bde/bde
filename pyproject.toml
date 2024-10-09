@@ -8,8 +8,8 @@ dynamic = ["version"]
 description = "A package implementing BDE models."
 requires-python = ">= 3.9"
 authors = [
-    {name = "Konstantin", email = "65129914+cklyne@users.noreply.github.com"},
-    {name = "Steffen Jauchwalser", email = "_@uni-muenchen.de"},
+    {name = "K.Krivokon", email = "65129914+cklyne@users.noreply.github.com"},
+    {name = "SteffenJW", email = "_@users.noreply.github.com"},
 ]
 dependencies = []
 readme = "README.md"
