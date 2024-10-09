@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Welcome to the documentation of the OSIS Reproducability Python Template! &#8212; BDE 0.1.0 documentation</title>
+    <title>Bayesian Deep Ensembles &#8212; BDE 0.1.dev293+g79708b9.d20241009 documentation</title>
   
   
   
@@ -42,7 +42,7 @@
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="_static/documentation_options.js?v=01f34227"></script>
+    <script src="_static/documentation_options.js?v=116e6fbd"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/design-tabs.js?v=f930bc37"></script>
@@ -130,8 +130,8 @@
       
     
     
-    <img src="_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.0 documentation - Home"/>
-    <script>document.write(`<img src="_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.0 documentation - Home"/>`);</script>
+    <img src="_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.dev293+g79708b9.d20241009 documentation - Home"/>
+    <script>document.write(`<img src="_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.dev293+g79708b9.d20241009 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -353,29 +353,78 @@ document.write(`
 <div id="searchbox"></div>
                 <article class="bd-article">
                   
-  <section id="welcome-to-the-documentation-of-the-osis-reproducability-python-template">
-<h1>Welcome to the documentation of the OSIS Reproducability Python Template!<a class="headerlink" href="#welcome-to-the-documentation-of-the-osis-reproducability-python-template" title="Link to this heading">#</a></h1>
+  <section id="bayesian-deep-ensembles">
+<h1>Bayesian Deep Ensembles<a class="headerlink" href="#bayesian-deep-ensembles" title="Link to this heading">#</a></h1>
 <div class="toctree-wrapper compound">
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="source/bde.html">bde package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html">bde.ml package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.utils.html">bde.utils package</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="source/bde.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.html#module-bde">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.html#module-bde">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.html#main-features">Main Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.html#theory">Theory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.html#modules">Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.html#usage">Usage</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="source/bde.ml.html">bde.ml package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml.loss">bde.ml.loss module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml.models">bde.ml.models module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml.training">bde.ml.training module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml.loss">bde.ml.loss module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#functions">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.loss.GaussianNLLLoss"><code class="docutils literal notranslate"><span class="pre">GaussianNLLLoss</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.loss.Loss"><code class="docutils literal notranslate"><span class="pre">Loss</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.loss.LossMSE"><code class="docutils literal notranslate"><span class="pre">LossMSE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.loss.NLLLoss"><code class="docutils literal notranslate"><span class="pre">NLLLoss</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.loss.flax_training_loss_wrapper_classification"><code class="docutils literal notranslate"><span class="pre">flax_training_loss_wrapper_classification()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.loss.flax_training_loss_wrapper_regression"><code class="docutils literal notranslate"><span class="pre">flax_training_loss_wrapper_regression()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml.models">bde.ml.models module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#id1">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#id2">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.models.BDEEstimator"><code class="docutils literal notranslate"><span class="pre">BDEEstimator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.models.BasicModule"><code class="docutils literal notranslate"><span class="pre">BasicModule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.models.FullyConnectedEstimator"><code class="docutils literal notranslate"><span class="pre">FullyConnectedEstimator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.models.FullyConnectedModule"><code class="docutils literal notranslate"><span class="pre">FullyConnectedModule</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.models.init_dense_model"><code class="docutils literal notranslate"><span class="pre">init_dense_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.models.init_dense_model_jitted"><code class="docutils literal notranslate"><span class="pre">init_dense_model_jitted()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml.training">bde.ml.training module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#id79">Functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.training.jitted_evaluation_for_a_metric"><code class="docutils literal notranslate"><span class="pre">jitted_evaluation_for_a_metric()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.training.jitted_evaluation_over_batch"><code class="docutils literal notranslate"><span class="pre">jitted_evaluation_over_batch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.training.jitted_training"><code class="docutils literal notranslate"><span class="pre">jitted_training()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.training.jitted_training_epoch"><code class="docutils literal notranslate"><span class="pre">jitted_training_epoch()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#bde.ml.training.train_step"><code class="docutils literal notranslate"><span class="pre">train_step()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.ml.html#module-bde.ml">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#id80">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.ml.html#example-usage">Example Usage</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="source/bde.utils.html">bde.utils package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="source/bde.utils.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.utils.html#module-bde.utils.configs">bde.utils.configs module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="source/bde.utils.html#module-bde.utils">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.utils.html#module-bde.utils.configs">bde.utils.configs module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.utils.html#classes">Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.utils.html#bde.utils.configs.General"><code class="docutils literal notranslate"><span class="pre">General</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="source/bde.utils.html#module-bde.utils">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="source/bde.utils.html#modules">Modules</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
