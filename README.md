@@ -56,7 +56,7 @@ est = BDEEstimator(
         "layer_sizes": [10, 10],
     },  # No hidden layers by default
     n_chains=10,  # 1 by default
-    n_init_runs=2,  # 1 by default
+    n_samples=10,  # 1 by default
     chain_len=100,  # 1 by default
     warmup=100,  # 1 by default
     optimizer_class=adam,
