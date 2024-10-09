@@ -2,6 +2,7 @@
 
 import os
 import sys
+from importlib.metadata import version as get_version
 
 project = 'BDE'
 copyright = '2024, Konstantin and Steffen'
