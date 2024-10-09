@@ -1,8 +1,8 @@
-Welcome to the documentation of the OSIS Reproducability Python Template!
-===============================================================
+Bayesian Deep Ensembles
+=======================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
    :glob:
 
