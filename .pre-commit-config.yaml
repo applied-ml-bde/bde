@@ -5,7 +5,9 @@ repos:
     hooks:
     -   id: check-yaml
     -   id: end-of-file-fixer
+        exclude: "doc/_static/img"
     -   id: trailing-whitespace
+        exclude: "doc/_static/img"
     -   id: check-added-large-files
         args:
           - --maxkb=10000

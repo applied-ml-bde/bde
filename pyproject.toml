@@ -169,7 +169,7 @@ exclude = '''
   | \.vscode
 )/
 '''
-force-exclude = "bde/_version.py"
+force-exclude = ["bde/_version.py", "bde/doc/_static/img"]
 
 [tool.ruff]
 # max line length for black
@@ -183,6 +183,7 @@ exclude=[
     "doc/auto_examples",
     "build",
     "bde/_version.py",
+    "bde/doc/_static/img",
 ]
 
 [tool.ruff.lint]
@@ -223,6 +224,7 @@ exclude=[
     "doc/auto_examples",
     "build",
     "bde/_version.py",
+    "bde/doc/_static/img",
 ]
 max-complexity = 10
 max-line-length=88
