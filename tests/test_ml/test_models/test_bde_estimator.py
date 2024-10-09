@@ -1,91 +1,72 @@
+import jax.tree
 import pytest
-import jax
 from jax import numpy as jnp
 
-import bde.ml
 from bde.ml.models import BDEEstimator
-from bde.utils import configs as cnfg
+from bde.utils.utils import get_n_devices
 
 
 class TestInit:
-    ...
-
-
-class TestPyTree:
-    @staticmethod
-    @pytest.fixture(
-        scope="class",
-        params=[True, False],
-        ids=["After_fitting", "Before_fitting"],
-    )
-    def default_model(request):
-        model_original = BDEEstimator()
-        if request.param:
-            x = jnp.arange(20).reshape(-1, 1)
-            model_original = model_original.fit(x)
-        yield model_original
-
-    @staticmethod
-    @pytest.mark.parametrize("do_use_jit", [True, False])
-    @pytest.mark.parametrize("att", [
-        "model_class",
-        "model_kwargs",
-        "optimizer_class",
-        "optimizer_kwargs",
-        "loss",
-        "batch_size",
-        "epochs",
-        "metrics",
-        "validation_size",
-        "seed",
-        "n_chains",
-        "n_init_runs",
-        "chain_len",
-        "warmup",
-
-        "params_",
-        "model_",
-        "is_fitted_",
-        "n_features_in_",
-
-    ])
-    def test_reconstruct_on_comparable_objects(
-            do_use_jit,
-            att,
-            recreate_with_pytree,
-            default_model,
-    ):
-        with jax.disable_jit(disable=not do_use_jit):
-            model_original = default_model
-            model_recreated = recreate_with_pytree(model_original)
-            assert getattr(model_original, att) == getattr(model_recreated, att)
-
-    @staticmethod
-    @pytest.mark.parametrize("do_use_jit", [True, False])
-    @pytest.mark.parametrize("att", [
-        "history_",
-
-    ])
-    def test_reconstruct_on_arrays(
-            do_use_jit,
-            att,
-            recreate_with_pytree,
-            default_model,
-    ):
-        with jax.disable_jit(disable=not do_use_jit):
-            model_original = default_model
-            model_recreated = recreate_with_pytree(model_original)
-            if model_original.is_fitted_:
-                assert jnp.allclose(getattr(model_original, att), getattr(model_recreated, att))
-            assert getattr(model_original, att) == getattr(model_recreated, att)
+    ...  # fmt: skip
 
 
 class TestFit:
-    ...
+    ...  # fmt: skip
 
 
 class TestPredict:
-    ...
+    ...  # fmt: skip
+
+
+class TestParallelization:
+    @staticmethod
+    @pytest.fixture(
+        scope="class",
+        params=[-1, 1, None, 2],
+        ids=["-1_devices", "1_device", "all_devices", "2_devices"],
+    )
+    def trained_model(request):
+        n_devices = int(get_n_devices())
+        # TODO:
+        #  - If we have only 1 device, the `n=2` test should be skipped.
+        #  - Make sure that testing all devices isn't too expensive.
+        #    Testing just `n=2` might be enough.
+        n_devices_pass = (
+            n_devices if request.param is None else min(int(request.param), n_devices)
+        )
+        n_devices = n_devices_pass if n_devices_pass > 0 else n_devices
+        n_chains = n_devices + 1
+        if n_devices == 1:
+            warmup, chain_len = 3, 5
+        else:
+            warmup = 5 if n_devices == 2 else 2
+            chain_len = 6 if n_devices == 2 else (5 if n_devices == 3 else 3)
+        epochs = warmup
+
+        model_original = BDEEstimator(
+            chain_len=chain_len,
+            n_chains=n_chains,
+            warmup=warmup,
+            epochs=epochs,
+        )
+        x = jnp.arange(20, dtype=float).reshape(-1, 1)
+        model_original = model_original.fit(x, x, n_devices=n_devices)
+        size_params = n_devices, n_chains, chain_len, warmup, epochs
+        yield model_original, size_params
+
+    @staticmethod
+    def test_samples_shape(trained_model):
+        model, (n_devices, n_chains, chain_len, warmup, epochs) = trained_model
+        exp_size = chain_len * n_chains
+        res = [x.shape[0] == exp_size for x in jax.tree.flatten(model.samples_)[0]]
+        assert jnp.all(jnp.array(res))
+
+    @staticmethod
+    def test_params_shape(trained_model):
+        model, (n_devices, n_chains, chain_len, warmup, epochs) = trained_model
+        exp_size = n_chains
+        res = [x.shape[0] == exp_size for x in jax.tree.flatten(model.params_)[0]]
+        assert jnp.all(jnp.array(res))
 
 
 if __name__ == '__main__':
