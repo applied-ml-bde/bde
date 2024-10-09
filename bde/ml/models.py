@@ -984,11 +984,27 @@ class BDEEstimator(FullyConnectedEstimator):
         params,
         carry: float,
         batch: Tuple[ArrayLike, ArrayLike],
-    ) -> Tuple[float, None]:
-        r"""Evaluate log-density for a batch of data."""
+    ) -> Tuple[Array, None]:
+        r"""Evaluate log-density for a batch of data.
+
+        Parameters
+        ----------
+        params
+            Parameters of the evaluated model.
+        carry
+            log-prior + logdensity of previous batches.
+        batch
+            Current batch to be evaluated.
+
+        Returns
+        -------
+        Tuple:
+         - Updated logdensity (carry + current batch value).
+         - None (used for compatibility with `jax.lax.scan`)
+        """
         x, y = batch
         y_pred = self.model_.apply(params, x)
-        res_loss = self.loss(y, y_pred)
+        res_loss = -self.loss(y, y_pred)  # Of type negative log-likelihood loss
         return carry + jnp.sum(res_loss), None
 
     @staticmethod
@@ -996,13 +1012,10 @@ class BDEEstimator(FullyConnectedEstimator):
     def burn_in_loop(
         rng: PRNGKeyArray,
         params: ArrayLike,
-        data: datasets.BasicDataset,
         n_burns: int,
         warmup,
     ):
         r"""Perform burn-in for sampler."""
-        # NOTE: We require the `data` variable despite not using it
-        #  to make the jit tracing work properly.
         return warmup.run(jnp.array(rng).reshape(), params, n_burns)
 
     def mcmc_sampling(
@@ -1047,35 +1060,39 @@ class BDEEstimator(FullyConnectedEstimator):
 
         @jax.jit
         def logdensity(params):
-            res, _ = jax.lax.scan(
-                f=lambda carry, batch: self.logdensity_for_batch(
+
+            @jax.jit
+            def sub_f(carry, batch):
+                return self.logdensity_for_batch(
                     params=params,
                     carry=carry,
                     batch=batch,
-                ),
+                )
+
+            res, _ = jax.lax.scan(
+                f=sub_f,
                 init=self.log_prior(params),
-                xs=train.get_scannable(),
+                xs=train.get_scannable(),  # Must be single-batched (see batch_mcmc_)
             )
             return res
 
-        warmup = blackjax.window_adaptation(
-            blackjax.nuts,
-            logdensity,
-            # progress_bar=True,
-        )
-
-        @partial(jax.jit, static_argnums=3)
+        @partial(jax.jit, static_argnums=2)
         def burn_in_loop_wrapper(
             rng: PRNGKeyArray,
             params: ArrayLike,
-            data: datasets.BasicDataset,
             n_burns: int,
             pmask,
         ):
+            warmup = blackjax.window_adaptation(
+                blackjax.nuts,
+                logdensity,
+                progress_bar=False,
+            )
+
             @jax.jit
             def sub_fun(_, xxx):
                 key, prm, cond = xxx
-                res = self.burn_in_loop(key, prm, data, n_burns, warmup)
+                res = self.burn_in_loop(key, prm, n_burns, warmup)
 
                 # TODO: The following commented out code is a more efficient
                 #  implementation since it skips masked warmup steps,
@@ -1130,12 +1147,11 @@ class BDEEstimator(FullyConnectedEstimator):
 
         _, ((init_state_sampling, nuts_params), warmup_info) = jax.pmap(
             fun=burn_in_loop_wrapper,
-            in_axes=(0, 0, None, None, 0),
-            static_broadcasted_argnums=(3,),
+            in_axes=(0, 0, None, 0),
+            static_broadcasted_argnums=(2,),
         )(
             sample_keys,
             model_states.params,
-            train,
             self.warmup,  # num_steps
             mask,
         )
