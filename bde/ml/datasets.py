@@ -263,8 +263,8 @@ class DatasetWrapper(BasicDataset):
         # TODO: Complete
         """
         chex.assert_equal(x.shape[0], y.shape[0])
-        self.x = x.astype(float)  # TODO: Needs better handling
-        self.y = y.astype(float)
+        self.x = x.astype(jnp.float32)  # TODO: Needs better handling
+        self.y = y.astype(jnp.float32)
         self._batch_size = batch_size
         self._seed = seed
 
