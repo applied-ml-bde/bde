@@ -2858,9 +2858,9 @@ packages:
   timestamp: 1702422720584
 - kind: pypi
   name: bde
-  version: 0.1.dev294+g9ac991a.d20241009
+  version: 0.1.dev309+gf674b9a.d20241010
   path: .
-  sha256: 7f37d4cc25d3c9487c1c669bd0ed3f12fffeaf0b69fffb9339c8c751c99ce9a8
+  sha256: 1aae60f2de0f68e8eb127a7e85d60a7c8ebf787282288cfdb89fe12ad224ca8b
   requires_python: '>=3.9'
   editable: true
 - kind: conda
