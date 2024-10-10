@@ -28,7 +28,7 @@ This is the documentation for the Bayesian Deep Ensembles module.
         :class-card: intro-card
         :shadow: md
 
-        Information regarding this template and how to modify it for your own project.
+        A quick into to working with our package (not yet ready).
 
         +++
 
@@ -45,8 +45,7 @@ This is the documentation for the Bayesian Deep Ensembles module.
         :class-card: intro-card
         :shadow: md
 
-        An example of narrative documentation. Here, we will explain how to create your
-        own `scikit-learn` estimator.
+        A general guide for using BDEs (not yet ready).
 
         +++
 
@@ -63,8 +62,7 @@ This is the documentation for the Bayesian Deep Ensembles module.
         :class-card: intro-card
         :shadow: md
 
-        An example of API documentation. This is an example how to use `sphinx` to
-        automatically generate reference API page.
+        API documentation.
 
         +++
 
@@ -81,8 +79,7 @@ This is the documentation for the Bayesian Deep Ensembles module.
         :class-card: intro-card
         :shadow: md
 
-        A set of examples. It complements the User Guide and it is the right place to
-        show how to use your compatible estimator.
+        A set of examples complementing the User Guide.
 
         +++
 
@@ -102,5 +99,5 @@ This is the documentation for the Bayesian Deep Ensembles module.
 
     .. quick_start
     .. user_guide
-    .. api
+    api
     auto_examples/index
