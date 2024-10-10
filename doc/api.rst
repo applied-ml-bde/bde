@@ -4,7 +4,7 @@
 API Reference
 #############
 
-.. currentmodule:: skltemplate
+.. currentmodule:: bde
 
 BDEEstimator
 ============
@@ -34,3 +34,21 @@ Utilities
    :template: functions.rst
 
      utils.discovery.all_estimators
+
+
+ML Module
+=========
+
+.. automodule:: bde.ml
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+Utils Module
+============
+
+.. automodule:: bde.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
