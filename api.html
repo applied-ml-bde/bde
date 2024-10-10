@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API reference &#8212; BDE 0.1.dev322+g33d7c0f.d20241010 documentation</title>
+    <title>API Reference &#8212; BDE 0.1.dev325+g17f4fc3.d20241010 documentation</title>
   
   
   
@@ -42,10 +42,11 @@
 <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="_static/documentation_options.js?v=b3a3f9b6"></script>
+    <script src="_static/documentation_options.js?v=22694761"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -128,8 +129,8 @@
       
     
     
-    <img src="_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.dev322+g33d7c0f.d20241010 documentation - Home"/>
-    <script>document.write(`<img src="_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.dev322+g33d7c0f.d20241010 documentation - Home"/>`);</script>
+    <img src="_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.dev325+g17f4fc3.d20241010 documentation - Home"/>
+    <script>document.write(`<img src="_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.dev325+g17f4fc3.d20241010 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -332,7 +333,7 @@ document.write(`
         <i class="fa-solid fa-home"></i>
       </a>
     </li>
-    <li class="breadcrumb-item active" aria-current="page">API reference</li>
+    <li class="breadcrumb-item active" aria-current="page">API Reference</li>
   </ul>
 </nav>
 </div>
@@ -350,7 +351,40 @@ document.write(`
                 <article class="bd-article">
                   
   <section id="api-reference">
-<h1>API reference<a class="headerlink" href="#api-reference" title="Link to this heading">#</a></h1>
+<span id="api"></span><h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">#</a></h1>
+<section id="bdeestimator">
+<h2>BDEEstimator<a class="headerlink" href="#bdeestimator" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="source/bde.ml.html#bde.ml.models.BDEEstimator" title="bde.ml.models.BDEEstimator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ml.models.BDEEstimator</span></code></a>([model_class, ...])</p></td>
+<td><p>SKlearn-compatible implementation of a BDE estimator.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="gaussiannllloss">
+<h2>GaussianNLLLoss<a class="headerlink" href="#gaussiannllloss" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="source/bde.ml.html#bde.ml.loss.GaussianNLLLoss" title="bde.ml.loss.GaussianNLLLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ml.loss.GaussianNLLLoss</span></code></a>([epsilon, ...])</p></td>
+<td><p>Gaussian negative log likelihood loss.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="utilities">
+<h2>Utilities<a class="headerlink" href="#utilities" title="Link to this heading">#</a></h2>
+<div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/bde.utils.discovery.all_estimators.html#bde.utils.discovery.all_estimators" title="bde.utils.discovery.all_estimators"><code class="xref py py-obj docutils literal notranslate"><span class="pre">utils.discovery.all_estimators</span></code></a>([type_filter])</p></td>
+<td><p>Get a list of all estimators from <code class="docutils literal notranslate"><span class="pre">bde</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
 <section id="module-bde.ml">
 <span id="ml-module"></span><h2>ML Module<a class="headerlink" href="#module-bde.ml" title="Link to this heading">#</a></h2>
 <p>Machine Learning Module for Bayesian Deep Ensembles (BDE).</p>
@@ -379,7 +413,7 @@ and training procedures, enabling flexible and robust implementation of BDE mode
 </section>
 </section>
 <section id="module-bde.utils">
-<span id="utils"></span><h2>Utils<a class="headerlink" href="#module-bde.utils" title="Link to this heading">#</a></h2>
+<span id="utils-module"></span><h2>Utils Module<a class="headerlink" href="#module-bde.utils" title="Link to this heading">#</a></h2>
 <p>Utility functions and configuration for the Bayesian Deep Ensembles (BDE) framework.</p>
 <p>This package includes various utility functions and configurations that support the
 operation of the BDE framework. It provides reusable components such as configuration
@@ -422,12 +456,15 @@ management tools.</p>
   </div>
   <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
     <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#bdeestimator">BDEEstimator</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#gaussiannllloss">GaussianNLLLoss</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#utilities">Utilities</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-bde.ml">ML Module</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#submodules">Submodules</a></li>
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#example-usage">Example Usage</a></li>
 </ul>
 </li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-bde.utils">Utils</a><ul class="nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#module-bde.utils">Utils Module</a><ul class="nav section-nav flex-column">
 <li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#modules">Modules</a></li>
 </ul>
 </li>
@@ -438,7 +475,7 @@ management tools.</p>
 
   
   <div class="tocsection editthispage">
-    <a href="https://github.com/applied-ml-bde/bde/edit/main/doc/api.md">
+    <a href="https://github.com/applied-ml-bde/bde/edit/main/doc/api.rst">
       <i class="fa-solid fa-pencil"></i>
       
       
@@ -453,7 +490,7 @@ management tools.</p>
   <div class="sidebar-secondary-item">
 
   <div class="tocsection sourcelink">
-    <a href="_sources/api.md.txt">
+    <a href="_sources/api.rst.txt">
       <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
   </div>

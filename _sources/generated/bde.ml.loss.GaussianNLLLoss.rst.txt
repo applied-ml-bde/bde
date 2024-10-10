@@ -1,0 +1,32 @@
+﻿GaussianNLLLoss
+=========================================
+
+.. currentmodule:: bde.ml.loss
+
+.. autoclass:: GaussianNLLLoss
+
+   
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      
+      
+        ~GaussianNLLLoss.apply_reduced
+      
+      
+        ~GaussianNLLLoss.tree_flatten
+      
+      
+        ~GaussianNLLLoss.tree_unflatten
+      
+   
+   
+
+.. include:: bde.ml.loss.GaussianNLLLoss.examples
+
+.. raw:: html
+
+    <div style='clear:both'></div>

@@ -1,0 +1,80 @@
+﻿BDEEstimator
+========================================
+
+.. currentmodule:: bde.ml.models
+
+.. autoclass:: BDEEstimator
+
+   
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      
+      
+        ~BDEEstimator.burn_in_loop
+      
+      
+        ~BDEEstimator.fit
+      
+      
+        ~BDEEstimator.get_metadata_routing
+      
+      
+        ~BDEEstimator.get_params
+      
+      
+        ~BDEEstimator.history_description
+      
+      
+        ~BDEEstimator.init_inner_params
+      
+      
+        ~BDEEstimator.load
+      
+      
+        ~BDEEstimator.log_prior
+      
+      
+        ~BDEEstimator.logdensity_for_batch
+      
+      
+        ~BDEEstimator.mcmc_sampling
+      
+      
+        ~BDEEstimator.predict
+      
+      
+        ~BDEEstimator.predict_as_de
+      
+      
+        ~BDEEstimator.predict_with_credibility_eti
+      
+      
+        ~BDEEstimator.sample_from_samples
+      
+      
+        ~BDEEstimator.save
+      
+      
+        ~BDEEstimator.set_fit_request
+      
+      
+        ~BDEEstimator.set_params
+      
+      
+        ~BDEEstimator.tree_flatten
+      
+      
+        ~BDEEstimator.tree_unflatten
+      
+   
+   
+
+.. include:: bde.ml.models.BDEEstimator.examples
+
+.. raw:: html
+
+    <div style='clear:both'></div>
