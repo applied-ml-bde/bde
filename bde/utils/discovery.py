@@ -26,6 +26,14 @@ from sklearn.utils._testing import ignore_warnings
 _MODULE_TO_IGNORE = {"tests"}
 
 
+def _is_abstract_for_all_estimators(c):
+    if not (hasattr(c, "__abstractmethods__")):
+        return False
+    if not len(c.__abstractmethods__):
+        return False
+    return True
+
+
 def all_estimators(type_filter=None):
     """Get a list of all estimators from `bde`.
 
@@ -56,14 +64,6 @@ def all_estimators(type_filter=None):
     >>> type(estimators)
     <class 'list'>
     """
-
-    def is_abstract(c):
-        if not (hasattr(c, "__abstractmethods__")):
-            return False
-        if not len(c.__abstractmethods__):
-            return False
-        return True
-
     all_classes = []
     root = str(Path(__file__).parent.parent)  # bde package
     # Ignore deprecation warnings triggered at import time and from walking
@@ -91,7 +91,7 @@ def all_estimators(type_filter=None):
         if (issubclass(c[1], BaseEstimator) and c[0] != "BaseEstimator")
     ]
     # get rid of abstract base classes
-    estimators = [c for c in estimators if not is_abstract(c[1])]
+    estimators = [c for c in estimators if not _is_abstract_for_all_estimators(c[1])]
 
     if type_filter is not None:
         if not isinstance(type_filter, list):
