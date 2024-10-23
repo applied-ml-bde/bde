@@ -1409,7 +1409,7 @@ class BDEEstimator(FullyConnectedEstimator):
             batch_size=batch_size,
         )
 
-    @jax.jit
+    # @jax.jit
     def predict_with_credibility_eti(
         self,
         X: ArrayLike,
@@ -1436,10 +1436,10 @@ class BDEEstimator(FullyConnectedEstimator):
             # n_devices=1,
             # batch_size=-1,
         )
-        pred = samples.median(axis=-1)
+        pred = jnp.median(samples, axis=-1)
         tail_size = 100 * (1 - a) / 2
-        i_low = jnp.percentile(pred, tail_size, axis=-1)
-        i_high = jnp.percentile(pred, 100 - tail_size, axis=-1)
+        i_low = jnp.percentile(samples, tail_size, axis=-1)
+        i_high = jnp.percentile(samples, 100 - tail_size, axis=-1)
         return pred, i_low, i_high
 
     # @jax.jit
