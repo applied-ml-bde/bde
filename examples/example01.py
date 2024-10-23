@@ -79,3 +79,29 @@ plt.legend()
 plt.xlabel("x")
 plt.ylabel("y")
 plt.show()
+
+# %%
+# Alternatively, the model could be used to predict the values with a
+# confidence interval
+
+y_pred, low, up = [
+    np.ravel(v) for v in est.predict_with_credibility_eti(x_test, 0.95)
+]
+
+fig = plt.figure()
+plt.fill_between(
+    np.ravel(x_test),
+    y1=low,
+    y2=up,
+    alpha=.5,
+    linewidth=0,
+    facecolor="crimson",
+)
+plt.plot(x_test, y_pred, c="crimson", label="Prediction")
+plt.scatter(x_test, y_test, c="green", label="True", alpha=0.2)
+plt.plot(x, y, "k", alpha=0.4, label="Trend")
+plt.title("Demonstrating confidence interval prediction (95%)")
+plt.legend()
+plt.xlabel("x")
+plt.ylabel("y")
+plt.show()
