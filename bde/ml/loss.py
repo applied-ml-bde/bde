@@ -285,7 +285,7 @@ class GaussianNLLLoss(NLLLoss):
         self,
         epsilon: float = 1e-6,
         mean_weight: float = 1.0,
-        is_full: bool = False,
+        is_full: bool = True,
     ):
         r"""Set parameters for loss function.
 
