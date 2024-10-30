@@ -5,7 +5,7 @@ This module provides functionality for handling data and datasets for model trai
 Classes
 -------
 - `BasicDataset`: An abstract base class defining an API for dataset classes.
-- `DatasetWrapper`: Wraps dataset functionality around 2 arrays.
+- `DatasetWrapper`: Wraps dataset functionality around 2 arrays: features and labels.
 
 """
 
@@ -31,6 +31,21 @@ from bde.utils import configs as cnfg
 class BasicDataset(ABC):
     r"""An abstract base class defining an API for dataset classes.
 
+    Attributes
+    ----------
+    batch_size()
+        The number of items in each batch (leading axis).
+        Updating the `batch_size` updates related attributes.
+    _batch_size
+        Any class implementing this API must handle the logic of `batch_size` via
+        this attribute.
+    seed()
+        The seed used to generate randomness.
+        Updating the `seed` resets the randomness accordingly.
+    _seed
+        Any class implementing this API must handle the logic of `seed` via this
+        attribute.
+
     Methods
     -------
     set_state(**kwargs)
@@ -40,8 +55,10 @@ class BasicDataset(ABC):
     tree_unflatten(aux_data, children)
         A class method used to recreate the class from a pytree.
     shuffle()
-        Randomly rearrange the items in the dataset while preserving the connection between related items
-        such as data and labels.
+        Randomly rearrange the items in the dataset while preserving the connection
+        between related items such as data and labels.
+    gen_empty()
+        Create an empty version of the current dataset.
     __len__()
         Returns the number of batches in the dataset.
     __getitem__(ids)
@@ -49,8 +66,9 @@ class BasicDataset(ABC):
     __iter__()
         Iterate through the dataset.
     get_scannable()
-        Return the dataset in a scannable form, corresponding to its shuffled state.
-    """  # noqa: E501
+        Returns a flattened and shuffled form of the dataset which can be used with
+        `jax.lax.scan()`.
+    """
 
     _batch_size: int
     _seed: int
@@ -170,7 +188,9 @@ class BasicDataset(ABC):
 
     @abstractmethod
     def get_scannable(self) -> Tuple[Array, Array]:
-        r"""Return the dataset in a scannable form, corresponding to its shuffled state.
+        r"""Return the dataset in a scannable form.
+
+        Returns the dataset in a scannable form, corresponding to its shuffled state.
 
         Returns
         -------
@@ -192,13 +212,14 @@ class BasicDataset(ABC):
     ) -> None:
         r"""Change the batch size.
 
-        Provide logic for updating the batch size while keeping related values consistent (like size).
+        Provide logic for updating the batch size while keeping related values
+        consistent (like size).
 
         Parameters
         ----------
         batch_size
             The new batch size.
-        """  # noqa: E501
+        """
         ...
 
     @property
@@ -215,13 +236,14 @@ class BasicDataset(ABC):
     ) -> None:
         r"""Change the seed.
 
-        Provide logic for updating the seed and restarts the randomness using the new seed.
+        Provide logic for updating the seed and restarts the randomness using the new
+        seed.
 
         Parameters
         ----------
         seed
             The new seed.
-        """  # noqa: E501
+        """
         ...
 
 
@@ -229,16 +251,49 @@ class BasicDataset(ABC):
 class DatasetWrapper(BasicDataset):
     r"""Create a dataset object around a data and labels pair.
 
-    # TODO: Complete
+    A dataset wrapping a features array and a corresponding labels array.
+
+    Attributes
+    ----------
+    batch_size()
+        The number of items in each batch (leading axis).
+        Updating the `batch_size` updates related attributes.
+    seed()
+        The seed used to generate randomness.
+        Updating the `seed` resets the randomness accordingly.
+    x
+        The features stored in the dataset.
+    y
+        The labels stored in the dataset.
+    n_items_
+        Total number of items in the dataset.
+    size_
+        Number of full batches in the dataset.
+    items_lim_
+        Number of items that can be put into full batches (`size_` * `batch_size`).
+    rng_key
+        The randomness key used to determine shuffling.
+    split_key
+        The randomness key used to update the `rng_key`.
+    was_shuffled_
+        A flag indicating whether the dataset was shuffled or not.
+        If not, the items will be ordered the same as they were at init time.
+    assignment
+        An ordering array corresponding to the shuffled state.
+
     Methods
     -------
+    set_state(**kwargs)
+        Updates attributes of state.
     tree_flatten()
         Used to turn the class into a jitible pytree.
     tree_unflatten(aux_data, children)
         A class method used to recreate the class from a pytree.
     shuffle()
-        Randomly rearrange the items in the dataset while preserving the connection between related items
-        such as data and labels.
+        Randomly rearrange the items in the dataset while preserving the connection
+        between related items such as data and labels.
+    gen_empty()
+        Create an empty version of the current dataset.
     __len__()
         Returns the number of batches in the dataset.
     __getitem__(ids)
@@ -246,10 +301,9 @@ class DatasetWrapper(BasicDataset):
     __iter__()
         Return a generator which retrieves all batches from the dataset.
     get_scannable()
-        Returns a flattened and shuffled form of the dataset which can be used with `jax.lax.scan()`.
-    batch_size()
-        A property for setting the batch size while adjusting other corresponding parameters.
-    """  # noqa: E501
+        Returns a flattened and shuffled form of the dataset which can be used with
+        `jax.lax.scan()`.
+    """
 
     def __init__(
         self,
@@ -260,7 +314,16 @@ class DatasetWrapper(BasicDataset):
     ):
         r"""Initiate the class.
 
-        # TODO: Complete
+        Parameters
+        ----------
+        x
+            The features stored in the dataset.
+        y
+            The labels stored in the dataset.
+        batch_size
+            The number of items in each batch (leading axis).
+        seed
+            The seed used to generate randomness.
         """
         chex.assert_equal(x.shape[0], y.shape[0])
         self.x = x.astype(jnp.float32)  # TODO: Needs better handling
@@ -443,7 +506,8 @@ class DatasetWrapper(BasicDataset):
     ) -> None:
         r"""Change the batch size.
 
-        Provide logic for updating the batch size while keeping related values consistent (like size).
+        Provide logic for updating the batch size while keeping related values
+        consistent (like size).
 
         Parameters
         ----------
@@ -454,7 +518,7 @@ class DatasetWrapper(BasicDataset):
         ----------
         batch_size
             The new batch size.
-        """  # noqa: E501
+        """
         self._batch_size = batch_size
         self.size_ = self.n_items_ // self.batch_size
         self.items_lim_ = len(self) * self.batch_size
@@ -480,13 +544,14 @@ class DatasetWrapper(BasicDataset):
     ) -> None:
         r"""Change the seed.
 
-        Provide logic for updating the seed and restarts the randomness using the new seed.
+        Provide logic for updating the seed and restarts the randomness using the new
+        seed.
 
         Parameters
         ----------
         seed
             The new seed.
-        """  # noqa: E501
+        """
         self._seed = seed
         self.split_key = jax.random.key(seed=self._seed)
         if self.was_shuffled_:
