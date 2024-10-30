@@ -93,6 +93,10 @@ class BasicModule(nn.Module, ABC):
     __call__(*args, **kwargs)
         Abstract method to be implemented by subclasses, defining the API of a
         forward pass of the module.
+    tree_flatten()
+        Serialize module into a JAX PyTree.
+    tree_unflatten(aux_data, children)
+        Build module from a serialized PyTree
     """
 
     n_output_params: Union[int, list[int]]
@@ -177,6 +181,10 @@ class FullyConnectedModule(BasicModule):
     -------
     __call__(x)
         Define the forward pass of the fully connected network.
+    tree_flatten()
+        Serialize module into a JAX PyTree.
+    tree_unflatten(aux_data, children)
+        Build module from a serialized PyTree.
     """
 
     n_output_params: int
@@ -272,7 +280,37 @@ class FullyConnectedEstimator(BaseEstimator):
 
     Attributes
     ----------
-    # TODO: List
+    model_class
+        The neural network model class wrapped by the estimator.
+    model_kwargs
+        The kwargs used to init the wrapped model.
+    optimizer_class
+        The optimizer class used by the estimator for training.
+    optimizer_kwargs
+        The kwargs used to init optimizer.
+    loss
+        A class representing the loss function.
+    batch_size
+        Number of samples per batch (size of first dimension).
+    epochs
+        Number of epochs for training.
+    metrics
+        A list of metrics to evaluate during training, by default None.
+    validation_size
+        The size of the validation set,
+        or a tuple containing validation data. by default None.
+    seed
+        Random seed for initialization.
+    params_
+        Parameters of fitted model.
+    history_
+        Loss and metric records during training.
+    model_
+        The initialized model class.
+    is_fitted_
+        A flag indicating weather the model has been fitted or not.
+    n_features_in_
+        Number of input features (the size of the last input dimension).
 
     Methods
     -------
@@ -280,8 +318,22 @@ class FullyConnectedEstimator(BaseEstimator):
         Fit the model to the training data.
     predict(X)
         Predict the output for the given input data using the trained model.
+    save(path)
+        Save estimator to file.
+    load(path)
+        Load estimator from file.
+    history_description()
+        Make a readable version of the training history.
     _more_tags()
         Used by the SKlearn API to set model tags.
+    tree_flatten()
+        Serialize module into a JAX PyTree.
+    tree_unflatten(aux_data, children)
+        Build module from a serialized PyTree.
+    __sklearn_is_fitted__()
+        Check if the estimator is fitted.
+    init_inner_params(n_features, optimizer, rng_key)
+        Create trainable model state.
     """
 
     def __init__(
@@ -741,9 +793,9 @@ class BDEEstimator(FullyConnectedEstimator):
     predict_as_de(X, n_devices=-1)
         Predict with model as a deep ensemble.
     tree_flatten()
-        Serialize PyTree.
+        Serialize module into a JAX PyTree.
     tree_unflatten(aux_data, children)
-        Reconstruct serialized PyTree.
+        Build module from a serialized PyTree.
     log_prior(params):
         Calculate the log of the prior probability for a set of params.
     logdensity_for_batch(params, carry, batch)
