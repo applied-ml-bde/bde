@@ -34,10 +34,10 @@ def train_step(
     batch: tuple[ArrayLike, ArrayLike],
     f_loss: Loss,
 ) -> Tuple[TrainState, float]:
-    r"""Perform an optimization step for the network.
+    r"""Perform an optimization step for a neural network.
 
-    This function updates the model parameters by performing a single
-    optimization step using the provided loss function.
+    This function updates the model parameters by performing a single optimization
+    step using the provided loss function.
 
     Parameters
     ----------
@@ -66,44 +66,6 @@ def train_step(
     return state, loss
 
 
-# @jax.jit
-# def jitted_training_over_multiple_models(
-#         model: nn.Module,
-#         params,
-#         optimizer,
-#         epochs: int,
-#         f_loss: Loss,
-#         metrics: List,
-#         train: BasicDataset,
-#         valid: BasicDataset,
-#         history: Array,
-# ):
-#     r"""Train several model on different parameter sets in parallel.
-#
-#     Parameters
-#     ----------
-#     TODO: Complete
-#
-#     Return
-#     ------
-#     TODO: Complete
-#     """
-#     return jax.pmap(
-#         jitted_training,
-#         axis_name='params',
-#     )(
-#         model=model,
-#         params=params,
-#         optimizer=optimizer,
-#         epochs=epochs,
-#         f_loss=f_loss,
-#         metrics=metrics,
-#         train=train,
-#         valid=valid,
-#         history=history,
-#     )
-
-
 @jax.jit
 def jitted_training(
     # model_class: Type[nn.Module],
@@ -125,7 +87,7 @@ def jitted_training(
     Parameters
     ----------
     model_state
-        A class containing the model architecture + training parameters 6 optimizer.
+        A class containing the model architecture + training parameters & optimizer.
     epochs
         An array with the indices of the training epochs.
     f_loss
@@ -184,7 +146,7 @@ def jitted_training_epoch(
     Parameters
     ----------
     model_state
-        A class containing the model architecture + training parameters 6 optimizer.
+        A class containing the model architecture + training parameters & optimizer.
     train
         The training dataset.
     valid
@@ -261,6 +223,8 @@ def jitted_evaluation_for_a_metric(
 ):
     r"""Evaluate a training epoch for 1 metric.
 
+    NOT YET FULLY IMPLEMENTED
+
     Parameters
     ----------
     TODO: Complete
@@ -296,6 +260,8 @@ def jitted_evaluation_over_batch(
     m_val: float,
 ) -> float:
     r"""Perform intermediate evaluation over a metric for 1 batch of data.
+
+    NOT YET FULLY IMPLEMENTED
 
     Parameters
     ----------

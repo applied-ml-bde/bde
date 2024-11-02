@@ -51,9 +51,9 @@ class BasicDataset(ABC):
     set_state(**kwargs)
         Updates attributes of state.
     tree_flatten()
-        Used to turn the class into a jitible pytree.
+        Used to turn the class into a jitible PyTree.
     tree_unflatten(aux_data, children)
-        A class method used to recreate the class from a pytree.
+        A class method used to recreate the class from a PyTree.
     shuffle()
         Randomly rearrange the items in the dataset while preserving the connection
         between related items such as data and labels.
@@ -99,13 +99,13 @@ class BasicDataset(ABC):
 
     @abstractmethod
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
-        r"""Specify how to serialize the dataset into a JAX pytree.
+        r"""Specify how to serialize the dataset into a JAX PyTree.
 
         Returns
         -------
         Tuple[Sequence[ArrayLike], Any]
             A tuple with 2 elements:
-             - The `children`, containing arrays & pytrees
+             - The `children`, containing arrays & PyTrees
              - The `aux_data`, containing static and hashable data.
         """
         ...
@@ -117,14 +117,14 @@ class BasicDataset(ABC):
         aux_data: Any,
         children: Tuple[ArrayLike, ...],
     ) -> "BasicDataset":
-        r"""Specify how to construct a dataset from a JAX pytree.
+        r"""Specify how to construct a dataset from a JAX PyTree.
 
         Parameters
         ----------
         aux_data
             Contains static, hashable data.
         children
-            Contain arrays & pytrees.
+            Contain arrays & PyTrees.
 
         Returns
         -------
@@ -286,9 +286,9 @@ class DatasetWrapper(BasicDataset):
     set_state(**kwargs)
         Updates attributes of state.
     tree_flatten()
-        Used to turn the class into a jitible pytree.
+        Used to turn the class into a jitible PyTree.
     tree_unflatten(aux_data, children)
-        A class method used to recreate the class from a pytree.
+        A class method used to recreate the class from a PyTree.
     shuffle()
         Randomly rearrange the items in the dataset while preserving the connection
         between related items such as data and labels.
@@ -342,13 +342,13 @@ class DatasetWrapper(BasicDataset):
         self.assignment = self.assignment.reshape(self.size_, self._batch_size)
 
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
-        r"""Specify how to serialize the dataset into a JAX pytree.
+        r"""Specify how to serialize the dataset into a JAX PyTree.
 
         Returns
         -------
         Tuple[Sequence[ArrayLike], Any]
             A tuple with 2 elements:
-             - The `children`, containing arrays & pytrees (2 elements).
+             - The `children`, containing arrays & PyTrees (2 elements).
              - The `aux_data`, containing static and hashable data (5 elements).
         """
         children = (
@@ -357,7 +357,7 @@ class DatasetWrapper(BasicDataset):
             self.rng_key,
             self.split_key,
             self.was_shuffled_,
-        )  # children must contain arrays & pytrees
+        )  # children must contain arrays & PyTrees
         aux_data = (
             self._batch_size,
             self._seed,
@@ -370,14 +370,14 @@ class DatasetWrapper(BasicDataset):
         aux_data: Tuple[int, int],
         children: Tuple[ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike],
     ) -> "DatasetWrapper":
-        r"""Specify how to construct a dataset from a JAX pytree.
+        r"""Specify how to construct a dataset from a JAX PyTree.
 
         Parameters
         ----------
         aux_data
             Contains static, hashable data (5 elements).
         children
-            Contain arrays & pytrees (2 elements).
+            Contain arrays & PyTrees (2 elements).
 
         Returns
         -------
