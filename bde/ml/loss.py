@@ -44,7 +44,22 @@ from jax.typing import ArrayLike
 
 @register_pytree_node_class
 class Loss(ABC):
-    r"""An abstract class for implementing the API of loss functions."""
+    r"""An abstract base class defining an API for loss function classes.
+
+    Methods
+    -------
+    __call__(y_true, y_pred, **kwargs)
+        Abstract method to be implemented by subclasses, defining the loss evaluation.
+    tree_flatten()
+        Used to turn the class into a jitible PyTree.
+    tree_unflatten(aux_data, children)
+        A class method used to recreate the class from a PyTree.
+    apply_reduced(y_true, y_pred, **kwargs)
+        The loss is evaluated separately for each item in the batch and the loss of
+        all batches is reduced to a single value.
+        The default implementation takes the arithmetic mean as the reduction, but
+        classes implementing this API are free to reimplement this method.
+    """
 
     @abstractmethod
     def __call__(
@@ -55,15 +70,15 @@ class Loss(ABC):
     ) -> Array:
         r"""Evaluate the loss.
 
-        Returns an unreduced evaluation of the loss.
-        i.e. the loss is calculated separately for each item in the batch.
+        Returns an unreduced evaluation of the loss, i.e. the loss is calculated
+        separately for each item in the batch.
 
         Parameters
         ----------
         y_true
-            The ground truth.
+            The ground truth labels.
         y_pred
-            The prediction.
+            The predictions.
 
         Returns
         -------
@@ -79,17 +94,17 @@ class Loss(ABC):
         y_pred: ArrayLike,
         **kwargs,
     ) -> ArrayLike:
-        r"""Evaluate reduced the loss.
+        r"""Evaluate and reduces the loss.
 
-        The loss is evaluated separately for each item in the batch,
-        and the mean of these values is returned.
+        The loss is evaluated separately for each item in the batch and the loss of
+        all batches is reduced by arithmetic mean to a single value.
 
         Parameters
         ----------
         y_true
-            The ground truth.
+            The ground truth labels.
         y_pred
-            The prediction.
+            The predictions.
         **kwargs
             Other keywords that may be passed to the unreduced loss function.
 
@@ -102,12 +117,12 @@ class Loss(ABC):
 
     @abstractmethod
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
-        r"""Specify how to serialize module into a JAX pytree.
+        r"""Specify how to serialize module into a JAX PyTree.
 
         Returns
         -------
         A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
+         - The `children`, containing arrays & PyTrees
          - The `aux_data`, containing static and hashable data.
         """
         ...
@@ -119,14 +134,14 @@ class Loss(ABC):
         aux_data: Optional[Tuple],
         children: Tuple,
     ) -> "Loss":
-        r"""Specify how to build a module from a JAX pytree.
+        r"""Specify how to build a module from a JAX PyTree.
 
         Parameters
         ----------
         aux_data
             Contains static, hashable data.
         children
-            Contain arrays & pytrees.
+            Contain arrays & PyTrees.
 
         Returns
         -------
@@ -138,7 +153,19 @@ class Loss(ABC):
 
 @register_pytree_node_class
 class LossMSE(Loss):
-    r"""A class wrapper for MSE loss."""
+    r"""A class wrapper for MSE loss.
+
+    Methods
+    -------
+    __call__(y_true, y_pred, **kwargs)
+        Evaluates the MSE loss for the given labels and prediction.
+    tree_flatten()
+        Used to turn the class into a jitible PyTree.
+    tree_unflatten(aux_data, children)
+        A class method used to recreate the class from a PyTree.
+    apply_reduced(y_true: ArrayLike, y_pred: ArrayLike, **kwargs)
+        Evaluates and reduces the loss.
+    """
 
     @jax.jit
     def __call__(
@@ -149,15 +176,15 @@ class LossMSE(Loss):
     ) -> Array:
         r"""Evaluate the loss.
 
-        Returns an unreduced MSE loss,
-        i.e. the loss is calculated separately for each item in the batch.
+        Evaluates an unreduced MSE loss, i.e. the loss is calculated separately for
+        each item in the batch.
 
         Parameters
         ----------
         y_true
-            The ground truth.
+            The ground truth labels.
         y_pred
-            The prediction.
+            The predictions.
 
         Returns
         -------
@@ -168,12 +195,12 @@ class LossMSE(Loss):
         return res.mean(axis=tuple(range(1, res.ndim)))
 
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
-        r"""Specify how to serialize module into a JAX pytree.
+        r"""Specify how to serialize module into a JAX PyTree.
 
         Returns
         -------
         A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
+         - The `children`, containing arrays & PyTrees
          - The `aux_data`, containing static and hashable data.
         """
         return tuple(), None
@@ -184,14 +211,14 @@ class LossMSE(Loss):
         aux_data: Optional[Tuple],
         children: Tuple,
     ) -> "LossMSE":
-        r"""Specify how to build a module from a JAX pytree.
+        r"""Specify how to build a module from a JAX PyTree.
 
         Parameters
         ----------
         aux_data
             Contains static, hashable data.
         children
-            Contain arrays & pytrees.
+            Contain arrays & PyTrees.
 
         Returns
         -------
@@ -203,13 +230,34 @@ class LossMSE(Loss):
 
 @register_pytree_node_class
 class NLLLoss(Loss, ABC):
-    r"""Negative log likelihood loss.
+    r"""Negative log likelihood loss API.
 
-    A base class for loss classes representing the negative log likelihood loss from a
-    certain probability distribution.
+    An abstract base class defining an API for loss classes which represent the
+    negative log likelihood loss of a certain probability distribution.
 
     .. math::
         \ell_{\text{NLL-loss}} = -\log{\mathcal{P}(\text{data} | \text{model})}
+
+    Attributes
+    ----------
+    params
+        A dictionary of loss parameters.
+
+    Methods
+    -------
+    __call__(y_true, y_pred, **kwargs)
+        Abstract method to be implemented by subclasses, defining the loss evaluation.
+        `y_true` represents a prediction and `y_pred` represents a parametrization of
+        the corresponding probability distribution.
+    tree_flatten()
+        Used to turn the class into a jitible PyTree.
+    tree_unflatten(aux_data, children)
+        A class method used to recreate the class from a PyTree.
+    apply_reduced(y_true: ArrayLike, y_pred: ArrayLike, **kwargs)
+        Evaluates and reduces the loss.
+    _split_pred(y_true, y_pred)
+        Abstract method to be implemented by subclasses, defining how to split
+        `y_pred` into the predicted distribution parameters.
     """
 
     params: dict[str, Any]
@@ -219,7 +267,20 @@ class NLLLoss(Loss, ABC):
         self,
         y_true: ArrayLike,
         y_pred: ArrayLike,
-    ): ...
+    ):
+        r"""Split prediction.
+
+        Abstract method to be implemented by subclasses, defining how to split
+        `y_pred` into the predicted distribution parameters.
+
+        Parameters
+        ----------
+        y_true
+            The ground truth labels.
+        y_pred
+            The predicted parameterization of the evaluated distributions.
+        """
+        ...
 
 
 @register_pytree_node_class
@@ -273,19 +334,24 @@ class GaussianNLLLoss(NLLLoss):
     Methods
     -------
     __call__(y_true, y_pred)
-        Computes the log-likelihood loss for the given predictions and labels.
+        Computes the log-likelihood loss for the predicted parametrization of the
+        Gaussian distribution, given the provided labels.
     _split_pred(y_true, y_pred)
-        Splits the predicted values into predictions and their corresponding
-        uncertainties.
+        Splits the predicted values into predictions of mean and std of Gaussian
+        distributions.
     apply_reduced()
-        Evaluates the reduced loss (inherited from base class).
+        Evaluates and reduces the loss.
+    tree_flatten()
+        Used to turn the class into a jitible PyTree.
+    tree_unflatten(aux_data, children)
+        A class method used to recreate the class from a PyTree.
     """
 
     def __init__(
         self,
         epsilon: float = 1e-6,
         mean_weight: float = 1.0,
-        is_full: bool = False,
+        is_full: bool = True,
     ):
         r"""Set parameters for loss function.
 
@@ -305,12 +371,12 @@ class GaussianNLLLoss(NLLLoss):
         }
 
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
-        r"""Specify how to serialize module into a JAX pytree.
+        r"""Specify how to serialize module into a JAX PyTree.
 
         Returns
         -------
         A tuple with 2 elements:
-         - The `children`, containing arrays & pytrees
+         - The `children`, containing arrays & PyTrees
          - The `aux_data`, containing static and hashable data.
         """
         children = (self.params,)
@@ -322,14 +388,14 @@ class GaussianNLLLoss(NLLLoss):
         aux_data: Optional[Tuple],
         children: Tuple,
     ) -> "GaussianNLLLoss":
-        r"""Specify how to build a module from a JAX pytree.
+        r"""Specify how to build a module from a JAX PyTree.
 
         Parameters
         ----------
         aux_data
             Contains static, hashable data.
         children
-            Contain arrays & pytrees.
+            Contain arrays & PyTrees.
 
         Returns
         -------
@@ -344,12 +410,12 @@ class GaussianNLLLoss(NLLLoss):
 
     @staticmethod
     @jax.jit
-    def _f_true_for_call(x):
+    def _call_add_const_value(x):
         return x + jnp.log(2 * jnp.pi)
 
     @staticmethod
     @jax.jit
-    def _f_false_for_call(x):
+    def _jitted_identity(x):
         return x
 
     @jax.jit
@@ -387,8 +453,8 @@ class GaussianNLLLoss(NLLLoss):
         res = self.params["mean_weight"] * res / var_pred
         res = 0.5 * jax.lax.cond(
             self.params["is_full"],
-            self._f_true_for_call,
-            self._f_false_for_call,
+            self._call_add_const_value,
+            self._jitted_identity,
             res + jnp.log(var_pred),
         )
         return res.mean(axis=tuple(range(1, res.ndim)))

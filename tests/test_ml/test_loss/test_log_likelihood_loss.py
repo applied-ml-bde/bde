@@ -108,7 +108,7 @@ class TestLogLikelihoodLossCalculation:
         key, subkey = jax.random.split(key)
         y_true = jax.random.normal(subkey, (n_batch, n_features))
 
-        f_loss = GaussianNLLLoss(mean_weight=2)
+        f_loss = GaussianNLLLoss(mean_weight=2, is_full=False)
         f_loss = f_loss.apply_reduced if reduction else f_loss
         expected_loss = jnp.zeros((1,)) if reduction else jnp.zeros((n_batch,))
         with jax.disable_jit(disable=not do_use_jit):
@@ -126,7 +126,7 @@ class TestLogLikelihoodLossCalculation:
         key, subkey = jax.random.split(key)
         y_true = jax.random.normal(subkey, (n_batch, n_features))
 
-        f_loss = GaussianNLLLoss(mean_weight=2)
+        f_loss = GaussianNLLLoss(mean_weight=2, is_full=False)
         f_loss = f_loss.apply_reduced if reduction else f_loss
         expected_loss = (y_true**2).mean() if reduction else y_true.reshape((-1)) ** 2
         with jax.disable_jit(disable=not do_use_jit):
@@ -146,7 +146,7 @@ class TestLogLikelihoodLossCalculation:
         key, subkey = jax.random.split(key)
         y_pred = jax.random.normal(subkey, (n_batch, n_features))
 
-        f_loss = GaussianNLLLoss(mean_weight=0)
+        f_loss = GaussianNLLLoss(mean_weight=0, is_full=False)
         f_loss = f_loss.apply_reduced if reduction else f_loss
         expected_loss = jnp.zeros((1,)) if reduction else jnp.zeros((n_batch,))
         with jax.disable_jit(disable=not do_use_jit):
@@ -166,7 +166,7 @@ class TestLogLikelihoodLossCalculation:
 
         expected_values = jnp.arange(-5, n_batch - 5)
         y_pred = jnp.stack([expected_values, jnp.e**expected_values], axis=1)
-        f_loss = GaussianNLLLoss(mean_weight=0)
+        f_loss = GaussianNLLLoss(mean_weight=0, is_full=False)
         f_loss = f_loss.apply_reduced if reduction else f_loss
         expected_loss = expected_values.mean() if reduction else expected_values
         with jax.disable_jit(disable=not do_use_jit):

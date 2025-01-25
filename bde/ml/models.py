@@ -15,6 +15,7 @@ Classes
 Functions
 ---------
 - `init_dense_model`: Utility function for initializing a fully connected dense model.
+- `init_dense_model_jitted`: ...
 
 """  # noqa: E501
 
@@ -80,8 +81,8 @@ class BasicModule(nn.Module, ABC):
     Attributes
     ----------
     n_output_params : Union[int, list[int]]
-        The number of output parameters or the shape of the output tensor(s). Similar
-        to `n_input_params`, this can be an integer or a list.
+        The number of output parameters or the shape of the output tensor(s).
+        Similar to `n_input_params`, this can be an integer or a list.
     n_input_params : Optional[Union[int, list[int]]]
         The number of input parameters or the shape of the input tensor(s).
         This can be an integer for models with a single-input
@@ -90,8 +91,13 @@ class BasicModule(nn.Module, ABC):
     Methods
     -------
     __call__(*args, **kwargs)
-        Abstract method to be implemented by subclasses, defining the API of a forward pass of the module.
-    """  # noqa: E501
+        Abstract method to be implemented by subclasses, defining the API of a
+        forward pass of the module.
+    tree_flatten()
+        Serialize module into a JAX PyTree.
+    tree_unflatten(aux_data, children)
+        Build module from a serialized PyTree
+    """
 
     n_output_params: Union[int, list[int]]
     n_input_params: Optional[Union[int, list[int]]] = None
@@ -156,21 +162,30 @@ class FullyConnectedModule(BasicModule):
         The number of output features or neurons in the output layer.
     n_input_params : Optional[int]
         The number of input features or neurons in the input layer.
-        If None, the number if determined based on the used params (usually determined by the data used for fitting).
+        If None, the number if determined based on the used params (usually determined
+        by the data used for fitting).
     layer_sizes : Optional[Union[Iterable[int], int]], optional
         The number of neurons in each hidden layer.
-        If an integer is provided, a single hidden layer with that many neurons is created.
-        If an iterable of integers is provided, multiple hidden layers are created with the specified number of neurons.
-        Default is None, which implies no hidden layers (only an input layer and an output layer).
+        If an integer is provided, a single hidden layer with that many neurons is
+        created.
+        If an iterable of integers is provided, multiple hidden layers are created
+        with the specified number of neurons.
+        Default is None, which implies no hidden layers (only an input layer and an
+        output layer).
     do_final_activation : bool, optional
         Whether to apply an activation function to the output layer.
-        Default is True, meaning the final layer will have an activation function (softmax).
+        Default is True, meaning the final layer will have an activation function
+        (softmax).
 
     Methods
     -------
     __call__(x)
         Define the forward pass of the fully connected network.
-    """  # noqa: E501
+    tree_flatten()
+        Serialize module into a JAX PyTree.
+    tree_unflatten(aux_data, children)
+        Build module from a serialized PyTree.
+    """
 
     n_output_params: int
     n_input_params: Optional[int] = None
@@ -225,19 +240,21 @@ class FullyConnectedModule(BasicModule):
     ) -> Array:
         r"""Perform a forward pass of the fully connected network.
 
-        The forward pass processes the input data `x` through a series of fully connected layers,
-        with the option to apply an activation function to the final layer.
+        The forward pass processes the input data `x` through a series of fully
+        connected layers, with the option to apply an activation function to the
+        final layer.
 
         Parameters
         ----------
         x
-            The input data, typically a batch of samples with shape `(batch_size, n_input_params)`.
+            The input data, typically a batch of samples with shape
+            `(batch_size, n_input_params)`.
 
         Returns
         -------
         Array
             The output of the network, with shape `(batch_size, n_output_params)`.
-        """  # noqa: E501
+        """
         if self.layer_sizes is not None:
             layer_sizes = self.layer_sizes
             if isinstance(layer_sizes, int):
@@ -255,14 +272,45 @@ class FullyConnectedModule(BasicModule):
 
 @register_pytree_node_class
 class FullyConnectedEstimator(BaseEstimator):
-    r"""SKlearn-compatible estimator for training fully connected neural networks with Jax.
+    r"""SKlearn-compatible estimator for training fully connected NN with Jax.
 
-    The `FullyConnectedEstimator` class wraps a Flax-based neural network model into an SKlearn-style estimator,
-    providing a compatible interface for fitting, predicting, and evaluating models.
+    The `FullyConnectedEstimator` class wraps a Flax-based neural network model into
+    an SKlearn-style estimator, providing a compatible interface for fitting,
+    predicting, and evaluating models.
 
     Attributes
     ----------
-    # TODO: List
+    model_class
+        The neural network model class wrapped by the estimator.
+    model_kwargs
+        The kwargs used to init the wrapped model.
+    optimizer_class
+        The optimizer class used by the estimator for training.
+    optimizer_kwargs
+        The kwargs used to init optimizer.
+    loss
+        A class representing the loss function.
+    batch_size
+        Number of samples per batch (size of first dimension).
+    epochs
+        Number of epochs for training.
+    metrics
+        A list of metrics to evaluate during training, by default None.
+    validation_size
+        The size of the validation set,
+        or a tuple containing validation data. by default None.
+    seed
+        Random seed for initialization.
+    params_
+        Parameters of fitted model.
+    history_
+        Loss and metric records during training.
+    model_
+        The initialized model class.
+    is_fitted_
+        A flag indicating weather the model has been fitted or not.
+    n_features_in_
+        Number of input features (the size of the last input dimension).
 
     Methods
     -------
@@ -270,9 +318,23 @@ class FullyConnectedEstimator(BaseEstimator):
         Fit the model to the training data.
     predict(X)
         Predict the output for the given input data using the trained model.
+    save(path)
+        Save estimator to file.
+    load(path)
+        Load estimator from file.
+    history_description()
+        Make a readable version of the training history.
     _more_tags()
         Used by the SKlearn API to set model tags.
-    """  # noqa: E501
+    tree_flatten()
+        Serialize module into a JAX PyTree.
+    tree_unflatten(aux_data, children)
+        Build module from a serialized PyTree.
+    __sklearn_is_fitted__()
+        Check if the estimator is fitted.
+    init_inner_params(n_features, optimizer, rng_key)
+        Create trainable model state.
+    """
 
     def __init__(
         self,
@@ -670,18 +732,78 @@ class FullyConnectedEstimator(BaseEstimator):
 class BDEEstimator(FullyConnectedEstimator):
     r"""SKlearn-compatible implementation of a BDE estimator.
 
-    # TODO: Describe BDE estimator.
+    The estimator attempts to sample the parameter distribution of probabilistic
+    machine learning models to estimate the posterior predictive distribution,
+    allowing to predict uncertainty and confidence values alongside predicted values.
 
     Attributes
     ----------
-    # TODO: List
+    model_class
+        The neural network model class wrapped by the estimator.
+    model_kwargs
+        The kwargs used to init the wrapped model.
+    optimizer_class
+        The optimizer class used by the estimator for training.
+    optimizer_kwargs
+        The kwargs used to init optimizer.
+    loss
+        A class representing the loss function.
+    batch_size
+        Number of samples per batch (size of first dimension).
+    epochs
+        Number of epochs for the DE-Initialization stage (per chain).
+    metrics
+        A list of metrics to evaluate during training, by default None.
+    validation_size
+        The size of the validation set,
+        or a tuple containing validation data. by default None.
+    seed
+        Random seed for initialization.
+    n_chains
+        Number of MCMC sampling chains.
+    chain_len
+        Number of sampling steps during the MCMC-Sampling stage (per chain).
+    warmup
+        Number of warmup (burn-in) steps before the MCMC-Sampling (per chain).
+    n_samples
+        Number of samples to take from each Gaussian-distribution during prediction.
+    params_
+        Parameters generated from DE init stage.
+    samples_
+        Sampled model parameters from mcmc stage.
+    history_
+        Loss and metric records during DE init stage.
+    model_
+        The initialized model class.
+    is_fitted_
+        A flag indicating weather the model has been fitted or not.
+    n_features_in_
+        Number of input features (the size of the last input dimension).
 
     Methods
     -------
-    fit(X, y=None)
+    fit(X, y=None, n_devices=-1)
         Fit the model to the training data.
     predict(X)
         Predict the output for the given input data using the trained model.
+    sample_from_samples(x, n_devices=1, batch_size=-1)
+        Take samples from sampled Gaussian distributions based on model params.
+    predict_with_credibility_eti(X, a=0.95)
+        Make prediction with a credible interval.
+    predict_as_de(X, n_devices=-1)
+        Predict with model as a deep ensemble.
+    tree_flatten()
+        Serialize module into a JAX PyTree.
+    tree_unflatten(aux_data, children)
+        Build module from a serialized PyTree.
+    log_prior(params):
+        Calculate the log of the prior probability for a set of params.
+    logdensity_for_batch(params, carry, batch)
+        Evaluate log-density for a batch of data.
+    burn_in_loop(rng, params, n_burns, warmup)
+        Perform burn-in for sampler.
+    mcmc_sampling(model_states, rng_key, train, n_devices, parallel_batch_size, mask)
+        Perform MCMC-burn-in and sampling.
     """
 
     def __init__(
@@ -712,8 +834,7 @@ class BDEEstimator(FullyConnectedEstimator):
         model_kwargs
             The kwargs used to init the wrapped model.
         n_chains
-            Number chains used for sampling.
-            This can't be greater than the number of computational devices.
+            Number of MCMC sampling chains.
         chain_len
             Number of sampling steps during the MCMC-Sampling stage (per chain).
         warmup
@@ -726,9 +847,9 @@ class BDEEstimator(FullyConnectedEstimator):
         optimizer_kwargs
             The kwargs used to init optimizer.
         loss
-            The loss function used during training.
+            A class representing the loss function.
         batch_size
-            The batch size for training, by default 1.
+            Number of samples per batch (size of first dimension).
         epochs
             Number of epochs for the DE-Initialization stage (per chain).
         metrics
@@ -878,16 +999,27 @@ class BDEEstimator(FullyConnectedEstimator):
         }
 
     @jax.jit
-    def log_prior(self, params):
-        r"""Calculate the log of the prior probability for a set of params."""
+    def log_prior(self, params) -> float:
+        r"""Calculate the log of the prior probability for a set of params.
+
+        Parameters
+        ----------
+        params
+            A PyTree of model parameters.
+
+        Returns
+        -------
+        float
+            The log-prior probability of the parameters.
+        """
         # TODO: Make customizable at init time
 
         @jax.jit
-        def sub_f(x):
+        def sum_log_pdf(x):
             return stats.norm.logpdf(x).sum()
 
         res = jax.tree.map(
-            f=sub_f,
+            f=sum_log_pdf,
             tree=params,
         )
         res = jax.tree.reduce(
@@ -912,7 +1044,7 @@ class BDEEstimator(FullyConnectedEstimator):
         """
 
         @jax.jit  # noqa: D202
-        def fun1(
+        def _parallel_training(
             mod_states,
             masks,
             epochs: Array,
@@ -924,8 +1056,8 @@ class BDEEstimator(FullyConnectedEstimator):
             r"""Perform parallel training."""
 
             @jax.jit
-            def sub_fun(_, xxx):
-                r"""Wrap training loop."""
+            def _scanned_training(_, xxx):
+                r"""Wrap training loop for scanning."""
                 mod_state, cond = xxx
 
                 # TODO: The following commented out code is a more efficient
@@ -959,13 +1091,13 @@ class BDEEstimator(FullyConnectedEstimator):
                 return None, res
 
             return jax.lax.scan(
-                f=sub_fun,
+                f=_scanned_training,
                 init=None,
                 xs=[mod_states, masks],
             )
 
         _, (params, history) = jax.pmap(
-            fun=fun1,
+            fun=_parallel_training,
             in_axes=(0, 0, None, None, None, None, None),
             # static_broadcasted_argnums=[],
         )(
@@ -1063,7 +1195,7 @@ class BDEEstimator(FullyConnectedEstimator):
         def logdensity(params):
 
             @jax.jit
-            def sub_f(carry, batch):
+            def _batch_iter_log_density(carry, batch):
                 return self.logdensity_for_batch(
                     params=params,
                     carry=carry,
@@ -1071,7 +1203,7 @@ class BDEEstimator(FullyConnectedEstimator):
                 )
 
             res, _ = jax.lax.scan(
-                f=sub_f,
+                f=_batch_iter_log_density,
                 init=self.log_prior(params),
                 xs=train.get_scannable(),  # Must be single-batched (see batch_mcmc_)
             )
@@ -1409,7 +1541,7 @@ class BDEEstimator(FullyConnectedEstimator):
             batch_size=batch_size,
         )
 
-    @jax.jit
+    # @jax.jit
     def predict_with_credibility_eti(
         self,
         X: ArrayLike,
@@ -1436,10 +1568,10 @@ class BDEEstimator(FullyConnectedEstimator):
             # n_devices=1,
             # batch_size=-1,
         )
-        pred = samples.median(axis=-1)
+        pred = jnp.median(samples, axis=-1)
         tail_size = 100 * (1 - a) / 2
-        i_low = jnp.percentile(pred, tail_size, axis=-1)
-        i_high = jnp.percentile(pred, 100 - tail_size, axis=-1)
+        i_low = jnp.percentile(samples, tail_size, axis=-1)
+        i_high = jnp.percentile(samples, 100 - tail_size, axis=-1)
         return pred, i_low, i_high
 
     # @jax.jit

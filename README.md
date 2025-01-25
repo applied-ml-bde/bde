@@ -6,11 +6,10 @@
 ## Introduction
 
 
-This repo was created as a course project at the University of Munich
-(LMU). It implements a bayesian deep ensemble of fully connected 
-networks for use with tabular data.
-The following links contain the [background paper](https://arxiv.org/abs/2402.01484 )
-and the [repo](https://github.com/EmanuelSommer/bnn_connecting_the_dots) corresponding to the background paper. 
+This repo is a user friendly implementation of bayesian deep ensemble based on
+the following [paper](https://arxiv.org/abs/2402.01484 )
+and its [corresponding repo](https://github.com/EmanuelSommer/bnn_connecting_the_dots).
+
 The package is compatible with [Jax](https://jax.readthedocs.io/en/latest/quickstart.html) and [sklearn](https://scikit-learn.org/stable/index.html).
 
 
@@ -88,32 +87,40 @@ for task such as hyperparameter optimization:
 ## Background
 Bayesian Neural Networks provide a principled approach to deep learning 
 which allows for uncertainty quantification. Compared to traditional
-statistical methods which treat model parameters as unknown, but fixed
+statistical methods which treat model parameters as unknown but fixed
 values, Bayesian methods treat model parameters as random
-variables. Hence, we have to specify a prior distribution over those
-parameters which can be interpreted as prior knowledge. Given data,
-we can update the beliefs about the parameters and calculate credible
-intervals for the parameters and predictions. A credible interval in 
-Bayesian statistics defines the range for which the parameter or prediction is 
-believed to fall into with a specified probability based on its posterior distribution. 
+variables. Hence, we have to specify a prior distribution over these
+parameters which can be interpreted as prior knowledge. 
+Given data, we can update the beliefs about the parameters and calculate credible
+intervals for the parameters and predictions.
+A credible interval in Bayesian statistics defines the range for which the
+parameter or prediction is believed to fall into with a specified probability based
+on its posterior distribution. 
 
 However, while potentially rewarding for its predictive capabilities and uncertainty
-measurements, Bayesian optimization can be challenging and resource intensive due to 
+measurements, Bayesian inference can be challenging and resource intensive due to 
 usually strongly multimodal posterior landscapes.
 ([Izmailov et al., 2021](https://proceedings.mlr.press/v139/izmailov21a.html))
-To alleviate that issue, this package uses an ensemble of networks sampled from different Markov
-Chains to better capture the posterior density and [Jax](https://jax.readthedocs.io/en/latest/quickstart.html) for better computational efficiency.
+To alleviate that issue, this package uses an ensemble of networks sampled from
+different Markov Chains to better capture the posterior density and 
+[Jax](https://jax.readthedocs.io/en/latest/quickstart.html) for better computational
+efficiency.
 
 ## The Procedure
 Assumptions: assume an independent distribution of model parameters
-1. Define a fully connected neural network structure where each output value corresponds to a parametrization of a distribution. 
-   In the case of a Gaussian distribution (currently the only supported option), each output value corresponds to 2 predictions:
-   mean $\mu$ and the standard deviation $\sigma$. Hence, the output layer for a network with N predicted values should look as follows: $(\mu_1, \mu_2, ..., \mu_N, \sigma_1, \sigma_2, ..., \sigma_N$).
+1. Define a fully connected neural network structure where each output value
+   corresponds to a parametrization of a distribution. 
+   In the case of a Gaussian distribution (currently the only supported option),
+   each output value corresponds to 2 predictions:
+    - mean $\mu$ 
+    - standard deviation $\sigma$. 
+   Hence, the output layer for a network with N predicted values should look as 
+   follows: $(\mu_1, \mu_2, ..., \mu_N, \sigma_1, \sigma_2, ..., \sigma_N$).
 2. Train n neural networks in parallel using a
    negative log-likelihood loss function to obtain $\mu$
    and $\sigma$.
 3. Specify a prior distribution over the model weights.
-4. Calculate the posterior probability of the weights.
+4. Calculate the unnormalized log posterior of the weights.
 5. Use a sampler with burn-in period to sample new trained networks, 
    i.e. sets of weights, in parallel from the posterior distribution.
 6. Use the obtained networks to predict the data.
