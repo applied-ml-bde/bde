@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>GaussianNLLLoss &#8212; BDE 0.1.dev331+g916b1ab.d20241010 documentation</title>
+    <title>GaussianNLLLoss &#8212; BDE 0.1.dev341+ged42d69.d20250125 documentation</title>
   
   
   
@@ -42,7 +42,7 @@
 <link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=dfe6caa3a7d634c4db9b" />
   <script src="../_static/vendor/fontawesome/6.5.2/js/all.min.js?digest=dfe6caa3a7d634c4db9b"></script>
 
-    <script src="../_static/documentation_options.js?v=3db5d673"></script>
+    <script src="../_static/documentation_options.js?v=a99cec27"></script>
     <script src="../_static/doctools.js?v=9a2dae69"></script>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
@@ -131,8 +131,8 @@
       
     
     
-    <img src="../_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.dev331+g916b1ab.d20241010 documentation - Home"/>
-    <script>document.write(`<img src="../_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.dev331+g916b1ab.d20241010 documentation - Home"/>`);</script>
+    <img src="../_static/logo.svg" class="logo__image only-light" alt="BDE 0.1.dev341+ged42d69.d20250125 documentation - Home"/>
+    <script>document.write(`<img src="../_static/logo.svg" class="logo__image only-dark" alt="BDE 0.1.dev341+ged42d69.d20250125 documentation - Home"/>`);</script>
   
   
 </a></div>
@@ -389,7 +389,7 @@ document.write(`
 <h1>GaussianNLLLoss<a class="headerlink" href="#gaussiannllloss" title="Link to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="bde.ml.loss.GaussianNLLLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bde.ml.loss.</span></span><span class="sig-name descname"><span class="pre">GaussianNLLLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bde.ml.loss.GaussianNLLLoss" title="Link to this definition">#</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">bde.ml.loss.</span></span><span class="sig-name descname"><span class="pre">GaussianNLLLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-06</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_full</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bde.ml.loss.GaussianNLLLoss" title="Link to this definition">#</a></dt>
 <dd><p>Gaussian negative log likelihood loss.</p>
 <p>A callable jax-supported class for computing the negative log likelihood loss of a
 Gaussian distribution.
@@ -451,13 +451,19 @@ between the predicted probability distribution and the true labels.</p>
 <div class="pst-scrollable-table-container"><table class="table">
 <tbody>
 <tr class="row-odd"><td><p><strong>__call__(y_true, y_pred)</strong></p></td>
-<td><p>Computes the log-likelihood loss for the given predictions and labels.</p></td>
+<td><p>Computes the log-likelihood loss for the predicted parametrization of the Gaussian distribution, given the provided labels.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>_split_pred(y_true, y_pred)</strong></p></td>
-<td><p>Splits the predicted values into predictions and their corresponding uncertainties.</p></td>
+<td><p>Splits the predicted values into predictions of mean and std of Gaussian distributions.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>apply_reduced()</strong></p></td>
-<td><p>Evaluates the reduced loss (inherited from base class).</p></td>
+<td><p>Evaluates and reduces the loss.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>tree_flatten()</strong></p></td>
+<td><p>Used to turn the class into a jitible PyTree.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>tree_unflatten(aux_data, children)</strong></p></td>
+<td><p>A class method used to recreate the class from a PyTree.</p></td>
 </tr>
 </tbody>
 </table>
@@ -466,13 +472,13 @@ between the predicted probability distribution and the true labels.</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="../source/bde.ml.html#bde.ml.loss.GaussianNLLLoss.apply_reduced" title="bde.ml.loss.GaussianNLLLoss.apply_reduced"><code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_reduced</span></code></a>(y_true, y_pred, **kwargs)</p></td>
-<td><p>Evaluate reduced the loss.</p></td>
+<td><p>Evaluate and reduces the loss.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="../source/bde.ml.html#bde.ml.loss.GaussianNLLLoss.tree_flatten" title="bde.ml.loss.GaussianNLLLoss.tree_flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tree_flatten</span></code></a>()</p></td>
-<td><p>Specify how to serialize module into a JAX pytree.</p></td>
+<td><p>Specify how to serialize module into a JAX PyTree.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="../source/bde.ml.html#bde.ml.loss.GaussianNLLLoss.tree_unflatten" title="bde.ml.loss.GaussianNLLLoss.tree_unflatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tree_unflatten</span></code></a>(aux_data, children)</p></td>
-<td><p>Specify how to build a module from a JAX pytree.</p></td>
+<td><p>Specify how to build a module from a JAX PyTree.</p></td>
 </tr>
 </tbody>
 </table>
@@ -480,15 +486,15 @@ between the predicted probability distribution and the true labels.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="bde.ml.loss.GaussianNLLLoss.apply_reduced">
 <span class="sig-name descname"><span class="pre">apply_reduced</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bde.ml.loss.GaussianNLLLoss.apply_reduced" title="Link to this definition">#</a></dt>
-<dd><p>Evaluate reduced the loss.</p>
-<p>The loss is evaluated separately for each item in the batch,
-and the mean of these values is returned.</p>
+<dd><p>Evaluate and reduces the loss.</p>
+<p>The loss is evaluated separately for each item in the batch and the loss of
+all batches is reduced by arithmetic mean to a single value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><strong>y_true</strong></dt><dd><p>The ground truth.</p>
+<dt><strong>y_true</strong></dt><dd><p>The ground truth labels.</p>
 </dd>
-<dt><strong>y_pred</strong></dt><dd><p>The prediction.</p>
+<dt><strong>y_pred</strong></dt><dd><p>The predictions.</p>
 </dd>
 <dt><strong>**kwargs</strong></dt><dd><p>Other keywords that may be passed to the unreduced loss function.</p>
 </dd>
@@ -501,12 +507,12 @@ and the mean of these values is returned.</p>
 </dl>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code></a>]</span></p>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code></a>]</span></p>
 </dd>
 <dt class="field-even">Parameters<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><strong>y_true</strong> (<em>Array</em><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>ndarray</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.1)"><em>bool</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.1)"><em>number</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><em>complex</em></a>)</p></li>
-<li><p><strong>y_pred</strong> (<em>Array</em><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><em>ndarray</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.1)"><em>bool</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.1)"><em>number</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><em>complex</em></a>)</p></li>
+<li><p><strong>y_true</strong> (<em>Array</em><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>ndarray</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.2)"><em>bool</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.2)"><em>number</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><em>complex</em></a>)</p></li>
+<li><p><strong>y_pred</strong> (<em>Array</em><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>ndarray</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.2)"><em>bool</em></a><em> | </em><a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.2)"><em>number</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> | </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><em>complex</em></a>)</p></li>
 </ul>
 </dd>
 </dl>
@@ -515,19 +521,19 @@ and the mean of these values is returned.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="bde.ml.loss.GaussianNLLLoss.tree_flatten">
 <span class="sig-name descname"><span class="pre">tree_flatten</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#bde.ml.loss.GaussianNLLLoss.tree_flatten" title="Link to this definition">#</a></dt>
-<dd><p>Specify how to serialize module into a JAX pytree.</p>
+<dd><p>Specify how to serialize module into a JAX PyTree.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt>A tuple with 2 elements:</dt><dd><ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">children</span></code>, containing arrays &amp; pytrees</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">children</span></code>, containing arrays &amp; PyTrees</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">aux_data</span></code>, containing static and hashable data.</p></li>
 </ul>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.1)"><code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Sequence" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Sequence</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Union</span></code></a>[<code class="xref py py-class docutils literal notranslate"><span class="pre">Array</span></code>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.bool" title="(in NumPy v2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.number" title="(in NumPy v2.2)"><code class="xref py py-class docutils literal notranslate"><span class="pre">number</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#complex" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">complex</span></code></a>]], <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><code class="xref py py-data docutils literal notranslate"><span class="pre">Any</span></code></a>]</span></p>
 </dd>
 </dl>
 </dd></dl>
@@ -535,13 +541,13 @@ and the mean of these values is returned.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="bde.ml.loss.GaussianNLLLoss.tree_unflatten">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tree_unflatten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aux_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">children</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#bde.ml.loss.GaussianNLLLoss.tree_unflatten" title="Link to this definition">#</a></dt>
-<dd><p>Specify how to build a module from a JAX pytree.</p>
+<dd><p>Specify how to build a module from a JAX PyTree.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
 <dt><strong>aux_data</strong></dt><dd><p>Contains static, hashable data.</p>
 </dd>
-<dt><strong>children</strong></dt><dd><p>Contain arrays &amp; pytrees.</p>
+<dt><strong>children</strong></dt><dd><p>Contain arrays &amp; PyTrees.</p>
 </dd>
 </dl>
 </dd>
