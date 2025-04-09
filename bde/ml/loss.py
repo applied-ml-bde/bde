@@ -25,6 +25,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import (
     Any,
+    Dict,
     Optional,
     Sequence,
     Tuple,
@@ -60,7 +61,7 @@ class LossMSE(Loss):
     """
 
     @jax.jit
-    def __call__(
+    def call(
         self,
         y_true: ArrayLike,
         y_pred: ArrayLike,
@@ -83,8 +84,7 @@ class LossMSE(Loss):
         Array
             The unreduced loss value.
         """
-        res = optax.losses.squared_error(y_pred, y_true)
-        return res.mean(axis=tuple(range(1, res.ndim)))
+        return optax.losses.squared_error(y_pred, y_true)
 
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize module into a JAX PyTree.
@@ -173,6 +173,34 @@ class NLLLoss(Loss, ABC):
             The predicted parameterization of the evaluated distributions.
         """
         ...
+
+    @jax.jit
+    def __call__(
+            self,
+            y_true: ArrayLike,
+            y_pred: ArrayLike,
+            **kwargs,
+    ) -> Array:
+        r"""Compute the Gaussian-NLLLoss for the given predictions and labels.
+
+        Parameters
+        ----------
+        y_true
+            The true labels. An array of the shape ``(n_samples, ..., n_features)``.
+        y_pred
+            The predicted values.
+            An array of the shape ``(n_samples, ..., n_features + n_uncertainty)``.
+            If ``n_uncertainty < n_features``, the last ``n_features - n_uncertainty``
+            will be assigned an uncertainty of 1 which effectively calculates their MSE
+            (as long as ``\epsilon\se1``).
+
+        Returns
+        -------
+        Array
+            Returns the log-likelihood of the given values.
+        """
+        dist_params = self._split_pred(y_true=y_true, y_pred=y_pred)
+        return super().__call__(y_true=y_true, y_pred=y_pred, **(dist_params | kwargs))
 
 
 @register_pytree_node_class
@@ -311,11 +339,12 @@ class GaussianNLLLoss(NLLLoss):
         return x
 
     @jax.jit
-    def __call__(
+    def call(
         self,
         y_true: ArrayLike,
         y_pred: ArrayLike,
-        **kwargs,
+        mean_pred,
+        std_pred,
     ) -> Array:
         r"""Compute the Gaussian-NLLLoss for the given predictions and labels.
 
@@ -335,7 +364,6 @@ class GaussianNLLLoss(NLLLoss):
         Array
             Returns the log-likelihood of the given values.
         """
-        mean_pred, std_pred = self._split_pred(y_true=y_true, y_pred=y_pred)
         var_pred = jnp.clip(
             std_pred**2,
             a_min=self.params["epsilon"],
@@ -349,14 +377,14 @@ class GaussianNLLLoss(NLLLoss):
             self._jitted_identity,
             res + jnp.log(var_pred),
         )
-        return res.mean(axis=tuple(range(1, res.ndim)))
+        return res
 
     @jax.jit
     def _split_pred(
         self,
         y_true: ArrayLike,
         y_pred: ArrayLike,
-    ) -> tuple[Array, Array]:
+    ) -> Dict[str, Array]:
         r"""Split the predicted values into predictions and uncertainties.
 
         Split the predicted values into 2 arrays of the same shape: predictions and
@@ -385,8 +413,10 @@ class GaussianNLLLoss(NLLLoss):
 
         Returns
         -------
-        tuple[Array, Array]
-            A tuple containing the predicted labels and the predicted uncertainty.
+        Dict[str, Array]
+            A dictionary corresponding distribution parameters to arrays:
+            - `mean_pred`: The mean of the predicted distributions.
+            - `std_pred`: The standard deviation of the predicted distributions.
         """
         n_mean = y_true.shape[-1]
         chex.assert_scalar_non_negative(y_pred.shape[-1] - n_mean)
@@ -407,7 +437,10 @@ class GaussianNLLLoss(NLLLoss):
             mode="constant",
             constant_values=1,
         )
-        return mean_pred, std_pred
+        return {
+            "mean_pred": mean_pred,
+            "std_pred": std_pred,
+        }
 
 
 def flax_training_loss_wrapper_regression(

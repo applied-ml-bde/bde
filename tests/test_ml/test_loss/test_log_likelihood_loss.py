@@ -19,7 +19,8 @@ class TestHSplitPred:
             tuple([1 for _ in range(n_dim - 1)] + [-1])
         )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            res = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            mean, sigma = res["mean_pred"], res["std_pred"]
         assert mean.shape == sigma.shape and mean.shape == y_true.shape
 
     @staticmethod
@@ -31,7 +32,8 @@ class TestHSplitPred:
             (b_batch, -1)
         )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            res = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            mean, sigma = res["mean_pred"], res["std_pred"]
         assert mean.shape == sigma.shape
 
     @staticmethod
@@ -43,7 +45,8 @@ class TestHSplitPred:
             (b_batch, -1)
         )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            res = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            mean, sigma = res["mean_pred"], res["std_pred"]
         assert mean.shape == sigma.shape
 
     @staticmethod
@@ -55,7 +58,8 @@ class TestHSplitPred:
             (b_batch, -1)
         )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            res = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            mean, sigma = res["mean_pred"], res["std_pred"]
         assert mean.shape == sigma.shape
 
     @staticmethod
@@ -68,7 +72,7 @@ class TestHSplitPred:
             (b_batch, -1)
         )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)["std_pred"]
         assert jnp.allclose(
             sigma[..., n_std_features:], jnp.ones_like(sigma[..., n_std_features:])
         )
@@ -82,7 +86,7 @@ class TestHSplitPred:
             (b_batch, -1)
         )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)["std_pred"]
         assert jnp.allclose(sigma[..., :n_std_features], y_pred[..., n_features:])
 
     @staticmethod
@@ -94,7 +98,7 @@ class TestHSplitPred:
             (b_batch, -1)
         )
         with jax.disable_jit(disable=not do_use_jit):
-            mean, sigma = GaussianNLLLoss()._split_pred(y_true, y_pred)
+            mean = GaussianNLLLoss()._split_pred(y_true, y_pred)["mean_pred"]
         assert jnp.allclose(mean, y_pred[..., :n_features])
 
 
