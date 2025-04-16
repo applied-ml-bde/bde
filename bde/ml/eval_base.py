@@ -43,7 +43,54 @@ class Evaluation(ABC):
         loss of all batches is reduced to a single value.
         The default implementation takes the arithmetic mean as the reduction, but
         classes implementing this API are free to reimplement this method.
+    get_opt_factor()
+        Returns the value of the `_opt_factor` parameter, indicating whether the
+        evaluation needs to be minimized (1.0) or maximized (-1.0).
+
+    Parameters
+    ----------
+    _do_minimize
+        A parameter which needs to be set by classes implementing the API,
+        indicating whether the evaluation needs to be minimized or maximized:
+        True if the evaluation needs to be minimized.
+        False if the evaluation needs to be Maximized.
+    _opt_factor
+        A parameter derived from `_do_minimize` which is used in jitted calculations.
+        1.0 if the evaluation needs to be minimized.
+        -1.0 if the evaluation needs to be Maximized.
     """
+
+    _do_minimize: bool
+    _opt_factor: float
+
+    def __init__(self):
+        r"""Create an instance of the evaluation class."""
+
+        @jax.jit
+        def f_true():
+            return 1.0
+
+        @jax.jit
+        def f_false():
+            return -1.0
+
+        self._opt_factor = jax.lax.cond(
+            self._do_minimize,
+            f_true,
+            f_false,
+        )
+
+    @jax.jit
+    def get_opt_factor(self) -> float:
+        r"""Get the optimization factor for the evaluation.
+
+        Returns
+        -------
+        float
+            1.0 if the optimization needs to be minimized.
+            -1.0 if the optimization needs to be maximized.
+        """
+        return self._opt_factor
 
     @abstractmethod
     def call(
@@ -201,6 +248,8 @@ class Loss(Evaluation, ABC):
         classes implementing this API are free to reimplement this method.
     """
 
+    _do_minimize: bool = True
+
 
 @register_pytree_node_class
 class Metric(Evaluation, ABC):
@@ -220,6 +269,8 @@ class Metric(Evaluation, ABC):
         The default implementation takes the arithmetic mean as the reduction, but
         classes implementing this API are free to reimplement this method.
     """
+
+    _do_minimize: bool = False
 
 
 if __name__ == "__main__":

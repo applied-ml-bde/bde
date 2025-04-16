@@ -9,6 +9,10 @@ SEED = cnfg.General.SEED
 possible_reductions = [True, False]
 
 
+def test_optimization_type():
+    assert GaussianNLLLoss().get_opt_factor() == 1.0
+
+
 class TestHSplitPred:
     @staticmethod
     @pytest.mark.parametrize("do_use_jit", [True, False])

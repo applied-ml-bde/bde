@@ -1,19 +1,17 @@
-import pytest
-from abc import ABC, abstractmethod
-from typing import Any, Union, Optional
-from collections.abc import Iterable
 
 import jax
+import pytest
 from jax import numpy as jnp
-from jax import Array
-from jax.typing import ArrayLike
-import pathlib
 
 from bde.ml.loss import LossMSE
 from bde.utils import configs as cnfg
 
 SEED = cnfg.General.SEED
 POSSIBLE_REDUCTIONS = [True, False]
+
+
+def test_optimization_type():
+    assert LossMSE().get_opt_factor() == 1.0
 
 
 class TestLossMSECall:

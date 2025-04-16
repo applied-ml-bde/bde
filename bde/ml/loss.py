@@ -289,6 +289,7 @@ class GaussianNLLLoss(NLLLoss):
             "mean_weight": mean_weight,
             "is_full": is_full,
         }
+        super().__init__()
 
     def tree_flatten(self) -> Tuple[Sequence[ArrayLike], Any]:
         r"""Specify how to serialize module into a JAX PyTree.

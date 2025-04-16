@@ -62,6 +62,15 @@ def train_step(
         has_aux=False,  # Function has additional outputs, here accuracy
     )
     loss, grads = grad_fn(state, state.params, batch)
+
+    @jax.jit
+    def f_mapped(grad):
+        return grad * f_loss.get_opt_factor()
+
+    grads = jax.tree.map(
+        f=f_mapped,
+        tree=grads,
+    )
     state = state.apply_gradients(grads=grads)
     return state, loss
 
